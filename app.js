@@ -25,18 +25,47 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   del(k) { try { localStorage.removeItem(k); } catch (e) {} }
 };
-let user = store.get("aistudy.user", null);          // { name, pin, org }
+store.del("aistudy.user");                            // 예전 PIN 방식 기록 정리
 let prog = store.get("aistudy.prog", {});            // { [week]: {notes, lab, score, total} }
 const saveProg = () => store.set("aistudy.prog", prog);
 
-/* ---------- Supabase RPC ---------- */
+/* ---------- 로그인 (Supabase Auth + 카카오) ---------- */
+const sb = window.supabase.createClient(SB.url, SB.key, {
+  auth: { flowType: "pkce", detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
+});
+let session = null;   // 카카오 로그인 세션
+let me = null;        // study_members 본인 행 { id, name, org, status, is_admin }
+let user = null;      // 승인된 멤버일 때만 me와 같음 (진도 저장·대시보드 조건)
+
+function kakaoName() {
+  const m = (session && session.user && session.user.user_metadata) || {};
+  return (m.name || m.full_name || m.nickname || m.user_name || m.preferred_username || "").slice(0, 20);
+}
+async function loadMe() {
+  me = null; user = null;
+  if (!session) return;
+  const { data, error } = await sb.from("study_members").select("id,name,org,status,is_admin").maybeSingle();
+  if (!error && data) me = data;
+  user = me && me.status === "approved" ? me : null;
+}
+async function loginKakao() {
+  store.set("aistudy.after", location.hash || "#me");
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: "kakao",
+    options: { redirectTo: location.origin + location.pathname }
+  });
+  if (error) toast("카카오 로그인을 시작하지 못했습니다: " + error.message);
+}
+async function logout() {
+  await sb.auth.signOut();
+  session = null; me = null; user = null;
+  toast("로그아웃했습니다. 이 브라우저의 진도 기록은 남아 있습니다.");
+  renderNav(); render();
+}
+
 async function rpc(fn, body = {}) {
-  const headers = { apikey: SB.key, "Content-Type": "application/json" };
-  if (SB.key.startsWith("eyJ")) headers.Authorization = "Bearer " + SB.key;
-  const r = await fetch(`${SB.url}/rest/v1/rpc/${fn}`, { method: "POST", headers, body: JSON.stringify(body) });
-  const t = await r.text();
-  let data = null; try { data = t ? JSON.parse(t) : null; } catch (e) { data = t; }
-  if (!r.ok) throw new Error((data && data.message) || `요청 실패 (${r.status})`);
+  const { data, error } = await sb.rpc(fn, body);
+  if (error) throw new Error(error.message || "요청 실패");
   return data;
 }
 
@@ -44,29 +73,34 @@ async function pushWeek(week, patch) {
   if (!user) return;
   try {
     await rpc("study_save", {
-      p_name: user.name, p_pin: user.pin, p_week: week,
-      p_notes: patch.notes ?? null, p_lab: patch.lab ?? null,
+      p_week: week, p_notes: patch.notes ?? null, p_lab: patch.lab ?? null,
       p_quiz_score: patch.score ?? null, p_quiz_total: patch.total ?? null
     });
     toast("대시보드에 저장했습니다");
   } catch (e) { toast("서버 저장 실패: " + e.message + " (이 브라우저에는 저장됨)"); }
 }
 
-async function pullMine() {
+/* 승인된 뒤: 이 브라우저 기록을 올리고, 서버 기록을 내려받아 합침 */
+async function syncMine() {
   if (!user) return;
-  try {
-    const rows = await rpc("study_dashboard");
-    for (const r of rows || []) {
-      if (r.name !== user.name || !r.week) continue;
-      const p = prog[r.week] || {};
-      prog[r.week] = {
-        notes: !!(p.notes || r.notes_done), lab: !!(p.lab || r.lab_done),
-        score: Math.max(p.score ?? -1, r.quiz_score ?? -1), total: r.quiz_total ?? p.total
-      };
-      if (prog[r.week].score < 0) delete prog[r.week].score;
-    }
-    saveProg();
-  } catch (e) { /* 오프라인이면 로컬 진도만 사용 */ }
+  for (const [w, p] of Object.entries(prog)) {
+    if (!(p.notes || p.lab || p.score != null)) continue;
+    await rpc("study_save", { p_week: +w, p_notes: p.notes ? true : null, p_lab: p.lab ? true : null,
+      p_quiz_score: p.score ?? null, p_quiz_total: p.total ?? null }).catch(() => {});
+  }
+  const { data } = await sb.from("study_progress").select("week,notes_done,lab_done,quiz_score,quiz_total");
+  for (const r of data || []) {
+    const p = prog[r.week] || {};
+    const score = Math.max(p.score ?? -1, r.quiz_score ?? -1);
+    prog[r.week] = { notes: !!(p.notes || r.notes_done), lab: !!(p.lab || r.lab_done), total: r.quiz_total ?? p.total };
+    if (score >= 0) prog[r.week].score = score;
+  }
+  saveProg();
+}
+function syncHint() {
+  if (user) return "";
+  if (me && me.status === "pending") return " · 운영자 승인 후 대시보드에 반영됩니다";
+  return ' · <a href="#me">카카오로 로그인</a>하면 대시보드에 반영됩니다';
 }
 
 /* ---------- 진도 상태 ---------- */
@@ -207,7 +241,7 @@ function viewHome() {
     </div>
     <div class="howto">
       <div><h3>매주 진행</h3>발표 40분, 실습 60분, 토론 20분. 시작 10분은 AI 테크 데일리 뉴스레터에서 고른 뉴스 3개를 나눕니다.</div>
-      <div><h3>진도 기록</h3><a href="#me">내 진도</a>에서 이름과 PIN으로 등록하면 강의 노트·실습·퀴즈 기록이 <a href="#dashboard">대시보드</a>에 모입니다.</div>
+      <div><h3>진도 기록</h3><a href="#me">내 진도</a>에서 카카오로 로그인하고 운영자 승인을 받으면 강의 노트·실습·퀴즈 기록이 <a href="#dashboard">대시보드</a>에 모입니다.</div>
       <div><h3>용어가 막히면</h3>본문의 점선 밑줄 용어를 누르면 <a href="${GLOSSARY_URL.slice(0, -1)}" target="_blank" rel="noopener">실무 AI 용어집</a>의 해당 문서가 열립니다.</div>
     </div>
   </div>`;
@@ -240,7 +274,7 @@ function viewWeek(wk) {
       <div class="track">
         <button class="chk" type="button" data-track="notes" aria-pressed="${!!p.notes}"><span class="box"></span>강의 노트 읽음</button>
         <button class="chk" type="button" data-track="lab" aria-pressed="${!!p.lab}"><span class="box"></span>실습 완료</button>
-        <span class="note">${p.score != null ? `퀴즈 최고 ${p.score}/${p.total}` : "퀴즈 미응시"}${user ? "" : ' · <a href="#me">등록</a>하면 대시보드에 반영됩니다'}</span>
+        <span class="note">${p.score != null ? `퀴즈 최고 ${p.score}/${p.total}` : "퀴즈 미응시"}${syncHint()}</span>
       </div>
 
       <section class="sec" id="goals"><h2>학습 목표</h2><ul class="goals">${wk.goals.map(g => `<li>${esc(g)}</li>`).join("")}</ul></section>
@@ -310,7 +344,7 @@ function bindWeek(wk) {
     p.score = best; p.total = total; saveProg();
     $(".score", form).textContent = `${score}/${total} 정답${best > score ? ` (최고 ${best}/${total})` : ""}`;
     form.querySelector("[type=submit]").disabled = true; $("#retry").hidden = false;
-    $(".track .note").firstChild && ($(".track .note").innerHTML = `퀴즈 최고 ${best}/${total}` + (user ? "" : ' · <a href="#me">등록</a>하면 대시보드에 반영됩니다'));
+    $(".track .note").firstChild && ($(".track .note").innerHTML = `퀴즈 최고 ${best}/${total}` + syncHint());
     pushWeek(wk.week, { score, total });
   });
   $("#retry").addEventListener("click", () => {
@@ -330,24 +364,26 @@ function bindWeek(wk) {
 /* ---------- 화면: 대시보드 ---------- */
 function viewDashboard() {
   return `<div class="wrap">
-    <div class="dhead"><div><h1>스터디 대시보드</h1><p>등록한 멤버의 주차별 강의 노트·실습·퀴즈 기록입니다.</p></div>
+    <div class="dhead"><div><h1>스터디 대시보드</h1><p>승인된 멤버의 주차별 강의 노트·실습·퀴즈 기록입니다.</p></div>
       <button class="btn ghost" type="button" id="reload">새로고침</button></div>
     <div id="dash"><p class="notice">불러오는 중…</p></div>
   </div>`;
 }
 async function loadDashboard() {
   const el = $("#dash");
+  if (!session) { el.innerHTML = `<div class="notice">대시보드는 승인된 스터디 멤버만 볼 수 있습니다.<div style="margin-top:12px">${kakaoBtn()}</div></div>`; bindKakao(el); return; }
+  if (!user) { el.innerHTML = `<p class="notice">${me && me.status === "pending" ? "가입 신청이 접수됐습니다. 운영자가 승인하면 대시보드를 볼 수 있습니다." : me && me.status === "rejected" ? "가입 신청이 승인되지 않았습니다. 운영자에게 문의하세요." : '아직 스터디 가입 신청 전입니다. <a href="#me">내 진도</a>에서 신청하세요.'}</p>`; return; }
   let rows;
   try { rows = await rpc("study_dashboard"); }
   catch (e) { el.innerHTML = `<p class="notice">대시보드를 불러오지 못했습니다. ${esc(e.message)} 잠시 후 새로고침하세요.</p>`; return; }
   const members = new Map();
   for (const r of rows || []) {
-    if (!members.has(r.name)) members.set(r.name, { name: r.name, org: r.org, weeks: {}, last: r.joined_at });
-    const m = members.get(r.name);
+    if (!members.has(r.member_id)) members.set(r.member_id, { id: r.member_id, name: r.name, org: r.org, weeks: {}, last: r.joined_at });
+    const m = members.get(r.member_id);
     if (r.week) { m.weeks[r.week] = r; if (r.updated_at > m.last) m.last = r.updated_at; }
   }
   const list = [...members.values()];
-  if (!list.length) { el.innerHTML = `<p class="notice">아직 등록한 멤버가 없습니다. <a href="#me">내 진도</a>에서 이름과 PIN으로 등록하면 이곳에 표시됩니다.</p>`; return; }
+  if (!list.length) { el.innerHTML = `<p class="notice">아직 승인된 멤버가 없습니다.</p>`; return; }
   const st = (m, w) => { const r = m.weeks[w]; if (!r) return "none"; if (r.notes_done && r.lab_done) return "full"; if (r.notes_done || r.lab_done || r.quiz_score != null) return "half"; return "none"; };
   list.forEach(m => { m.done = WEEKS.filter(w => st(m, w.week) === "full").length; });
   list.sort((a, b) => b.done - a.done || a.name.localeCompare(b.name, "ko"));
@@ -385,7 +421,7 @@ async function loadDashboard() {
             <tr><th class="name">멤버</th>${WEEKS.map(w => `<th scope="col">${w.week}</th>`).join("")}<th>완료</th></tr>
           </thead>
           <tbody>
-            ${list.map(m => `<tr class="${user && user.name === m.name ? "me" : ""}"><th class="name" scope="row">${esc(m.name)}${m.org ? `<small>${esc(m.org)}</small>` : ""}</th>
+            ${list.map(m => `<tr class="${user && user.id === m.id ? "me" : ""}"><th class="name" scope="row">${esc(m.name)}${m.org ? `<small>${esc(m.org)}</small>` : ""}</th>
               ${WEEKS.map(w => { const r = m.weeks[w.week], s = st(m, w.week);
                 const tip = `${m.name} · ${w.week}주 ${w.title}&#10;강의 노트 ${r && r.notes_done ? "완료" : "미완료"} · 실습 ${r && r.lab_done ? "완료" : "미완료"}&#10;퀴즈 ${r && r.quiz_total ? r.quiz_score + "/" + r.quiz_total : "미응시"}`;
                 return `<td><span class="cell" style="--c:${cvar(w.stage)}" tabindex="0" data-tip="${esc(tip)}"><i class="dot ${s}"></i><em>${r && r.quiz_total ? r.quiz_score : ""}</em></span></td>`; }).join("")}
@@ -398,64 +434,89 @@ async function loadDashboard() {
 }
 
 /* ---------- 화면: 내 진도 ---------- */
+const KAKAO_SYMBOL = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3.5C6.75 3.5 2.5 6.86 2.5 11c0 2.66 1.76 5 4.41 6.33l-.9 3.28c-.08.29.25.52.5.35l3.93-2.6c.51.06 1.03.09 1.56.09 5.25 0 9.5-3.36 9.5-7.5S17.25 3.5 12 3.5z"/></svg>';
+const kakaoBtn = () => `<button class="kakao" type="button" data-kakao>${KAKAO_SYMBOL}카카오 로그인</button>`;
+function bindKakao(root = document) { root.querySelectorAll("[data-kakao]").forEach(b => b.addEventListener("click", loginKakao)); }
+
 function viewMe() {
-  if (user) {
+  if (!session) {
     return `<div class="wrap me">
-      <h1>${esc(user.name)} 님</h1>
-      <p>${user.org ? esc(user.org) + " · " : ""}16주 중 ${doneCount()}주를 완료했습니다. 진도는 이 브라우저와 대시보드에 함께 저장됩니다.</p>
-      <div class="qbar" style="margin-top:20px"><a class="btn" href="#home" style="text-decoration:none">노선도로 가기</a><button class="btn ghost" type="button" id="logout">이 브라우저에서 로그아웃</button></div>
+      <h1>내 진도</h1>
+      <p>카카오로 로그인하고 스터디 가입을 신청하세요. 운영자가 승인하면 진도가 대시보드에 모입니다. 로그인하지 않아도 이 브라우저에는 진도가 저장됩니다.</p>
+      <div style="margin-top:24px">${kakaoBtn()}</div>
+      <p class="fine">카카오 계정의 닉네임과 프로필 사진만 받습니다. 카카오톡 친구 목록이나 메시지에는 접근하지 않습니다.</p>
     </div>`;
   }
-  return `<div class="wrap me">
-    <h1>내 진도</h1>
-    <p>이름과 PIN으로 등록하면 진도가 대시보드에 모입니다. 비밀번호 대신 쓰는 숫자 PIN이니 다른 곳에 쓰는 비밀번호는 넣지 마세요.</p>
-    <div class="tabs" role="tablist">
-      <button role="tab" aria-selected="true" data-tab="login">로그인</button>
-      <button role="tab" aria-selected="false" data-tab="join">처음 등록</button>
-    </div>
-    <form class="form" id="authForm" data-mode="login">
-      <label>이름 <small>대시보드에 표시됩니다. 별명도 됩니다.</small><input name="name" required maxlength="20" autocomplete="username"></label>
-      <label class="org" hidden>소속 <small>선택</small><input name="org" maxlength="30" autocomplete="organization"></label>
-      <label>PIN <small>숫자 4~8자리</small><input name="pin" required inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" autocomplete="current-password" type="password"></label>
-      <p class="msg" aria-live="polite"></p>
-      <div><button class="btn" type="submit">로그인</button></div>
-    </form>
+  if (!me || me.status === "rejected") {
+    return `<div class="wrap me">
+      <h1>스터디 가입 신청</h1>
+      <p>${me ? "이전 신청이 승인되지 않았습니다. 정보를 확인하고 다시 신청할 수 있습니다." : "대시보드에 표시될 이름과 소속을 확인하고 신청하세요. 운영자가 승인하면 진도가 저장됩니다."}</p>
+      <form class="form" id="joinForm" style="margin-top:20px">
+        <label>이름 <small>대시보드에 표시됩니다</small><input name="name" required maxlength="20" value="${esc(me ? me.name : kakaoName())}" autocomplete="name"></label>
+        <label>소속 <small>선택</small><input name="org" maxlength="30" value="${esc(me && me.org ? me.org : "")}" autocomplete="organization"></label>
+        <p class="msg" aria-live="polite"></p>
+        <div class="qbar"><button class="btn" type="submit">가입 신청</button><button class="btn ghost" type="button" id="logout">로그아웃</button></div>
+      </form>
+    </div>`;
+  }
+  if (me.status === "pending") {
+    return `<div class="wrap me">
+      <h1>승인 대기 중</h1>
+      <p>${esc(me.name)} 님의 가입 신청이 접수됐습니다. 운영자가 승인하면 진도가 대시보드에 저장됩니다. 그동안 학습 기록은 이 브라우저에 저장되고, 승인 후 자동으로 옮겨집니다.</p>
+      <div class="qbar" style="margin-top:20px"><button class="btn" type="button" id="recheck">승인 여부 다시 확인</button><button class="btn ghost" type="button" id="logout">로그아웃</button></div>
+    </div>`;
+  }
+  return `<div class="wrap me" style="max-width:760px">
+    <h1>${esc(me.name)} 님</h1>
+    <p>${me.org ? esc(me.org) + " · " : ""}16주 중 ${doneCount()}주를 완료했습니다. 진도는 대시보드에 저장됩니다.</p>
+    <div class="qbar" style="margin-top:20px"><a class="btn" href="#home" style="text-decoration:none">노선도로 가기</a><button class="btn ghost" type="button" id="logout">로그아웃</button></div>
+    ${me.is_admin ? `<section class="sec" id="admin"><h2>멤버 승인 관리</h2><div id="adminList"><p class="notice">불러오는 중…</p></div></section>` : ""}
   </div>`;
 }
 function bindMe() {
-  const lo = $("#logout");
-  if (lo) { lo.addEventListener("click", () => { user = null; store.del("aistudy.user"); toast("로그아웃했습니다. 이 브라우저의 진도 기록은 남아 있습니다."); renderNav(); render(); }); return; }
-  const form = $("#authForm"), msg = $(".msg", form);
-  document.querySelectorAll("[data-tab]").forEach(t => t.addEventListener("click", () => {
-    document.querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-selected", x === t));
-    const join = t.dataset.tab === "join";
-    form.dataset.mode = join ? "join" : "login";
-    $(".org", form).hidden = !join;
-    form.querySelector("[type=submit]").textContent = join ? "등록하기" : "로그인";
-    form.pin.autocomplete = join ? "new-password" : "current-password";
-    msg.textContent = ""; msg.className = "msg";
-  }));
-  form.addEventListener("submit", async e => {
-    e.preventDefault();
-    const name = form.name.value.trim(), pin = form.pin.value.trim(), org = form.org.value.trim();
-    if (!/^[0-9]{4,8}$/.test(pin)) { msg.className = "msg err"; msg.textContent = "PIN은 숫자 4~8자리로 입력하세요."; return; }
-    const btn = form.querySelector("[type=submit]"); btn.disabled = true;
-    try {
-      if (form.dataset.mode === "join") await rpc("study_register", { p_name: name, p_pin: pin, p_org: org || null });
-      else if (!(await rpc("study_login", { p_name: name, p_pin: pin }))) throw new Error("이름 또는 PIN이 맞지 않습니다.");
-      user = { name, pin, org: org || null }; store.set("aistudy.user", user);
-      // 이 브라우저에 쌓인 진도를 서버로 올림 (완료 표시와 퀴즈 점수만)
-      for (const [w, p] of Object.entries(prog)) {
-        await rpc("study_save", { p_name: name, p_pin: pin, p_week: +w, p_notes: p.notes ? true : null, p_lab: p.lab ? true : null, p_quiz_score: p.score ?? null, p_quiz_total: p.total ?? null }).catch(() => {});
-      }
-      await pullMine();
-      toast(form.dataset.mode === "join" ? "등록했습니다" : "로그인했습니다");
-      renderNav(); render();
-    } catch (err) {
-      msg.className = "msg err";
-      msg.textContent = /이미 등록/.test(err.message) ? "이미 등록된 이름입니다. 로그인 탭에서 PIN을 입력하세요." : err.message;
-    } finally { btn.disabled = false; }
+  bindKakao();
+  const lo = $("#logout"); if (lo) lo.addEventListener("click", logout);
+  const rc = $("#recheck");
+  if (rc) rc.addEventListener("click", async () => {
+    await loadMe();
+    if (user) { await syncMine(); toast("승인됐습니다. 진도를 대시보드로 옮겼습니다"); }
+    else toast("아직 승인 대기 중입니다");
+    renderNav(); render();
   });
+  const form = $("#joinForm");
+  if (form) form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const msg = $(".msg", form), btn = form.querySelector("[type=submit]");
+    btn.disabled = true;
+    try {
+      await rpc("study_join", { p_name: form.name.value.trim(), p_org: form.org.value.trim() || null });
+      await loadMe(); toast("가입 신청을 보냈습니다"); renderNav(); render();
+    } catch (err) { msg.className = "msg err"; msg.textContent = err.message; }
+    finally { btn.disabled = false; }
+  });
+  if ($("#adminList")) loadAdmin();
+}
+async function loadAdmin() {
+  const el = $("#adminList");
+  let rows;
+  try { rows = await rpc("study_admin_members"); }
+  catch (e) { el.innerHTML = `<p class="notice">멤버 목록을 불러오지 못했습니다. ${esc(e.message)}</p>`; return; }
+  const label = { pending: "승인 대기", approved: "승인됨", rejected: "거절됨" };
+  const pending = rows.filter(r => r.status === "pending").length;
+  el.innerHTML = `<p class="sub" style="color:var(--muted);margin:0 0 12px">${pending ? `승인 대기 ${pending}명이 있습니다.` : "승인 대기 중인 신청이 없습니다."}</p>
+    <table class="admin"><thead><tr><th>이름</th><th>소속</th><th>신청일</th><th>상태</th><th></th></tr></thead><tbody>
+    ${rows.map(r => { const d = new Date(r.created_at); const mine = me && r.member_id === me.id;
+      return `<tr><td>${esc(r.name)}${r.is_admin ? " <small>(운영자)</small>" : ""}</td><td>${esc(r.org || "")}</td><td>${d.getMonth() + 1}/${d.getDate()}</td>
+      <td><span class="badge ${r.status}">${label[r.status]}</span></td>
+      <td class="acts">${mine ? "" : r.status === "approved"
+        ? `<button class="btn ghost sm" data-set="pending" data-id="${r.member_id}">승인 취소</button>`
+        : `<button class="btn sm" data-set="approved" data-id="${r.member_id}">승인</button>${r.status === "pending" ? `<button class="btn ghost sm" data-set="rejected" data-id="${r.member_id}">거절</button>` : ""}`}</td></tr>`; }).join("")}
+    </tbody></table>`;
+  el.querySelectorAll("[data-set]").forEach(b => b.addEventListener("click", async () => {
+    b.disabled = true;
+    try { await rpc("study_set_status", { p_member: b.dataset.id, p_status: b.dataset.set }); toast({ approved: "승인했습니다", rejected: "거절했습니다", pending: "승인을 취소했습니다" }[b.dataset.set]); loadAdmin(); }
+    catch (e) { toast("처리하지 못했습니다: " + e.message); b.disabled = false; }
+  }));
 }
 
 /* ---------- 공통 ---------- */
@@ -466,7 +527,7 @@ function toast(t) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => el.hidden = true, 2600);
 }
 function renderNav() {
-  $("#who").innerHTML = user ? `<b>${esc(user.name)}</b> 님` : "";
+  $("#who").innerHTML = user ? `<b>${esc(user.name)}</b> 님` : me && me.status === "pending" ? "승인 대기" : "";
 }
 function route() { return decodeURIComponent(location.hash.slice(1)) || "home"; }
 function render() {
@@ -505,5 +566,22 @@ document.addEventListener("focusin", e => { const el = e.target.closest("[data-t
 document.addEventListener("scroll", () => tip.style.display = "none", { passive: true });
 
 addEventListener("hashchange", () => { render(); window.scrollTo(0, 0); });
-renderNav(); render();
-pullMine().then(() => { if (route() === "home") render(); });
+
+/* 시작: 카카오 로그인에서 돌아왔으면 세션을 만든 뒤 원래 보던 화면으로 */
+(async () => {
+  renderNav(); render();
+  try {
+    const { data } = await sb.auth.getSession();
+    session = data.session;
+    if (/[?&](code|error)=/.test(location.search)) {
+      const err = new URLSearchParams(location.search).get("error_description");
+      const back = store.get("aistudy.after", "#me"); store.del("aistudy.after");
+      history.replaceState(null, "", location.pathname + back);
+      if (err) toast("카카오 로그인 실패: " + err);
+    }
+    await loadMe();
+    if (user) await syncMine();
+  } catch (e) { /* 오프라인이면 로컬 진도만 사용 */ }
+  renderNav(); render();
+  sb.auth.onAuthStateChange((ev, s) => { session = s; if (ev === "SIGNED_OUT") { me = null; user = null; } });
+})();
