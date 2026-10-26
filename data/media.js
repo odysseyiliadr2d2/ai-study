@@ -1,0 +1,392 @@
+/* 주차별 영상·강좌 (URL은 검색으로 확인) */
+window.MEDIA = {
+ "1": [
+  {
+   "title": "이 영상 하나면 '인공지능', '머신러닝', '딥러닝' 이해가 됩니다ㅣ서울대 AI박사 6분 개념정리",
+   "channel": "메타코드M",
+   "url": "https://www.youtube.com/watch?v=jPs3n9Vou9c",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "AI, Machine Learning, Deep Learning and Generative AI Explained",
+   "channel": "IBM Technology",
+   "url": "https://www.youtube.com/watch?v=qYNweeDHiyU",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "But what is a neural network? | Deep learning chapter 1",
+   "channel": "3Blue1Brown",
+   "url": "https://www.youtube.com/watch?v=aircAruvnKk",
+   "lang": "en",
+   "type": "video"
+  }
+ ],
+ "2": [
+  {
+   "title": "LLM 설명 (요약버전)",
+   "channel": "3Blue1Brown 한국어",
+   "url": "https://www.youtube.com/watch?v=HnvitMTkXro",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "LLM Transformer 구조란? (Self-Attention) 서울대 AI 박사 강의 10분만 투자하세요",
+   "channel": "메타코드M",
+   "url": "https://www.youtube.com/watch?v=Y4cIPLEX3cI",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "Transformers, the tech behind LLMs | Deep Learning Chapter 5",
+   "channel": "3Blue1Brown",
+   "url": "https://www.youtube.com/watch?v=wjZofJX0v4M",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "Attention in transformers, step-by-step | Deep Learning Chapter 6",
+   "channel": "3Blue1Brown",
+   "url": "https://www.youtube.com/watch?v=eMlx5fFNoYc",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "[1hr Talk] Intro to Large Language Models",
+   "channel": "Andrej Karpathy",
+   "url": "https://www.youtube.com/watch?v=zjkBMFhNj_g",
+   "lang": "en",
+   "type": "video"
+  }
+ ],
+ "3": [
+  {
+   "title": "[프롬프트 강의] 프롬프트 엔지니어링과 컨텍스트 엔지니어링",
+   "channel": "프롬수진",
+   "url": "https://www.youtube.com/watch?v=CeZPsKo1nXw",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "AI prompt engineering: A deep dive",
+   "channel": "Anthropic",
+   "url": "https://www.youtube.com/watch?v=T9aRN5JkmL8",
+   "lang": "en",
+   "type": "video"
+  }
+ ],
+ "4": [
+  {
+   "title": "OpenAI vs DeepSeek vs Qwen: 오픈소스 LLM 아키텍처 비교",
+   "channel": "컨설턴트",
+   "url": "https://www.youtube.com/watch?v=eOJup0L74kw",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "Open Source vs Open Weight AI Models Explained",
+   "channel": "KodeKloud",
+   "url": "https://www.youtube.com/watch?v=KL_hBC3XcrY",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "How I use LLMs",
+   "channel": "Andrej Karpathy",
+   "url": "https://www.youtube.com/watch?v=EWvNQjAaOHw",
+   "lang": "en",
+   "type": "video"
+  }
+ ],
+ "5": [
+  {
+   "title": "파이썬으로 chatGPT API 사용해서 내 데이터 주고 대화하기",
+   "channel": "토목엔지니어 돌종",
+   "url": "https://www.youtube.com/watch?v=dbknPMy3SnQ",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "OpenAI: New 100% Reliable Structured Outputs",
+   "channel": "Developers Digest",
+   "url": "https://www.youtube.com/watch?v=e48GPeq2NgA",
+   "lang": "en",
+   "type": "video"
+  }
+ ],
+ "6": [
+  {
+   "title": "쉽게 이해하는 벡터 데이터베이스(Vector DB) 및 RAG 엔진 활용법",
+   "channel": "조윤기",
+   "url": "https://www.youtube.com/watch?v=UfLcpLUbvZ0",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "What is a Vector Database? Powering Semantic Search & AI Applications",
+   "channel": "IBM Technology",
+   "url": "https://www.youtube.com/watch?v=gl1r1XV0SLw",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "What are Word Embeddings?",
+   "channel": "IBM Technology",
+   "url": "https://www.youtube.com/watch?v=wgfSDrqYMJ4",
+   "lang": "en",
+   "type": "video"
+  }
+ ],
+ "7": [
+  {
+   "title": "RAG 누구든지 이해시켜 드릴게요! | AI 필수 지식",
+   "channel": "개발동생",
+   "url": "https://www.youtube.com/watch?v=ucH_N3jPQ0E",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "What is Retrieval-Augmented Generation (RAG)?",
+   "channel": "IBM Technology",
+   "url": "https://www.youtube.com/watch?v=T-D1OfcDW1M",
+   "lang": "en",
+   "type": "video"
+  }
+ ],
+ "8": [
+  {
+   "title": "코딩 1도 모르는 직장인을 위한 Claude Code 시작 가이드",
+   "channel": "일잘러 장피엠",
+   "url": "https://www.youtube.com/watch?v=C6xlOsQFyOQ",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "The future of agentic coding with Claude Code",
+   "channel": "Anthropic",
+   "url": "https://www.youtube.com/watch?v=iF9iV4xponk",
+   "lang": "en",
+   "type": "video"
+  }
+ ],
+ "9": [
+  {
+   "title": "AI 에이전트, 어렵게 생각했는데 직접 만들어보니",
+   "channel": "SURVIVAL AI",
+   "url": "https://www.youtube.com/watch?v=fW7axMVPnQQ",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "What's next for AI agentic workflows ft. Andrew Ng",
+   "channel": "Sequoia Capital",
+   "url": "https://www.youtube.com/watch?v=sal78ACtGTc",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "How We Build Effective Agents (Barry Zhang, Anthropic)",
+   "channel": "AI Engineer",
+   "url": "https://www.youtube.com/watch?v=D7_ipDqhtwk",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "Building effective agents",
+   "channel": "Anthropic Engineering",
+   "url": "https://www.anthropic.com/engineering/building-effective-agents",
+   "lang": "en",
+   "type": "article"
+  },
+  {
+   "title": "Agentic AI",
+   "channel": "DeepLearning.AI",
+   "url": "https://www.deeplearning.ai/courses/agentic-ai/",
+   "lang": "en",
+   "type": "course"
+  },
+  {
+   "title": "Hugging Face Agents Course",
+   "channel": "Hugging Face",
+   "url": "https://huggingface.co/learn/agents-course/unit0/introduction",
+   "lang": "en",
+   "type": "course"
+  }
+ ],
+ "10": [
+  {
+   "title": "[전현준 X 테디노트] MCP, A2A 진짜 엔터프라이즈 적용할 수 있을지 집중탐구",
+   "channel": "테디노트 TeddyNote",
+   "url": "https://www.youtube.com/watch?v=z2rnK9COhuQ",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "Building Agents with Model Context Protocol - Full Workshop",
+   "channel": "AI Engineer",
+   "url": "https://www.youtube.com/watch?v=kQmXtrmQ5Zg",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "What is MCP? Integrate AI Agents with Databases & APIs",
+   "channel": "IBM Technology",
+   "url": "https://www.youtube.com/watch?v=eur8dUO9mvE",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "MCP: Build Rich-Context AI Apps with Anthropic",
+   "channel": "DeepLearning.AI",
+   "url": "https://www.deeplearning.ai/short-courses/mcp-build-rich-context-ai-apps-with-anthropic/",
+   "lang": "en",
+   "type": "course"
+  },
+  {
+   "title": "Anthropic Academy (Claude Code, API, MCP 강좌)",
+   "channel": "Anthropic",
+   "url": "https://anthropic.skilljar.com/",
+   "lang": "en",
+   "type": "course"
+  }
+ ],
+ "11": [
+  {
+   "title": "자연어로 데이터베이스와 대화하기 (Amazon Bedrock을 활용한 Text2SQL)",
+   "channel": "AWS Korea",
+   "url": "https://www.youtube.com/watch?v=BpggzDtxBXg",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "How LLMs Talk to SQL Databases | Building a Text-to-SQL AI Agent",
+   "channel": "IvyProSchool",
+   "url": "https://www.youtube.com/watch?v=hEj7CrC3djs",
+   "lang": "en",
+   "type": "video"
+  }
+ ],
+ "12": [
+  {
+   "title": "한국어 Advanced RAG 최적화를 위한 평가 데이터셋, 평가, 최적화 꿀팁 (AutoRAG)",
+   "channel": "테디노트 TeddyNote",
+   "url": "https://www.youtube.com/watch?v=zjUPWtsjdWk",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "Layering every technique in RAG, one query at a time",
+   "channel": "AI Engineer",
+   "url": "https://www.youtube.com/watch?v=w9u11ioHGA0",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "Evals for High-Stakes AI Agents",
+   "channel": "AI Engineer",
+   "url": "https://www.youtube.com/watch?v=obfPzbapMIM",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "Your AI Product Needs Evals",
+   "channel": "Hamel Husain",
+   "url": "https://hamel.dev/blog/posts/evals/index.html",
+   "lang": "en",
+   "type": "article"
+  }
+ ],
+ "13": [
+  {
+   "title": "아직도 Ollama 쓰시나요? 로컬 LLM 속도 9배 올리는 vLLM 소개",
+   "channel": "괴발자",
+   "url": "https://www.youtube.com/watch?v=OfpGLIUuzww",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "What is vLLM? Efficient AI Inference for Large Language Models",
+   "channel": "IBM Technology",
+   "url": "https://www.youtube.com/watch?v=McLdlg5Gc9s",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "LLM Quantization Explained",
+   "channel": "KodeKloud",
+   "url": "https://www.youtube.com/watch?v=jUIjgp4puvw",
+   "lang": "en",
+   "type": "video"
+  }
+ ],
+ "14": [
+  {
+   "title": "LoRA 완벽 이해하기",
+   "channel": "Codedeck",
+   "url": "https://www.youtube.com/watch?v=zM2ONb7L7bo",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "RAG vs. Fine Tuning",
+   "channel": "IBM Technology",
+   "url": "https://www.youtube.com/watch?v=00Q0G84kq3M",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "LoRA & QLoRA Fine-tuning Explained In-Depth",
+   "channel": "Mark Hennings",
+   "url": "https://www.youtube.com/watch?v=t1caDsMzWBk",
+   "lang": "en",
+   "type": "video"
+  }
+ ],
+ "15": [
+  {
+   "title": "프롬프트 인젝션 (Prompt Injection)",
+   "channel": "도리의 디지털라이프",
+   "url": "https://www.youtube.com/watch?v=vl_eT99p-2Q",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "Securing AI Agents: How to Prevent Hidden Prompt Injection Attacks",
+   "channel": "IBM Technology",
+   "url": "https://www.youtube.com/watch?v=5ZA1lTxTH3c",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "Prompt injection explained",
+   "channel": "Simon Willison",
+   "url": "https://www.youtube.com/watch?v=FgxwCaL6UTA",
+   "lang": "en",
+   "type": "video"
+  },
+  {
+   "title": "금융위원회 금융분야 AI 관련 보도자료",
+   "channel": "금융위원회",
+   "url": "https://www.fsc.go.kr/no010101/87142",
+   "lang": "ko",
+   "type": "article"
+  }
+ ],
+ "16": [
+  {
+   "title": "AX란 무엇인가? 직접 해본 스타트업 대표가 알려주는 AI 전환의 모든 것",
+   "channel": "카카오벤처스",
+   "url": "https://www.youtube.com/watch?v=cRfy_RXX5WA",
+   "lang": "ko",
+   "type": "video"
+  },
+  {
+   "title": "Andrew Ng: Opportunities in AI - 2023",
+   "channel": "Stanford Online",
+   "url": "https://www.youtube.com/watch?v=5p248yoa3oE",
+   "lang": "en",
+   "type": "video"
+  }
+ ]
+};
