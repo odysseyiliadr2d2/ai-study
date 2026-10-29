@@ -1,0 +1,137 @@
+{
+ "title": "2주 정비는 1주차에 재고 쓰고, 2주차에 맞추고 반영합니다",
+ "subtitle": "신규 마트 테이블 30개 · 컬럼 약 450개 · 정보계 데이터팀 3명",
+ "cols": 4,
+ "rows": 2,
+ "groups": [
+  {
+   "label": "1주차",
+   "col": 0,
+   "row": 0,
+   "cols": 4,
+   "rows": 1,
+   "color": "blue"
+  },
+  {
+   "label": "2주차",
+   "col": 0,
+   "row": 1,
+   "cols": 4,
+   "rows": 1,
+   "color": "orange"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "a",
+   "col": 0,
+   "row": 0,
+   "label": "현황 측정",
+   "sub": "코멘트 채움률 12%",
+   "icon": "chart",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "b",
+   "col": 1,
+   "row": 0,
+   "label": "프로파일링",
+   "sub": "NULL·고유값·범위",
+   "icon": "search",
+   "color": "teal",
+   "badge": 2
+  },
+  {
+   "id": "c",
+   "col": 2,
+   "row": 0,
+   "label": "LLM 초안",
+   "sub": "450개 중 확신도 표시",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 3
+  },
+  {
+   "id": "d",
+   "col": 3,
+   "row": 0,
+   "label": "1차 검토",
+   "sub": "테이블 담당자별 분배",
+   "icon": "users",
+   "color": "purple",
+   "badge": 4
+  },
+  {
+   "id": "e",
+   "col": 3,
+   "row": 1,
+   "label": "용어 맞추기",
+   "sub": "용어집과 표기 통일",
+   "icon": "list",
+   "color": "orange",
+   "badge": 5
+  },
+  {
+   "id": "f",
+   "col": 2,
+   "row": 1,
+   "label": "계보·품질 규칙",
+   "sub": "원천 컬럼·검사 SQL",
+   "icon": "nodes",
+   "color": "green",
+   "badge": 6
+  },
+  {
+   "id": "g",
+   "col": 1,
+   "row": 1,
+   "label": "DBA 반영",
+   "sub": "변경 요청서로 적용",
+   "icon": "db",
+   "color": "navy",
+   "badge": 7
+  },
+  {
+   "id": "h",
+   "col": 0,
+   "row": 1,
+   "label": "효과 확인",
+   "sub": "채움률·T2S 정답률",
+   "icon": "target",
+   "color": "green",
+   "badge": 8,
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "a",
+   "to": "b"
+  },
+  {
+   "from": "b",
+   "to": "c"
+  },
+  {
+   "from": "c",
+   "to": "d"
+  },
+  {
+   "from": "d",
+   "to": "e"
+  },
+  {
+   "from": "e",
+   "to": "f"
+  },
+  {
+   "from": "f",
+   "to": "g"
+  },
+  {
+   "from": "g",
+   "to": "h"
+  }
+ ]
+}

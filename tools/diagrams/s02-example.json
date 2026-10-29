@@ -1,0 +1,126 @@
+{
+ "title": "모르는 테이블을 물으면 그럴듯한 컬럼을 지어냅니다 · 근거를 주면 멈춥니다",
+ "subtitle": "같은 질문, 프롬프트만 바꾼 전과 후",
+ "cols": 4,
+ "rows": 2,
+ "cell_h": 140,
+ "groups": [
+  {
+   "label": "전 · 근거 없음",
+   "col": 0,
+   "row": 0,
+   "cols": 4,
+   "rows": 1,
+   "color": "red"
+  },
+  {
+   "label": "후 · 정의서 + 모르면 모른다",
+   "col": 0,
+   "row": 1,
+   "cols": 4,
+   "rows": 1,
+   "color": "green"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "q1",
+   "col": 0,
+   "row": 0,
+   "label": "질문",
+   "sub": "TB_ADW_CUST_GRD_HIST 컬럼은?",
+   "icon": "user",
+   "color": "orange"
+  },
+  {
+   "id": "p1",
+   "col": 1,
+   "row": 0,
+   "label": "프롬프트",
+   "sub": "질문 한 줄뿐",
+   "icon": "doc",
+   "color": "gray"
+  },
+  {
+   "id": "l1",
+   "col": 2,
+   "row": 0,
+   "label": "LLM",
+   "sub": "비슷한 이름의 패턴으로 추측",
+   "icon": "spark",
+   "color": "pink"
+  },
+  {
+   "id": "a1",
+   "col": 3,
+   "row": 0,
+   "label": "지어낸 컬럼",
+   "sub": "GRD_CHG_RSN_CD … 실제 없음",
+   "icon": "warn",
+   "color": "red"
+  },
+  {
+   "id": "q2",
+   "col": 0,
+   "row": 1,
+   "label": "질문",
+   "sub": "같은 질문",
+   "icon": "user",
+   "color": "orange"
+  },
+  {
+   "id": "p2",
+   "col": 1,
+   "row": 1,
+   "label": "프롬프트",
+   "sub": "정의서 발췌 + 없으면 '정의서에 없음'",
+   "icon": "list",
+   "color": "yellow"
+  },
+  {
+   "id": "l2",
+   "col": 2,
+   "row": 1,
+   "label": "LLM",
+   "sub": "주어진 근거 안에서 답",
+   "icon": "spark",
+   "color": "pink"
+  },
+  {
+   "id": "a2",
+   "col": 3,
+   "row": 1,
+   "label": "실제 컬럼만",
+   "sub": "없는 항목은 '정의서에 없음'",
+   "icon": "check",
+   "color": "green",
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "q1",
+   "to": "p1"
+  },
+  {
+   "from": "p1",
+   "to": "l1"
+  },
+  {
+   "from": "l1",
+   "to": "a1"
+  },
+  {
+   "from": "q2",
+   "to": "p2"
+  },
+  {
+   "from": "p2",
+   "to": "l2"
+  },
+  {
+   "from": "l2",
+   "to": "a2"
+  }
+ ]
+}

@@ -1,0 +1,84 @@
+{
+ "title": "stdio 는 내 PC 안에서, Streamable HTTP 는 네트워크 너머에서 씁니다",
+ "subtitle": "전송 방식 비교와 각각 챙길 보안",
+ "cols": 2,
+ "rows": 3,
+ "cell_h": 112,
+ "nodes": [
+  {
+   "id": "a0",
+   "col": 0,
+   "row": 0,
+   "label": "stdio",
+   "sub": "호스트가 서버를 자식 프로세스로 실행, 표준 입출력으로 통신",
+   "icon": "terminal",
+   "color": "blue"
+  },
+  {
+   "id": "b0",
+   "col": 1,
+   "row": 0,
+   "label": "Streamable HTTP",
+   "sub": "서버를 상시 띄우고 POST /mcp 로 통신",
+   "icon": "web",
+   "color": "orange"
+  },
+  {
+   "id": "a1",
+   "col": 0,
+   "row": 1,
+   "label": "언제",
+   "sub": "개인 개발, Claude Code·Codex·Inspector, 사용자 한 명",
+   "icon": "user",
+   "color": "blue"
+  },
+  {
+   "id": "b1",
+   "col": 1,
+   "row": 1,
+   "label": "언제",
+   "sub": "팀 공유, n8n·사내 앱, 여러 사용자·서버",
+   "icon": "users",
+   "color": "orange"
+  },
+  {
+   "id": "a2",
+   "col": 0,
+   "row": 2,
+   "label": "보안",
+   "sub": "실행 사용자 권한 그대로 · stdout 은 프로토콜 전용",
+   "icon": "shield",
+   "color": "teal"
+  },
+  {
+   "id": "b2",
+   "col": 1,
+   "row": 2,
+   "label": "보안",
+   "sub": "기본은 인증 없음 → 토큰·OAuth, Host 검사, 127.0.0.1 바인딩",
+   "icon": "lock",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "a0",
+   "to": "a1"
+  },
+  {
+   "from": "a1",
+   "to": "a2"
+  },
+  {
+   "from": "b0",
+   "to": "b1"
+  },
+  {
+   "from": "b1",
+   "to": "b2"
+  }
+ ],
+ "notes": [
+  "같은 서버 코드로 둘 다 지원할 수 있습니다: mcp.run() 은 stdio, mcp.run(\"streamable-http\") 은 HTTP."
+ ]
+}

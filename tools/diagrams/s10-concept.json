@@ -1,0 +1,155 @@
+{
+ "title": "고급 RAG는 두 검색기를 합치고, 리랭커로 다시 고르고, 가드레일로 마무리합니다",
+ "subtitle": "세션 9 파이프라인의 검색 단계를 넓히고 좁히는 구조",
+ "cols": 6,
+ "rows": 2,
+ "groups": [
+  {
+   "label": "넓게 찾기 · 후보 50개",
+   "col": 2,
+   "row": 0,
+   "cols": 2,
+   "rows": 2,
+   "color": "green"
+  },
+  {
+   "label": "좁게 고르기 · 가드레일",
+   "col": 4,
+   "row": 0,
+   "cols": 2,
+   "rows": 2,
+   "color": "pink"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "q",
+   "col": 0,
+   "row": 0,
+   "label": "질문",
+   "sub": "개인정보 마스킹",
+   "icon": "user",
+   "color": "orange",
+   "badge": 1
+  },
+  {
+   "id": "rw",
+   "col": 1,
+   "row": 0,
+   "label": "질의 재작성",
+   "sub": "약어 풀기·검색어",
+   "icon": "spark",
+   "color": "purple",
+   "badge": 2
+  },
+  {
+   "id": "bm",
+   "col": 2,
+   "row": 0,
+   "label": "BM25",
+   "sub": "용어·코드명 일치",
+   "icon": "search",
+   "color": "blue"
+  },
+  {
+   "id": "vec",
+   "col": 2,
+   "row": 1,
+   "label": "벡터 검색",
+   "sub": "의미가 비슷한 문장",
+   "icon": "vector",
+   "color": "teal"
+  },
+  {
+   "id": "rrf",
+   "col": 3,
+   "row": 0,
+   "label": "RRF 합치기",
+   "sub": "순위로 점수 합산",
+   "icon": "layers",
+   "color": "green",
+   "badge": 3
+  },
+  {
+   "id": "rr",
+   "col": 4,
+   "row": 0,
+   "label": "리랭커",
+   "sub": "후보 20 → 상위 4",
+   "icon": "target",
+   "color": "pink",
+   "badge": 4
+  },
+  {
+   "id": "ans",
+   "col": 5,
+   "row": 0,
+   "label": "답변 + 출처",
+   "sub": "출력도 마스킹",
+   "icon": "check",
+   "color": "green",
+   "badge": 5,
+   "emph": true
+  },
+  {
+   "id": "low",
+   "col": 4,
+   "row": 1,
+   "label": "점수 하한 미만",
+   "sub": "최고 점수 < 0.3",
+   "icon": "warn",
+   "color": "red"
+  },
+  {
+   "id": "no",
+   "col": 5,
+   "row": 1,
+   "label": "근거 없음 안내",
+   "sub": "LLM 호출 안 함",
+   "icon": "shield",
+   "color": "navy"
+  }
+ ],
+ "edges": [
+  {
+   "from": "q",
+   "to": "rw"
+  },
+  {
+   "from": "rw",
+   "to": "bm"
+  },
+  {
+   "from": "rw",
+   "to": "vec",
+   "route": "vh"
+  },
+  {
+   "from": "bm",
+   "to": "rrf"
+  },
+  {
+   "from": "vec",
+   "to": "rrf"
+  },
+  {
+   "from": "rrf",
+   "to": "rr"
+  },
+  {
+   "from": "rr",
+   "to": "ans"
+  },
+  {
+   "from": "rr",
+   "to": "low"
+  },
+  {
+   "from": "low",
+   "to": "no"
+  }
+ ],
+ "notes": [
+  "메타데이터 필터(문서 종류·개정일·부서·권한)는 검색 단계에서 후보를 미리 거르는 데 씁니다."
+ ]
+}

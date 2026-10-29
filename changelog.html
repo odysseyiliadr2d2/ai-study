@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>버전 기록 · AX Study</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="assets/vendor/supabase/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="assets/js/common.js"></script>
+</head>
+<body>
+  <main class="wrap narrow">
+    <section class="hero">
+      <div class="eyebrow">VERSION</div>
+      <h1 class="display">버전 기록</h1>
+      <p class="lead">로드맵은 계속 고쳐 가는 문서라 버전으로 관리합니다. 이 사이트는 로드맵 문서와 같은 번호를 씁니다.</p>
+    </section>
+    <section class="panel" id="rules"></section>
+    <div class="timeline" id="history"><div class="empty">불러오는 중…</div></div>
+  </main>
+  <script>
+  (async function () {
+    const { esc, getJSON, topbar, footer } = window.AX;
+    const v = await getJSON("data/version.json");
+    topbar("changelog", v.current);
+    footer(v.current, v.updated);
+    document.getElementById("rules").innerHTML =
+      `<div class="eyebrow">버전 규칙</div><h2>현재 버전 ${esc(v.current)} · ${esc(v.updated)}</h2>
+       <p class="muted">기준 문서: ${esc(v.roadmap_doc)}</p>
+       <ul>${v.rules.map((r) => `<li>${esc(r)}</li>`).join("")}</ul>`;
+    document.getElementById("history").innerHTML = v.history.map((h) =>
+      `<div class="rel ${h.version === v.current ? "current" : ""}">
+         <div class="eyebrow">${esc(h.date)}</div><h2>${esc(h.version)}</h2>
+         <ul>${h.changes.map((c) => `<li>${esc(c)}</li>`).join("")}</ul></div>`).join("");
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+{
+ "title": "팀별 AX 제안서는 문제 · 해법 · 숫자 · 위험 · 계획 다섯 장이 뼈대입니다",
+ "subtitle": "증권사 정보계 시나리오 예시",
+ "cols": 5,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "a",
+   "col": 0,
+   "row": 0,
+   "label": "문제",
+   "sub": "현행 업무·시간 실측",
+   "icon": "search",
+   "color": "red",
+   "badge": 1
+  },
+  {
+   "id": "b",
+   "col": 1,
+   "row": 0,
+   "label": "해법",
+   "sub": "구성도·데모",
+   "icon": "nodes",
+   "color": "blue",
+   "badge": 2
+  },
+  {
+   "id": "c",
+   "col": 2,
+   "row": 0,
+   "label": "숫자",
+   "sub": "ROI·회수 기간",
+   "icon": "money",
+   "color": "green",
+   "badge": 3
+  },
+  {
+   "id": "d",
+   "col": 3,
+   "row": 0,
+   "label": "위험·통제",
+   "sub": "규제·보안 심의",
+   "icon": "shield",
+   "color": "purple",
+   "badge": 4
+  },
+  {
+   "id": "e",
+   "col": 4,
+   "row": 0,
+   "label": "계획",
+   "sub": "PoC→파일럿 일정",
+   "icon": "clock",
+   "color": "orange",
+   "badge": 5
+  },
+  {
+   "id": "roi",
+   "col": 1,
+   "row": 1,
+   "span": 2,
+   "label": "roi.py 결과표",
+   "sub": "유스케이스 순위 · 회수 기간",
+   "icon": "sheet",
+   "color": "teal"
+  },
+  {
+   "id": "risk",
+   "col": 3,
+   "row": 1,
+   "label": "심의 자료",
+   "sub": "세션 23 산출물",
+   "icon": "doc",
+   "color": "teal"
+  }
+ ],
+ "edges": [
+  {
+   "from": "a",
+   "to": "b"
+  },
+  {
+   "from": "b",
+   "to": "c"
+  },
+  {
+   "from": "c",
+   "to": "d"
+  },
+  {
+   "from": "d",
+   "to": "e"
+  },
+  {
+   "from": "roi",
+   "to": "c",
+   "label": "근거"
+  },
+  {
+   "from": "risk",
+   "to": "d",
+   "label": "근거"
+  }
+ ],
+ "notes": [
+  "발표 10분: 문제 2분 · 데모 3분 · 숫자 2분 · 위험과 계획 2분 · 요청 사항 1분"
+ ]
+}

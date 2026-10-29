@@ -1,0 +1,120 @@
+{
+ "title": "야간 배치 결과 메일 수십 통을 아침 브리핑 한 통으로",
+ "subtitle": "정보계 운영 예시 — 실패가 없으면 한 줄, 있으면 요약과 조치 순서",
+ "cols": 5,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "t",
+   "col": 0,
+   "row": 0,
+   "label": "07:30 스케줄",
+   "sub": "평일 아침",
+   "icon": "clock",
+   "color": "orange",
+   "badge": 1
+  },
+  {
+   "id": "g",
+   "col": 1,
+   "row": 0,
+   "label": "배치 메일 수집",
+   "sub": "라벨 batch-result · 지난 24시간",
+   "icon": "mail",
+   "color": "blue",
+   "badge": 2
+  },
+  {
+   "id": "c",
+   "col": 2,
+   "row": 0,
+   "label": "Code 집계",
+   "sub": "성공·실패·지연 건수",
+   "icon": "code",
+   "color": "purple",
+   "badge": 3
+  },
+  {
+   "id": "i",
+   "col": 3,
+   "row": 0,
+   "label": "실패 있음?",
+   "sub": "IF failCount > 0",
+   "icon": "warn",
+   "color": "yellow",
+   "badge": 4
+  },
+  {
+   "id": "l",
+   "col": 4,
+   "row": 0,
+   "label": "LLM 요약",
+   "sub": "실패 원인·조치 순서",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 5
+  },
+  {
+   "id": "q",
+   "col": 3,
+   "row": 1,
+   "label": "짧은 알림",
+   "sub": "정상 완료 한 줄",
+   "icon": "check",
+   "color": "green"
+  },
+  {
+   "id": "s",
+   "col": 4,
+   "row": 1,
+   "label": "브리핑 발송",
+   "sub": "팀 메신저 + 시트 기록",
+   "icon": "send",
+   "color": "green",
+   "emph": true
+  },
+  {
+   "id": "x",
+   "col": 1,
+   "row": 1,
+   "label": "원문 링크",
+   "sub": "메일 제목 목록 첨부",
+   "icon": "docs",
+   "color": "gray"
+  }
+ ],
+ "edges": [
+  {
+   "from": "t",
+   "to": "g"
+  },
+  {
+   "from": "g",
+   "to": "c"
+  },
+  {
+   "from": "c",
+   "to": "i"
+  },
+  {
+   "from": "i",
+   "to": "l",
+   "label": "예"
+  },
+  {
+   "from": "i",
+   "to": "q",
+   "label": "아니오"
+  },
+  {
+   "from": "l",
+   "to": "s"
+  },
+  {
+   "from": "g",
+   "to": "x",
+   "dashed": true,
+   "label": "근거"
+  }
+ ]
+}

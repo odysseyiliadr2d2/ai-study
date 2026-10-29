@@ -1,0 +1,13 @@
+{
+ "_안내": "단위는 USD / 100만 토큰. 공식 가격 페이지에서 값을 확인해 채우고 checked 에 확인 날짜를 적으세요.",
+ "_출처": {
+  "anthropic": "https://platform.claude.com/docs/en/about-claude/pricing",
+  "openai": "https://developers.openai.com/api/docs/pricing"
+ },
+ "claude-sonnet-5-5": {"input": null, "output": null, "cache_write": null, "cache_read": null, "checked": null},
+ "claude-haiku-5-5": {"input": null, "output": null, "cache_write": null, "cache_read": null, "checked": null,
+                      "long_context": {"threshold": 100000, "input_mult": null, "output_mult": null}},
+ "gpt-5.5": {"input": null, "output": null, "cache_write": null, "cache_read": null, "checked": null,
+             "long_context": {"threshold": 272000, "input_mult": null, "output_mult": null}},
+ "local-gemma4": {"input": 0, "output": 0, "cache_write": 0, "cache_read": 0, "checked": "로컬 · 토큰 과금 없음 (서버·GPU 비용은 별도)"}
+}

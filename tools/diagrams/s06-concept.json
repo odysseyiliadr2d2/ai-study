@@ -1,0 +1,121 @@
+{
+ "title": "API 호출 한 번은 요청 세 덩어리와 응답 세 덩어리로 이뤄집니다",
+ "subtitle": "Messages API 기준 — 무엇을 보내고 무엇을 돌려받나",
+ "cols": 3,
+ "rows": 3,
+ "cell_h": 124,
+ "groups": [
+  {
+   "label": "요청",
+   "col": 0,
+   "row": 0,
+   "cols": 3,
+   "rows": 1,
+   "color": "blue"
+  },
+  {
+   "label": "응답",
+   "col": 0,
+   "row": 2,
+   "cols": 3,
+   "rows": 1,
+   "color": "green"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "sys",
+   "col": 0,
+   "row": 0,
+   "label": "system",
+   "sub": "역할 · 규칙 · 금지사항",
+   "icon": "gear",
+   "color": "navy"
+  },
+  {
+   "id": "msg",
+   "col": 1,
+   "row": 0,
+   "label": "messages",
+   "sub": "user · assistant 교대로",
+   "icon": "chat",
+   "color": "blue"
+  },
+  {
+   "id": "par",
+   "col": 2,
+   "row": 0,
+   "label": "파라미터",
+   "sub": "model · max_tokens · output_config",
+   "icon": "list",
+   "color": "gray"
+  },
+  {
+   "id": "api",
+   "col": 0,
+   "row": 1,
+   "span": 3,
+   "label": "Messages API",
+   "sub": "POST /v1/messages · 모델이 다음 메시지 하나를 생성",
+   "icon": "server",
+   "color": "purple",
+   "emph": true
+  },
+  {
+   "id": "c",
+   "col": 0,
+   "row": 2,
+   "label": "content",
+   "sub": "text · tool_use 블록 목록",
+   "icon": "doc",
+   "color": "green"
+  },
+  {
+   "id": "s",
+   "col": 1,
+   "row": 2,
+   "label": "stop_reason",
+   "sub": "end_turn · max_tokens · tool_use",
+   "icon": "target",
+   "color": "yellow"
+  },
+  {
+   "id": "u",
+   "col": 2,
+   "row": 2,
+   "label": "usage",
+   "sub": "입력 · 출력 토큰 수 → 비용",
+   "icon": "money",
+   "color": "orange"
+  }
+ ],
+ "edges": [
+  {
+   "from": "sys",
+   "to": "api"
+  },
+  {
+   "from": "msg",
+   "to": "api"
+  },
+  {
+   "from": "par",
+   "to": "api"
+  },
+  {
+   "from": "api",
+   "to": "c"
+  },
+  {
+   "from": "api",
+   "to": "s"
+  },
+  {
+   "from": "api",
+   "to": "u"
+  }
+ ],
+ "notes": [
+  "API 는 상태를 기억하지 않습니다. 대화를 이어 가려면 이전 메시지를 매번 messages 에 다시 넣어 보냅니다."
+ ]
+}

@@ -1,0 +1,5 @@
+anthropic>=2.3      # 2.x 는 API 버전 2026-10-21 을 씁니다
+pydantic>=2.7
+openai>=2.0         # 비교용 (선택)
+fastapi>=0.115      # 실무 예제용 (선택)
+uvicorn>=0.30       # 실무 예제용 (선택)

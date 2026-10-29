@@ -1,0 +1,103 @@
+{
+ "title": "담당자가 승인한 SQL은 다음 질문의 예시 쿼리가 됩니다",
+ "subtitle": "정보계 영업일 기준 거래 집계 질의 · 검토 루프",
+ "cols": 4,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "u",
+   "col": 0,
+   "row": 0,
+   "label": "현업 사용자",
+   "sub": "지난달 영업일 채널별 거래금액?",
+   "icon": "users",
+   "color": "orange",
+   "badge": 1
+  },
+  {
+   "id": "cli",
+   "col": 1,
+   "row": 0,
+   "label": "Text-to-SQL CLI",
+   "sub": "DW 읽기 전용 조회 · SQL·결과·설명",
+   "icon": "terminal",
+   "color": "navy",
+   "badge": 2
+  },
+  {
+   "id": "log",
+   "col": 2,
+   "row": 0,
+   "label": "검토 대기 로그",
+   "sub": "질문·SQL·행 수·가정",
+   "icon": "inbox",
+   "color": "purple",
+   "badge": 3
+  },
+  {
+   "id": "rv",
+   "col": 3,
+   "row": 0,
+   "label": "DW 담당자 검토",
+   "sub": "조인·필터·기준일 확인",
+   "icon": "eye",
+   "color": "pink",
+   "badge": 4
+  },
+  {
+   "id": "ok",
+   "col": 3,
+   "row": 1,
+   "label": "승인 → 결과 전달",
+   "sub": "보고서·메신저",
+   "icon": "check",
+   "color": "green",
+   "badge": 5,
+   "emph": true
+  },
+  {
+   "id": "ex",
+   "col": 2,
+   "row": 1,
+   "label": "예시 쿼리 추가",
+   "sub": "examples.json",
+   "icon": "code",
+   "color": "blue",
+   "badge": 6
+  }
+ ],
+ "edges": [
+  {
+   "from": "u",
+   "to": "cli"
+  },
+  {
+   "from": "cli",
+   "to": "log",
+   "label": "기록"
+  },
+  {
+   "from": "log",
+   "to": "rv"
+  },
+  {
+   "from": "rv",
+   "to": "ok",
+   "label": "승인"
+  },
+  {
+   "from": "ok",
+   "to": "ex"
+  },
+  {
+   "from": "ex",
+   "to": "cli",
+   "label": "few-shot",
+   "dashed": true,
+   "route": "hv"
+  }
+ ],
+ "notes": [
+  "반려 사유는 매주 모아 컬럼 코멘트와 업무 용어사전을 고치는 데 씁니다."
+ ]
+}

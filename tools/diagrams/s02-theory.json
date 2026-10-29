@@ -1,0 +1,111 @@
+{
+ "title": "답변은 토큰 하나씩 뽑아 붙이는 반복으로 만들어집니다",
+ "subtitle": "temperature 는 '하나 뽑기' 단계의 무작위성을, 컨텍스트 윈도우는 반복할 수 있는 길이를 정합니다",
+ "cols": 4,
+ "rows": 2,
+ "cell_h": 136,
+ "nodes": [
+  {
+   "id": "ctx",
+   "col": 0,
+   "row": 0,
+   "label": "컨텍스트",
+   "sub": "시스템 + 대화 + 지금까지 쓴 답",
+   "icon": "docs",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "m",
+   "col": 1,
+   "row": 0,
+   "label": "모델 계산",
+   "sub": "어텐션 수십 층",
+   "icon": "chip",
+   "color": "navy",
+   "badge": 2
+  },
+  {
+   "id": "dist",
+   "col": 2,
+   "row": 0,
+   "label": "확률 분포",
+   "sub": "실패 0.62 · 지연 0.21 · …",
+   "icon": "chart",
+   "color": "teal",
+   "badge": 3
+  },
+  {
+   "id": "lim",
+   "col": 3,
+   "row": 0,
+   "label": "컨텍스트 윈도우",
+   "sub": "입력 + 출력 토큰의 상한",
+   "icon": "warn",
+   "color": "yellow"
+  },
+  {
+   "id": "app",
+   "col": 0,
+   "row": 1,
+   "label": "문맥에 붙이기",
+   "sub": "종료 토큰이 나올 때까지",
+   "icon": "cycle",
+   "color": "green",
+   "badge": 5
+  },
+  {
+   "id": "pick",
+   "col": 2,
+   "row": 1,
+   "label": "하나 뽑기",
+   "sub": "temperature 낮으면 1등 위주 · 높으면 다양",
+   "icon": "target",
+   "color": "orange",
+   "badge": 4
+  },
+  {
+   "id": "hal",
+   "col": 3,
+   "row": 1,
+   "label": "환각",
+   "sub": "근거 없이도 확률 높은 토큰을 고름",
+   "icon": "warn",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "ctx",
+   "to": "m"
+  },
+  {
+   "from": "m",
+   "to": "dist"
+  },
+  {
+   "from": "dist",
+   "to": "pick"
+  },
+  {
+   "from": "pick",
+   "to": "app"
+  },
+  {
+   "from": "app",
+   "to": "ctx",
+   "label": "다시 입력"
+  },
+  {
+   "from": "dist",
+   "to": "lim",
+   "dashed": true,
+   "label": "제약"
+  },
+  {
+   "from": "pick",
+   "to": "hal",
+   "label": "실패 유형"
+  }
+ ]
+}

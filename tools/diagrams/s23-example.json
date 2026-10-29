@@ -1,0 +1,111 @@
+{
+ "title": "심의 자료는 신청서 한 장에서 자동으로 만들어집니다",
+ "subtitle": "사내 생성형 AI 도입 심의 흐름 예시",
+ "cols": 5,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "req",
+   "col": 0,
+   "row": 0,
+   "label": "신청서 YAML",
+   "sub": "용도·데이터·모델",
+   "icon": "sheet",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "sc",
+   "col": 1,
+   "row": 0,
+   "label": "위험 채점",
+   "sub": "risk_assess.py",
+   "icon": "chart",
+   "color": "purple",
+   "badge": 2
+  },
+  {
+   "id": "doc",
+   "col": 2,
+   "row": 0,
+   "label": "심의 자료",
+   "sub": "체크리스트·근거",
+   "icon": "doc",
+   "color": "teal",
+   "badge": 3
+  },
+  {
+   "id": "com",
+   "col": 3,
+   "row": 0,
+   "label": "AI 위원회",
+   "sub": "정보보호·준법·현업",
+   "icon": "users",
+   "color": "navy",
+   "badge": 4
+  },
+  {
+   "id": "ok",
+   "col": 4,
+   "row": 0,
+   "label": "승인·등록",
+   "sub": "승인 모델·용도 목록",
+   "icon": "check",
+   "color": "green",
+   "badge": 5
+  },
+  {
+   "id": "mask",
+   "col": 1,
+   "row": 1,
+   "label": "PII 마스킹",
+   "sub": "프롬프트 앞단",
+   "icon": "lock",
+   "color": "red"
+  },
+  {
+   "id": "log",
+   "col": 3,
+   "row": 1,
+   "label": "운영 로그",
+   "sub": "보존·정기 점검",
+   "icon": "list",
+   "color": "gray"
+  }
+ ],
+ "edges": [
+  {
+   "from": "req",
+   "to": "sc"
+  },
+  {
+   "from": "sc",
+   "to": "doc"
+  },
+  {
+   "from": "doc",
+   "to": "com"
+  },
+  {
+   "from": "com",
+   "to": "ok"
+  },
+  {
+   "from": "sc",
+   "to": "mask",
+   "label": "통제 요구"
+  },
+  {
+   "from": "ok",
+   "to": "log",
+   "route": "vh",
+   "label": "운영"
+  },
+  {
+   "from": "log",
+   "to": "com",
+   "label": "재심의",
+   "dashed": true
+  }
+ ]
+}

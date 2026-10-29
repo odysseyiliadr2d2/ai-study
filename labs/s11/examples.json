@@ -1,0 +1,12 @@
+[
+ {
+  "question": "2026년 9월 영업일 기준 일별 거래금액 합계를 보여줘",
+  "sql": "SELECT f.base_dt, SUM(f.trd_amt) AS trd_amt\nFROM dw.trd_day_f f\nJOIN dw.cmn_biz_day_d d ON d.base_dt = f.base_dt AND d.biz_day_yn = 'Y'\nWHERE f.base_dt BETWEEN :from_dt AND :to_dt\nGROUP BY f.base_dt\nORDER BY f.base_dt",
+  "binds": {"from_dt": "20260901", "to_dt": "20260930"}
+ },
+ {
+  "question": "기준일 직전 5영업일 동안 지점별 수수료 합계",
+  "sql": "SELECT b.brn_nm, SUM(f.fee_amt) AS fee_amt\nFROM dw.trd_day_f f\nJOIN dw.org_branch_d b ON b.brn_cd = f.brn_cd\nJOIN (SELECT base_dt FROM dw.cmn_biz_day_d\n      WHERE biz_day_yn = 'Y' AND base_dt < :base_dt\n      ORDER BY base_dt DESC FETCH FIRST 5 ROWS ONLY) d ON d.base_dt = f.base_dt\nGROUP BY b.brn_nm\nORDER BY fee_amt DESC",
+  "binds": {"base_dt": "20261012"}
+ }
+]

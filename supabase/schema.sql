@@ -1,5 +1,5 @@
 -- AI Tech 스터디: 카카오 로그인 + 운영자 승인 (Supabase 프로젝트 ai-glossary)
--- 적용된 마이그레이션: study_kakao_auth_approval
+-- 적용된 마이그레이션: study_kakao_auth_approval, study_progress_24_sessions
 create table public.study_members (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references auth.users(id) on delete cascade,
@@ -12,7 +12,7 @@ create table public.study_members (
 );
 create table public.study_progress (
   member_id uuid not null references public.study_members(id) on delete cascade,
-  week smallint not null check (week between 1 and 16),
+  week smallint not null check (week between 1 and 24),  -- 세션 번호 (v1.1부터 24세션, v1.0은 16주차)
   notes_done boolean not null default false,
   lab_done boolean not null default false,
   quiz_score smallint,

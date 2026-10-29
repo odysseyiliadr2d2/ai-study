@@ -1,0 +1,95 @@
+{
+ "title": "LLM은 글을 토큰으로 쪼개고, 벡터로 바꿔, 다음 토큰을 맞힙니다",
+ "subtitle": "문장 하나가 모델 안에서 거치는 다섯 단계",
+ "cols": 6,
+ "rows": 1,
+ "cell_h": 170,
+ "nodes": [
+  {
+   "id": "t",
+   "col": 0,
+   "row": 0,
+   "label": "입력 문장",
+   "sub": "배치가 실패하면",
+   "icon": "doc",
+   "color": "gray",
+   "badge": 1
+  },
+  {
+   "id": "tok",
+   "col": 1,
+   "row": 0,
+   "label": "토큰화",
+   "sub": "글자 조각 단위 · ID 번호로",
+   "icon": "token",
+   "color": "orange",
+   "badge": 2
+  },
+  {
+   "id": "emb",
+   "col": 2,
+   "row": 0,
+   "label": "임베딩",
+   "sub": "토큰마다 수천 차원 벡터",
+   "icon": "vector",
+   "color": "purple",
+   "badge": 3
+  },
+  {
+   "id": "att",
+   "col": 3,
+   "row": 0,
+   "label": "트랜스포머",
+   "sub": "어텐션으로 앞 토큰들을 참고",
+   "icon": "layers",
+   "color": "blue",
+   "badge": 4
+  },
+  {
+   "id": "p",
+   "col": 4,
+   "row": 0,
+   "label": "확률 분포",
+   "sub": "다음 토큰 후보별 확률",
+   "icon": "chart",
+   "color": "teal",
+   "badge": 5
+  },
+  {
+   "id": "o",
+   "col": 5,
+   "row": 0,
+   "label": "다음 토큰",
+   "sub": "하나 골라 문장 뒤에 붙임",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 6,
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "t",
+   "to": "tok"
+  },
+  {
+   "from": "tok",
+   "to": "emb"
+  },
+  {
+   "from": "emb",
+   "to": "att"
+  },
+  {
+   "from": "att",
+   "to": "p"
+  },
+  {
+   "from": "p",
+   "to": "o"
+  }
+ ],
+ "notes": [
+  "모델이 아는 것은 '이 문맥 다음에 어떤 토큰이 올 확률이 높은가' 하나뿐입니다. 사실 여부는 따로 확인하지 않습니다."
+ ]
+}

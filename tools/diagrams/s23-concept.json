@@ -1,0 +1,81 @@
+{
+ "title": "금융권 생성형 AI는 네 겹의 규율 안에서 움직입니다",
+ "subtitle": "법률 · 금융 규제 · 가이드라인 · 사내 통제 (규제 확인일 2026-10-29)",
+ "cols": 4,
+ "rows": 2,
+ "cell_h": 140,
+ "nodes": [
+  {
+   "id": "law",
+   "col": 0,
+   "row": 0,
+   "label": "AI 기본법",
+   "sub": "2026-01-22 시행 · 고영향 AI·투명성",
+   "icon": "building",
+   "color": "navy",
+   "badge": 1
+  },
+  {
+   "id": "pipa",
+   "col": 1,
+   "row": 0,
+   "label": "개인정보보호법",
+   "sub": "가명정보 · 자동화된 결정 대응권",
+   "icon": "lock",
+   "color": "purple",
+   "badge": 2
+  },
+  {
+   "id": "net",
+   "col": 2,
+   "row": 0,
+   "label": "망분리 규제",
+   "sub": "전자금융감독규정 · 특례로 단계 완화",
+   "icon": "shield",
+   "color": "teal",
+   "badge": 3
+  },
+  {
+   "id": "gl",
+   "col": 3,
+   "row": 0,
+   "label": "금융분야 AI 가이드라인",
+   "sub": "2026-06-22 시행 · 7대 원칙",
+   "icon": "docs",
+   "color": "blue",
+   "badge": 4
+  },
+  {
+   "id": "in",
+   "col": 0,
+   "row": 1,
+   "span": 4,
+   "label": "사내 AI 통제",
+   "sub": "데이터 분류 · 승인 모델 목록 · 로그 보존 · 사람 검토 · 위험 평가 · 보안 점검",
+   "icon": "check",
+   "color": "green",
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "law",
+   "to": "in"
+  },
+  {
+   "from": "pipa",
+   "to": "in"
+  },
+  {
+   "from": "net",
+   "to": "in"
+  },
+  {
+   "from": "gl",
+   "to": "in"
+  }
+ ],
+ "notes": [
+  "규제는 자주 바뀝니다. 심의 자료에는 근거 문서와 '확인 일자'를 함께 적습니다."
+ ]
+}

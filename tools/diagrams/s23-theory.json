@@ -1,0 +1,100 @@
+{
+ "title": "위험은 데이터 · 영향 · 자율성 세 축으로 매깁니다",
+ "subtitle": "세 축 점수를 더해 등급을 정하고, 등급이 높을수록 통제가 무거워집니다",
+ "cols": 3,
+ "rows": 3,
+ "cell_h": 120,
+ "nodes": [
+  {
+   "id": "d",
+   "col": 0,
+   "row": 0,
+   "label": "데이터 민감도",
+   "sub": "공개 → 내부 → 개인신용정보",
+   "icon": "db",
+   "color": "purple"
+  },
+  {
+   "id": "i",
+   "col": 1,
+   "row": 0,
+   "label": "고객 영향",
+   "sub": "내부 참고 → 권리·의무 결정",
+   "icon": "users",
+   "color": "orange"
+  },
+  {
+   "id": "a",
+   "col": 2,
+   "row": 0,
+   "label": "자율성",
+   "sub": "초안 제안 → 자동 실행",
+   "icon": "bot",
+   "color": "pink"
+  },
+  {
+   "id": "s",
+   "col": 0,
+   "row": 1,
+   "span": 3,
+   "label": "합산 점수 → 등급",
+   "sub": "권리·의무에 영향을 주면 점수와 관계없이 '높음'",
+   "icon": "chart",
+   "color": "navy",
+   "emph": true
+  },
+  {
+   "id": "lo",
+   "col": 0,
+   "row": 2,
+   "label": "낮음",
+   "sub": "팀장 승인 · 로그 보존",
+   "icon": "check",
+   "color": "green"
+  },
+  {
+   "id": "mid",
+   "col": 1,
+   "row": 2,
+   "label": "중간",
+   "sub": "정보보호 검토 · 사람 검토",
+   "icon": "eye",
+   "color": "yellow"
+  },
+  {
+   "id": "hi",
+   "col": 2,
+   "row": 2,
+   "label": "높음",
+   "sub": "AI 위원회 심의 · 출시 재검토",
+   "icon": "warn",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "d",
+   "to": "s"
+  },
+  {
+   "from": "i",
+   "to": "s"
+  },
+  {
+   "from": "a",
+   "to": "s"
+  },
+  {
+   "from": "s",
+   "to": "lo"
+  },
+  {
+   "from": "s",
+   "to": "mid"
+  },
+  {
+   "from": "s",
+   "to": "hi"
+  }
+ ]
+}

@@ -1,0 +1,109 @@
+{
+ "title": "루프는 stop_reason 이 tool_use 인 동안만 돌고, 세 가지 조건에서 멈춥니다",
+ "subtitle": "관찰 → 추론 → 행동 한 바퀴와 종료·보호 장치",
+ "cols": 4,
+ "rows": 2,
+ "cell_h": 140,
+ "nodes": [
+  {
+   "id": "m",
+   "col": 0,
+   "row": 0,
+   "label": "모델 호출",
+   "sub": "messages + tools",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 1
+  },
+  {
+   "id": "s",
+   "col": 1,
+   "row": 0,
+   "label": "stop_reason",
+   "sub": "tool_use 인가?",
+   "icon": "list",
+   "color": "purple",
+   "badge": 2
+  },
+  {
+   "id": "x",
+   "col": 2,
+   "row": 0,
+   "label": "도구 실행",
+   "sub": "검증·승인·예외 처리",
+   "icon": "gear",
+   "color": "blue",
+   "badge": 3
+  },
+  {
+   "id": "r",
+   "col": 3,
+   "row": 0,
+   "label": "tool_result",
+   "sub": "결과·is_error 를 다음 user 메시지로",
+   "icon": "inbox",
+   "color": "teal",
+   "badge": 4
+  },
+  {
+   "id": "e1",
+   "col": 1,
+   "row": 1,
+   "label": "end_turn",
+   "sub": "최종 답변 반환",
+   "icon": "check",
+   "color": "green"
+  },
+  {
+   "id": "e2",
+   "col": 2,
+   "row": 1,
+   "label": "오류 3회 연속",
+   "sub": "중단 후 사람에게",
+   "icon": "warn",
+   "color": "red"
+  },
+  {
+   "id": "e3",
+   "col": 3,
+   "row": 1,
+   "label": "최대 반복 8회",
+   "sub": "무한 루프 방지",
+   "icon": "clock",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "m",
+   "to": "s"
+  },
+  {
+   "from": "s",
+   "to": "x",
+   "label": "tool_use"
+  },
+  {
+   "from": "x",
+   "to": "r"
+  },
+  {
+   "from": "s",
+   "to": "e1",
+   "label": "아니오"
+  },
+  {
+   "from": "x",
+   "to": "e2",
+   "dashed": true
+  },
+  {
+   "from": "r",
+   "to": "e3",
+   "dashed": true
+  }
+ ],
+ "notes": [
+  "4번 결과를 붙여 1번으로 돌아갑니다. 응답 전체(thinking 블록 포함)를 assistant 메시지로 먼저 넣어야 합니다."
+ ]
+}

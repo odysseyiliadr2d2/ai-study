@@ -1,0 +1,104 @@
+{
+ "title": "에이전트 운영은 평가 · 관측 · 가드레일 세 바퀴를 계속 돌리는 일입니다",
+ "subtitle": "만들고 끝이 아니라, 재고 → 보고 → 막고 → 다시 잽니다",
+ "cols": 3,
+ "rows": 2,
+ "cell_h": 140,
+ "nodes": [
+  {
+   "id": "ev",
+   "col": 0,
+   "row": 0,
+   "label": "평가",
+   "sub": "시나리오 30~50개 · 기대/금지 행동",
+   "icon": "target",
+   "color": "purple",
+   "badge": 1
+  },
+  {
+   "id": "ob",
+   "col": 1,
+   "row": 0,
+   "label": "관측",
+   "sub": "요청·도구·토큰·지연·비용 로그",
+   "icon": "chart",
+   "color": "blue",
+   "badge": 2
+  },
+  {
+   "id": "gd",
+   "col": 2,
+   "row": 0,
+   "label": "가드레일",
+   "sub": "권한·승인·출력 검증·인젝션 방어",
+   "icon": "shield",
+   "color": "teal",
+   "badge": 3
+  },
+  {
+   "id": "ag",
+   "col": 1,
+   "row": 1,
+   "label": "운영 에이전트",
+   "sub": "세션 17~19",
+   "icon": "bot",
+   "color": "pink",
+   "emph": true
+  },
+  {
+   "id": "rt",
+   "col": 0,
+   "row": 1,
+   "label": "레드팀 · 장애 사례",
+   "sub": "실패를 시나리오로 추가",
+   "icon": "warn",
+   "color": "red"
+  },
+  {
+   "id": "rb",
+   "col": 2,
+   "row": 1,
+   "label": "장애 대응 · 롤백",
+   "sub": "차단 스위치·이전 버전",
+   "icon": "cycle",
+   "color": "yellow"
+  }
+ ],
+ "edges": [
+  {
+   "from": "ev",
+   "to": "ob"
+  },
+  {
+   "from": "ob",
+   "to": "gd"
+  },
+  {
+   "from": "ob",
+   "to": "ag",
+   "both": true,
+   "label": "로그"
+  },
+  {
+   "from": "rt",
+   "to": "ag",
+   "dashed": true,
+   "label": "공격"
+  },
+  {
+   "from": "ag",
+   "to": "rb",
+   "dashed": true
+  },
+  {
+   "from": "rt",
+   "to": "ev",
+   "label": "추가"
+  },
+  {
+   "from": "gd",
+   "to": "rb",
+   "label": "실패 시"
+  }
+ ]
+}

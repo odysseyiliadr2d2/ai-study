@@ -1,0 +1,92 @@
+{
+ "title": "화면과 API를 나누면 같은 기능을 여러 화면과 시스템이 함께 씁니다",
+ "subtitle": "업무 요청 접수 서비스 — 화면은 API를 부르고, 규칙은 서비스 계층 한곳에",
+ "cols": 3,
+ "rows": 3,
+ "cell_h": 124,
+ "nodes": [
+  {
+   "id": "web",
+   "col": 0,
+   "row": 0,
+   "label": "웹 화면",
+   "sub": "Next.js 페이지 · Thymeleaf",
+   "icon": "web",
+   "color": "blue"
+  },
+  {
+   "id": "n8n",
+   "col": 1,
+   "row": 0,
+   "label": "n8n · 배치",
+   "sub": "자동화 워크플로",
+   "icon": "nodes",
+   "color": "orange"
+  },
+  {
+   "id": "sys",
+   "col": 2,
+   "row": 0,
+   "label": "다른 사내 시스템",
+   "sub": "포털 · 메신저 봇",
+   "icon": "building",
+   "color": "gray"
+  },
+  {
+   "id": "api",
+   "col": 0,
+   "row": 1,
+   "span": 3,
+   "label": "REST API  /api/requests",
+   "sub": "GET 목록 · POST 등록 · GET /{id} 상세 · PATCH /{id} 상태 변경 — 입력 검증은 여기서 반드시",
+   "icon": "plug",
+   "color": "navy",
+   "emph": true
+  },
+  {
+   "id": "svc",
+   "col": 0,
+   "row": 2,
+   "span": 2,
+   "label": "서비스 계층",
+   "sub": "업무 규칙 · 상태 전이 · (세션 15) AI 요약·분류",
+   "icon": "gear",
+   "color": "purple"
+  },
+  {
+   "id": "db",
+   "col": 2,
+   "row": 2,
+   "label": "저장소",
+   "sub": "오늘은 메모리 → 세션 15 DB",
+   "icon": "db",
+   "color": "teal"
+  }
+ ],
+ "edges": [
+  {
+   "from": "web",
+   "to": "api",
+   "label": "JSON"
+  },
+  {
+   "from": "n8n",
+   "to": "api"
+  },
+  {
+   "from": "sys",
+   "to": "api"
+  },
+  {
+   "from": "api",
+   "to": "svc"
+  },
+  {
+   "from": "svc",
+   "to": "db"
+  }
+ ],
+ "notes": [
+  "화면을 바꾸거나 새 시스템이 붙어도 API 규격과 서비스 계층은 그대로 둡니다."
+ ]
+}

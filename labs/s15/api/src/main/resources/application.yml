@@ -1,0 +1,32 @@
+# src/main/resources/application.yml — 값은 모두 환경변수에서. 이 파일에 비밀값을 쓰지 않습니다.
+#
+# pom.xml 에 추가할 의존성 (버전은 start.spring.io 에서 현재 값 확인)
+#   org.springframework.boot:spring-boot-starter-data-jpa
+#   org.springframework.boot:spring-boot-starter-security
+#   com.oracle.database.jdbc:ojdbc11            (scope runtime, 버전은 Spring Boot 가 관리)
+#   org.springframework.ai:spring-ai-starter-model-anthropic
+#   dependencyManagement 에 org.springframework.ai:spring-ai-bom:2.0.x (type pom, scope import)
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:oracle:thin:@localhost:1521/FREEPDB1}
+    username: ${DB_USER:ticketdesk}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none          # 테이블은 DBA 가 DDL 로 관리
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY}
+      chat:
+        model: ${CLAUDE_MODEL:claude-sonnet-5-5}
+        # temperature 는 설정하지 않습니다 (Claude 5.5 계열은 400 오류)
+      # 사내 AI 게이트웨이를 거칠 때: base-url: ${AI_GATEWAY_URL}
+
+app:
+  demo-password: ${DEMO_PASSWORD}
+  n8n-webhook-url: ${N8N_WEBHOOK_URL:}
+  n8n-webhook-secret: ${N8N_WEBHOOK_SECRET:}

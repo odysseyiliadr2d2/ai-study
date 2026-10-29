@@ -1,0 +1,15 @@
+# 계속 켜 둘 때는 Compose 를 권장합니다 (docker compose up -d)
+services:
+  n8n:
+    image: n8nio/n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - GENERIC_TIMEZONE=Asia/Seoul      # Schedule Trigger 가 쓰는 시간대
+      - TZ=Asia/Seoul                    # 컨테이너 시스템 시간대
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+volumes:
+  n8n_data:

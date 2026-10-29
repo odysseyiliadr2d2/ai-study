@@ -1,0 +1,110 @@
+{
+ "title": "정비는 찾기 → 재기 → 초안 → 검토 → 반영 순서이고, 반영은 사람이 합니다",
+ "subtitle": "LLM은 초안만 만들고 DB에 직접 쓰지 않습니다",
+ "cols": 5,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "f",
+   "col": 0,
+   "row": 0,
+   "label": "빈칸 찾기",
+   "sub": "코멘트 없는 컬럼 목록",
+   "icon": "search",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "p",
+   "col": 1,
+   "row": 0,
+   "label": "프로파일링",
+   "sub": "NULL·고유값·범위",
+   "icon": "chart",
+   "color": "teal",
+   "badge": 2
+  },
+  {
+   "id": "d",
+   "col": 2,
+   "row": 0,
+   "label": "LLM 초안",
+   "sub": "이름+샘플+용어사전",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 3
+  },
+  {
+   "id": "r",
+   "col": 3,
+   "row": 0,
+   "label": "담당자 검토",
+   "sub": "확신도 낮은 것부터",
+   "icon": "eye",
+   "color": "orange",
+   "badge": 4
+  },
+  {
+   "id": "a",
+   "col": 4,
+   "row": 0,
+   "label": "DBA 반영",
+   "sub": "변경 절차로 적용",
+   "icon": "db",
+   "color": "navy",
+   "badge": 5,
+   "emph": true
+  },
+  {
+   "id": "g",
+   "col": 2,
+   "row": 1,
+   "label": "용어사전",
+   "sub": "표준 용어·금지어",
+   "icon": "list",
+   "color": "blue"
+  },
+  {
+   "id": "x",
+   "col": 4,
+   "row": 1,
+   "label": "자동 실행 금지",
+   "sub": ".sql 파일로만 출력",
+   "icon": "lock",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "f",
+   "to": "p"
+  },
+  {
+   "from": "p",
+   "to": "d"
+  },
+  {
+   "from": "d",
+   "to": "r"
+  },
+  {
+   "from": "r",
+   "to": "a"
+  },
+  {
+   "from": "g",
+   "to": "d"
+  },
+  {
+   "from": "a",
+   "to": "x"
+  },
+  {
+   "from": "r",
+   "to": "g",
+   "label": "새 용어",
+   "dashed": true,
+   "route": "vh"
+  }
+ ]
+}

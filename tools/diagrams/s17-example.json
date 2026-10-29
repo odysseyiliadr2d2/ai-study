@@ -1,0 +1,111 @@
+{
+ "title": "운영 에이전트는 읽기 도구는 바로 쓰고, 쓰기 도구는 사람 승인 뒤에만 씁니다",
+ "subtitle": "정보계 배치 장애 진단 — 도구 4개의 권한 구분",
+ "cols": 3,
+ "rows": 3,
+ "cell_h": 116,
+ "groups": [
+  {
+   "label": "읽기 · 자동 실행",
+   "col": 2,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "blue"
+  },
+  {
+   "label": "쓰기 · 승인 필요",
+   "col": 0,
+   "row": 2,
+   "cols": 1,
+   "rows": 1,
+   "color": "yellow"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "u",
+   "col": 0,
+   "row": 1,
+   "label": "운영 담당자",
+   "sub": "메신저·터미널",
+   "icon": "user",
+   "color": "orange"
+  },
+  {
+   "id": "ag",
+   "col": 1,
+   "row": 1,
+   "label": "에이전트 루프",
+   "sub": "agent_loop.py",
+   "icon": "cycle",
+   "color": "pink",
+   "emph": true
+  },
+  {
+   "id": "t1",
+   "col": 2,
+   "row": 0,
+   "label": "get_batch_log",
+   "sub": "배치 로그",
+   "icon": "terminal",
+   "color": "blue"
+  },
+  {
+   "id": "t2",
+   "col": 2,
+   "row": 1,
+   "label": "get_row_count",
+   "sub": "적재 건수",
+   "icon": "db",
+   "color": "blue"
+  },
+  {
+   "id": "t3",
+   "col": 2,
+   "row": 2,
+   "label": "search_table_spec",
+   "sub": "테이블 정의서",
+   "icon": "doc",
+   "color": "blue"
+  },
+  {
+   "id": "w",
+   "col": 0,
+   "row": 2,
+   "label": "request_rerun",
+   "sub": "재실행 요청 등록",
+   "icon": "send",
+   "color": "yellow"
+  }
+ ],
+ "edges": [
+  {
+   "from": "u",
+   "to": "ag",
+   "both": true
+  },
+  {
+   "from": "ag",
+   "to": "t1",
+   "route": "vh"
+  },
+  {
+   "from": "ag",
+   "to": "t2"
+  },
+  {
+   "from": "ag",
+   "to": "t3",
+   "route": "vh"
+  },
+  {
+   "from": "u",
+   "to": "w",
+   "label": "y/N 승인"
+  }
+ ],
+ "notes": [
+  "실습은 모의 데이터(JSONL·CSV·JSON)로 돌리고, 사내 적용 때는 ops_tools.py 함수 안쪽만 Oracle·로그 시스템 조회로 바꿉니다."
+ ]
+}

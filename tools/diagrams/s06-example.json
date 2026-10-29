@@ -1,0 +1,116 @@
+{
+ "title": "문의 메일 분류 API: 기존 시스템은 JSON 만 받습니다",
+ "subtitle": "SI 고객센터 예시 — LLM 은 API 뒤에 숨기고 결과는 항상 같은 모양",
+ "cols": 5,
+ "rows": 2,
+ "groups": [
+  {
+   "label": "분류 API (FastAPI)",
+   "col": 1,
+   "row": 0,
+   "cols": 3,
+   "rows": 1,
+   "color": "purple"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "in",
+   "col": 0,
+   "row": 0,
+   "label": "메일 수집기",
+   "sub": "제목·본문만 전달",
+   "icon": "inbox",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "mask",
+   "col": 1,
+   "row": 0,
+   "label": "마스킹",
+   "sub": "전화·메일·번호 가림",
+   "icon": "lock",
+   "color": "gray",
+   "badge": 2
+  },
+  {
+   "id": "llm",
+   "col": 2,
+   "row": 0,
+   "label": "분류 · 추출",
+   "sub": "구조화 출력 + 검증",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 3
+  },
+  {
+   "id": "rule",
+   "col": 3,
+   "row": 0,
+   "label": "후처리 규칙",
+   "sub": "긴급 키워드 우선",
+   "icon": "gear",
+   "color": "navy",
+   "badge": 4
+  },
+  {
+   "id": "out",
+   "col": 4,
+   "row": 0,
+   "label": "티켓 시스템",
+   "sub": "카테고리·담당팀 자동",
+   "icon": "check",
+   "color": "green",
+   "badge": 5,
+   "emph": true
+  },
+  {
+   "id": "log",
+   "col": 2,
+   "row": 1,
+   "label": "호출 로그",
+   "sub": "토큰·비용·지연",
+   "icon": "chart",
+   "color": "orange"
+  },
+  {
+   "id": "rev",
+   "col": 4,
+   "row": 1,
+   "label": "검토 큐",
+   "sub": "신뢰도 낮음 · 실패",
+   "icon": "users",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "in",
+   "to": "mask"
+  },
+  {
+   "from": "mask",
+   "to": "llm"
+  },
+  {
+   "from": "llm",
+   "to": "rule"
+  },
+  {
+   "from": "rule",
+   "to": "out"
+  },
+  {
+   "from": "llm",
+   "to": "log",
+   "dashed": true
+  },
+  {
+   "from": "rule",
+   "to": "rev",
+   "route": "vh",
+   "label": "애매함"
+  }
+ ]
+}

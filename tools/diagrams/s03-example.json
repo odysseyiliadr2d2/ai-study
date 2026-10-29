@@ -1,0 +1,116 @@
+{
+ "title": "자주 하는 업무 다섯 가지를 템플릿으로 만들어 팀이 함께 씁니다",
+ "subtitle": "업무용 프롬프트 템플릿 5종 — 변수만 바꿔 끼우는 라이브러리",
+ "cols": 5,
+ "rows": 2,
+ "cell_h": 140,
+ "groups": [
+  {
+   "label": "템플릿 5종",
+   "col": 0,
+   "row": 0,
+   "cols": 5,
+   "rows": 1,
+   "color": "gray"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "t1",
+   "col": 0,
+   "row": 0,
+   "label": "컬럼 설명 초안",
+   "sub": "정의서 → 업무 설명",
+   "icon": "sheet",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "t2",
+   "col": 1,
+   "row": 0,
+   "label": "장애 로그 요약",
+   "sub": "배치 로그 → 당직 보고",
+   "icon": "warn",
+   "color": "red",
+   "badge": 2
+  },
+  {
+   "id": "t3",
+   "col": 2,
+   "row": 0,
+   "label": "액션아이템",
+   "sub": "회의록 → 담당·기한 표",
+   "icon": "users",
+   "color": "purple",
+   "badge": 3
+  },
+  {
+   "id": "t4",
+   "col": 3,
+   "row": 0,
+   "label": "SQL 리뷰",
+   "sub": "Oracle SQL → 위험·개선점",
+   "icon": "code",
+   "color": "teal",
+   "badge": 4
+  },
+  {
+   "id": "t5",
+   "col": 4,
+   "row": 0,
+   "label": "보고서 초안",
+   "sub": "수치·메모 → 주간 보고",
+   "icon": "doc",
+   "color": "orange",
+   "badge": 5
+  },
+  {
+   "id": "lib",
+   "col": 0,
+   "row": 1,
+   "span": 3,
+   "label": "templates.py",
+   "sub": "역할·맥락·제약·형식 고정 + $변수 자리 · 버전 관리",
+   "icon": "git",
+   "color": "navy"
+  },
+  {
+   "id": "run",
+   "col": 3,
+   "row": 1,
+   "label": "실행",
+   "sub": "사내 승인 모델 또는 웹 UI에 붙여넣기",
+   "icon": "spark",
+   "color": "pink"
+  },
+  {
+   "id": "rev",
+   "col": 4,
+   "row": 1,
+   "label": "사람 검토",
+   "sub": "결과 확인 후 사용",
+   "icon": "eye",
+   "color": "green",
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "t3",
+   "to": "lib",
+   "label": "모음"
+  },
+  {
+   "from": "lib",
+   "to": "run"
+  },
+  {
+   "from": "run",
+   "to": "rev"
+  }
+ ],
+ "notes": [
+  "템플릿은 코드처럼 저장소에 두고, 결과가 나쁘면 템플릿을 고친 뒤 버전을 올립니다."
+ ]
+}

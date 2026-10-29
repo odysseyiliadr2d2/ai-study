@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!-- src/main/resources/templates/requests.html -->
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>업무 요청</title>
+  <!-- 세션 15에서 Spring Security 를 켜면 CSRF 토큰이 채워집니다 (지금은 비어 있음) -->
+  <meta name="_csrf" th:content="${_csrf?.token}">
+  <meta name="_csrf_header" th:content="${_csrf?.headerName}">
+</head>
+<body style="max-width: 960px; margin: 0 auto; padding: 24px">
+<h1>업무 요청</h1>
+
+<form id="request-form" style="display: grid; gap: 8px">
+  <label>제목 <input name="title" required minlength="5" maxlength="100"></label>
+  <small class="err" data-field="title"></small>
+  <label>내용 <textarea name="body" rows="5" required minlength="10" maxlength="4000"></textarea></label>
+  <small class="err" data-field="body"></small>
+  <label>마감일 <input name="dueDate" type="date"></label>
+  <small class="err" data-field="dueDate"></small>
+  <button type="submit">접수</button>
+  <p id="message" role="status"></p>
+</form>
+
+<table style="width: 100%; margin-top: 24px">
+  <thead><tr><th>번호</th><th>제목</th><th>상태</th><th>분류</th><th>요약</th><th>접수일시</th></tr></thead>
+  <tbody>
+  <tr th:each="r : ${items}">
+    <td th:text="${r.id}">1</td>
+    <td th:text="${r.title}">제목</td>
+    <td th:text="${r.status}">RECEIVED</td>
+    <td th:text="${r.category} ?: '-'">-</td>
+    <td th:text="${r.summary} ?: '-'">-</td>
+    <td th:text="${r.createdAt}">2026-11-02T00:00:00Z</td>
+  </tr>
+  <tr th:if="${#lists.isEmpty(items)}"><td colspan="6">등록된 요청이 없습니다.</td></tr>
+  </tbody>
+</table>
+
+<script>
+  const form = document.getElementById('request-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.err').forEach((el) => (el.textContent = ''));
+    const data = Object.fromEntries(new FormData(form));
+    if (!data.dueDate) delete data.dueDate;
+
+    const headers = { 'Content-Type': 'application/json' };
+    const token = document.querySelector('meta[name="_csrf"]').content;
+    const header = document.querySelector('meta[name="_csrf_header"]').content;
+    if (token && header) headers[header] = token;
+
+    const res = await fetch('/api/requests', { method: 'POST', headers, body: JSON.stringify(data) });
+    const msg = document.getElementById('message');
+    if (res.status === 400) {
+      const body = await res.json().catch(() => ({}));
+      Object.entries(body.errors || {}).forEach(([field, list]) => {
+        const el = document.querySelector('.err[data-field="' + field + '"]');
+        if (el) el.textContent = [].concat(list).join(', ');
+      });
+      msg.textContent = body.detail || '입력값을 확인하세요';
+      return;
+    }
+    if (!res.ok) { msg.textContent = '저장하지 못했습니다. 잠시 후 다시 시도하세요.'; return; }
+    location.reload();
+  });
+</script>
+</body>
+</html>

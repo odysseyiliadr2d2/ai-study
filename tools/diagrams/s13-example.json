@@ -1,0 +1,133 @@
+{
+ "title": "PL/SQL 배치 리팩터링: 에이전트는 초안, 사람은 판정과 운영",
+ "subtitle": "맡기는 범위와 사람이 지키는 범위를 미리 나눕니다",
+ "cols": 4,
+ "rows": 2,
+ "groups": [
+  {
+   "label": "에이전트에게 맡김",
+   "col": 0,
+   "row": 0,
+   "cols": 2,
+   "rows": 1,
+   "color": "green"
+  },
+  {
+   "label": "사람이 지킴",
+   "col": 0,
+   "row": 1,
+   "cols": 4,
+   "rows": 1,
+   "color": "red"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "a1",
+   "col": 0,
+   "row": 0,
+   "label": "구조 분석",
+   "sub": "커서 · 분기 · 참조 테이블 목록",
+   "icon": "search",
+   "color": "green",
+   "badge": 1
+  },
+  {
+   "id": "a2",
+   "col": 1,
+   "row": 0,
+   "label": "리팩터링 초안",
+   "sub": "커서 루프 → 집합 SQL",
+   "icon": "code",
+   "color": "green",
+   "badge": 2
+  },
+  {
+   "id": "dev",
+   "col": 2,
+   "row": 0,
+   "label": "개발 DB 실행",
+   "sub": "구·신 버전 같은 기준일",
+   "icon": "db",
+   "color": "teal",
+   "badge": 3
+  },
+  {
+   "id": "cmp",
+   "col": 3,
+   "row": 0,
+   "label": "비교 SQL",
+   "sub": "건수 · 합계 · MINUS",
+   "icon": "sheet",
+   "color": "purple",
+   "badge": 4
+  },
+  {
+   "id": "h1",
+   "col": 0,
+   "row": 1,
+   "label": "운영 DB 차단",
+   "sub": "에이전트 환경에 접속 정보 없음",
+   "icon": "lock",
+   "color": "red"
+  },
+  {
+   "id": "rel",
+   "col": 1,
+   "row": 1,
+   "label": "운영 반영",
+   "sub": "변경 관리 절차 그대로",
+   "icon": "rocket",
+   "color": "navy",
+   "badge": 7
+  },
+  {
+   "id": "rv",
+   "col": 2,
+   "row": 1,
+   "label": "교차 리뷰",
+   "sub": "다른 도구 + 담당자 승인",
+   "icon": "users",
+   "color": "pink",
+   "badge": 6
+  },
+  {
+   "id": "h2",
+   "col": 3,
+   "row": 1,
+   "label": "동일성 판정",
+   "sub": "차이 0건일 때만 통과",
+   "icon": "check",
+   "color": "red",
+   "badge": 5,
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "a1",
+   "to": "a2"
+  },
+  {
+   "from": "a2",
+   "to": "dev"
+  },
+  {
+   "from": "dev",
+   "to": "cmp"
+  },
+  {
+   "from": "cmp",
+   "to": "h2",
+   "label": "결과"
+  },
+  {
+   "from": "h2",
+   "to": "rv"
+  },
+  {
+   "from": "rv",
+   "to": "rel"
+  }
+ ]
+}

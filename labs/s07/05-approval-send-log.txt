@@ -1,0 +1,37 @@
+[④ Gmail — 'Approval']
+Resource: Message / Operation: Send and Wait for Response (문서 표기: Send and Wait for Approval)
+To: 승인 담당자 메일 (실습은 내 메일)
+Subject: [승인 요청] {{ $('Mail').item.json.subject }}  ({{ $json.output.category }}/{{ $json.output.urgency }})
+Message:
+  보낸 사람: {{ $('Mail').item.json.from }}
+  요약: {{ $json.output.summary }}
+  사람 확인 필요: {{ $json.output.needs_human }}
+  참고 FAQ: {{ $json.output.faq_used }}
+  ---- 답장 초안 ----
+  {{ $json.output.reply_draft }}
+Response Type: Approval
+Type of Approval: Approve and Disapprove
+  Approve Button Label: 발송 승인 / Disapprove Button Label: 직접 처리
+Options › Limit Wait Time: 켬, 4 Hours   (시간이 지나면 자동으로 다음 단계로)
+
+※ 승인 버튼은 n8n 주소로 돌아오는 링크입니다. localhost 실습에서는 같은 PC 브라우저에서 눌러야 합니다.
+
+[⑤ IF — 'Approved?']
+Conditions: {{ $json.data.approved }}  is true   (Boolean)
+※ 승인 노드 출력 필드 이름은 실행 기록에서 한 번 확인하세요. 시간 초과로 넘어온 경우도 false 쪽으로 갑니다.
+
+[⑥ Gmail — 'Send Reply']   (IF true 쪽)
+Resource: Message / Operation: Reply
+Message ID: {{ $('Mail').item.json.messageId }}
+Email Type: Text
+Message: {{ $('Agent').item.json.output.reply_draft }}
+Options › Reply to Sender Only: 켬 / Append n8n Attribution: 끔
+
+[⑦ Google Sheets — 'Log']   (⑥ 뒤 + IF false 쪽 둘 다 연결)
+Operation: Append Row / Mapping Column Mode: Map Each Column Manually
+  received_at = {{ $now.toISO() }}
+  from        = {{ $('Mail').item.json.from }}
+  subject     = {{ $('Mail').item.json.subject }}
+  category    = {{ $('Agent').item.json.output.category }}
+  urgency     = {{ $('Agent').item.json.output.urgency }}
+  result      = {{ $('Approved?').item.json.data?.approved ? '자동 발송' : '수동 처리' }}

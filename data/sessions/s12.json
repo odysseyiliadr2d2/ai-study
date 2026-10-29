@@ -1,0 +1,238 @@
+{
+ "id": 12,
+ "part": 3,
+ "title": "데이터 품질과 메타데이터 정비",
+ "summary": "AI가 잘 쓰도록 컬럼 설명·업무 용어·데이터 계보를 정리하는 법",
+ "level": "중급",
+ "tags": [
+  "SQL",
+  "DW"
+ ],
+ "duration": "120분 (설명 40 · 실습 60 · 토론 20)",
+ "goals": [
+  "AI가 DW를 쓰려면 어떤 메타데이터가 필요한지 네 가지(컬럼 코멘트·업무 용어·코드값·계보)로 설명할 수 있다",
+  "Oracle 딕셔너리로 코멘트가 빠진 테이블·컬럼을 찾고 채움률을 잰다",
+  "프로파일링 쿼리로 NULL 비율·고유값 수·최소/최대를 확인하고 품질 지표(완전성·유효성·일관성·적시성)를 정의한다",
+  "LLM으로 컬럼 설명 초안을 만들되, 검토 가능한 COMMENT ON 스크립트로만 내보낸다"
+ ],
+ "output": "팀 담당 스키마의 코멘트 채움률 보고서 + 검토용 컬럼 설명 초안(CSV·SQL) + 업무 용어 사전 초안",
+ "concept": {
+  "lead": "AI가 DW에서 정확한 답을 내려면 데이터 자체보다 <b>데이터를 설명하는 데이터(메타데이터)</b>가 먼저 정비돼야 합니다. 신입 담당자에게 말로 설명하던 내용을 컬럼 코멘트·용어 사전·코드값 사전·계보로 적어 두는 일입니다.",
+  "body": [
+   "세션 11의 Text-to-SQL은 컬럼 코멘트를 그대로 프롬프트에 넣습니다. 코멘트가 비어 있으면 모델은 <code>TRD_AMT</code>가 약정금액인지 결제금액인지 이름만 보고 추측합니다. 세션 10의 RAG도 용어 사전이 있어야 'TSS'와 'Terrastream'을 같은 것으로 찾습니다. 결국 AI 도입 효과는 메타데이터의 품질만큼 나옵니다.",
+   "정비 대상은 네 가지입니다. <b>컬럼 코멘트</b>(뜻·단위·형식), <b>업무 용어 사전</b>(표준용어와 정의·동의어·금지표현), <b>코드값 사전</b>(01=영업점 같은 코드 의미), <b>데이터 계보</b>(ODS → STG → DW → Mart로 어떤 원천에서 어떤 변환을 거쳤는지). 여기에 데이터를 믿어도 되는지 알려 주는 <b>품질 지표</b>가 더해집니다.",
+   "이 일은 양이 많아 미뤄지기 쉽습니다. LLM은 컬럼 이름·샘플 값·용어 사전을 보고 설명 초안을 빠르게 만들 수 있으므로, 사람은 검토와 확정에 집중합니다. 단, 초안은 파일로만 내보내고 DB 반영은 검토와 변경 절차를 거쳐 사람이 합니다."
+  ],
+  "diagram": {
+   "src": "diagrams/s12-concept.svg",
+   "caption": "메타데이터와 품질 지표가 데이터 옆에 있어야 AI가 '어떤 기준으로 셌는지'까지 답할 수 있습니다."
+  },
+  "terms": [
+   {
+    "term": "컬럼 코멘트",
+    "desc": "<code>COMMENT ON COLUMN</code>으로 컬럼에 붙이는 설명. Oracle은 <code>ALL_COL_COMMENTS</code>에 저장합니다."
+   },
+   {
+    "term": "업무 용어 사전",
+    "desc": "표준용어·영문약어·정의·동의어·금지표현을 정리한 사전. 컬럼명과 코멘트의 표기를 통일하는 기준입니다."
+   },
+   {
+    "term": "코드값 사전",
+    "desc": "코드 컬럼의 값과 의미(01 영업점, 02 HTS) 목록. 공통코드 테이블이나 코멘트로 관리합니다."
+   },
+   {
+    "term": "데이터 계보 (Lineage)",
+    "desc": "한 컬럼이 어느 원천에서 어떤 변환·적재를 거쳐 왔는지의 기록. 숫자가 틀릴 때 원인을 거슬러 찾는 지도입니다."
+   },
+   {
+    "term": "데이터 프로파일링",
+    "desc": "NULL 비율, 고유값 수, 최소·최대, 자주 나오는 값을 세어 데이터의 실제 모습을 확인하는 일."
+   },
+   {
+    "term": "품질 지표",
+    "desc": "완전성(빠짐 없음)·유효성(허용 값)·일관성(계층 간 합계 일치)·적시성(제때 적재)을 숫자로 잰 것."
+   }
+  ]
+ },
+ "theory": {
+  "lead": "메타데이터 정비는 <b>찾기 → 재기 → 초안 → 검토 → 반영</b>의 반복입니다. LLM은 초안 단계에만 쓰고, 반영은 사람이 변경 절차로 합니다.",
+  "diagram": {
+   "src": "diagrams/s12-theory.svg",
+   "caption": "LLM이 만든 초안은 파일로 나가고, 검토와 DBA 반영을 거쳐야 DB에 들어갑니다."
+  },
+  "sections": [
+   {
+    "title": "1. 좋은 컬럼 코멘트의 조건",
+    "body": [
+     "좋은 코멘트는 <b>표준용어 + 단위·형식 + 헷갈리기 쉬운 점</b>을 담습니다. 컬럼명을 한글로 옮긴 것만으로는 부족합니다. 'YYYYMMDD 문자열인지 DATE인지', '원 단위인지 천 원 단위인지', '결제금액이 아니라 약정금액'처럼 실제로 사고가 나는 지점을 적습니다."
+    ],
+    "bullets": [
+     "형식: <code>표준용어(단위·형식). 보충 설명</code>, 80자 안팎",
+     "코드 컬럼은 코드그룹과 대표 값을 함께 적습니다",
+     "Oracle 코멘트 최대 길이는 버전별 공식 문서에서 확인하고, 길어지면 용어 사전으로 보냅니다"
+    ],
+    "code": {
+     "lang": "text",
+     "src": "나쁜 코멘트                     좋은 코멘트\n-----------------------------  ------------------------------------------------------------\nTRD_AMT  '거래금액'             '거래금액(원). 매수+매도 약정금액 합계. 결제금액 아님'\nCHNL_CD  '채널'                 '거래채널코드(공통코드 CHNL: 01 영업점, 02 HTS, 03 MTS)'\nBASE_DT  'BASE_DT'              '기준일자(YYYYMMDD 문자열). 영업일만 적재'\nSETL_YN  '여부'                 '결제완료여부(Y/N). T+2 결제 후 Y, 결제 전 N'\n(없음)   LOAD_DTTM              '적재일시. ETL 이 행을 마지막으로 적재한 시각(KST)'"
+    }
+   },
+   {
+    "title": "2. 업무 용어 사전과 코드값 사전",
+    "body": [
+     "용어 사전은 한 행에 <b>표준용어 · 영문약어 · 정의 · 동의어 · 금지표현</b>을 둡니다. 영문약어(TRD, AMT, CHNL)는 컬럼명을 만드는 조각이기도 하므로, 컬럼명 조각으로 관련 용어를 찾아 LLM에 넘길 수 있습니다. 동의어는 RAG의 질의 재작성(세션 10)에, 정의는 Text-to-SQL 프롬프트(세션 11)에 그대로 쓰입니다.",
+     "코드값 사전은 공통코드 테이블(코드그룹·코드값·코드명)로 관리하는 경우가 많습니다. 프로파일링으로 실제 값 분포를 뽑아 사전에 없는 값이 있는지 대조하면 그 자체로 유효성 검사가 됩니다."
+    ]
+   },
+   {
+    "title": "3. 데이터 계보: ODS → STG → DW → Mart",
+    "body": [
+     "정보계 숫자가 틀리면 '어느 단계에서 틀렸나'를 찾아야 합니다. 계보는 마트 컬럼마다 원천 컬럼, 거쳐 온 테이블, 변환 규칙, 적재 워크플로를 기록합니다. ETL 매핑 정의서에 이미 있는 내용을 사람이 아니라 기계도 읽을 수 있는 형식(YAML·테이블)으로 옮겨 두면, AI 도구가 '이 숫자는 어디서 왔나'에 답할 수 있습니다."
+    ],
+    "bullets": [
+     "ODS: 원천 그대로 · STG: 정제·변환 · DW: 주제별 통합 · Mart: 보고서·분석용 집계",
+     "Terrastream 워크플로명과 실행 시각을 함께 적으면 적시성 점검에 바로 씁니다",
+     "모든 컬럼을 한 번에 하지 말고, 보고서에 나가는 금액·건수 컬럼부터 시작합니다"
+    ],
+    "code": {
+     "lang": "yaml",
+     "src": "# lineage.yaml — 마트 컬럼 하나의 계보 (ETL 매핑 정의서를 기계가 읽을 수 있게)\nMART.TRD_CHNL_DAY_M.TRD_AMT:\n  설명: 거래금액(원). 매수+매도 약정금액 합계\n  원천:\n    - ODS.ORD_EXEC_H.EXEC_AMT        # 체결 원장 (매 영업일 18:00 수신)\n  경로: ODS.ORD_EXEC_H -> STG.STG_ORD_EXEC -> DW.TRD_DAY_F -> MART.TRD_CHNL_DAY_M\n  변환: SUM(EXEC_AMT) GROUP BY BASE_DT, CHNL_CD   # 취소 체결(EXEC_TP='C') 제외\n  적재: Terrastream 워크플로 WF_MART_TRD_D, 매일 05:30\n  품질규칙: [NOT NULL, \">= 0\", \"DW.TRD_DAY_F 일합계와 일치\"]\n  담당: 정보계 데이터팀"
+    }
+   },
+   {
+    "title": "4. 품질 지표 네 가지",
+    "body": [
+     "<b>완전성</b>: 있어야 할 값이 있는가 (NULL 비율, 영업일별 행 존재). <b>유효성</b>: 허용된 값·형식인가 (코드값 사전에 있는 값, YYYYMMDD 형식, 음수 금액 없음). <b>일관성</b>: 계층 간 숫자가 맞는가 (마트 합계 = DW 합계, ODS 건수 = STG 건수). <b>적시성</b>: 제때 들어왔는가 (최근 적재일, 배치 완료 시각).",
+     "지표마다 검사 SQL과 허용 기준(예: NULL 비율 0%, 합계 차이 0원, 05:30까지 적재)을 정하고 야간 배치 뒤에 돌립니다. 결과를 AI 도구가 함께 보여 주면 '오늘 마트는 적재 지연 중'처럼 답의 신뢰도까지 알려 줄 수 있습니다."
+    ]
+   },
+   {
+    "title": "5. LLM으로 초안 만들기: 무엇을 주고 무엇을 막나",
+    "body": [
+     "LLM에는 <b>컬럼명 · 타입 · 테이블 설명 · 샘플 프로파일(상위 값, 최소/최대, NULL 비율) · 관련 용어 사전 행</b>을 줍니다. 표준용어로 시작하고 금지표현을 쓰지 말라는 규칙, 모르면 추측하지 말고 확신도를 낮추라는 규칙을 줍니다.",
+     "막아야 할 것은 두 가지입니다. 첫째, 샘플 값에 고객명·계좌번호 같은 민감정보가 섞이지 않게 대상 스키마를 마트·코드 테이블로 한정하고, 필요하면 마스킹합니다. 둘째, LLM 출력이 DB에 바로 들어가지 않게 합니다. 초안은 CSV와 <code>_DRAFT.sql</code> 파일로만 쓰고, 검토 후 확정본을 만들어 DBA가 변경 절차로 반영합니다."
+    ]
+   }
+  ]
+ },
+ "lab": {
+  "title": "코멘트 빈칸 찾기 · 프로파일링 · LLM 초안 만들기",
+  "lead": "세션 11의 실습 DB(또는 사내 개발 DB의 마트 스키마)를 대상으로 코멘트가 빠진 컬럼을 찾고, 프로파일을 뽑고, LLM으로 설명 초안을 만들어 검토용 파일로 내보냅니다. 모든 SQL은 읽기 전용 계정으로 실행합니다.",
+  "env": [
+   "Oracle 19c 이상 (세션 11의 Oracle Free 컨테이너 가능)",
+   "SQL Developer 또는 SQL*Plus",
+   "Python 3.11+ · python-oracledb · anthropic",
+   "ANTHROPIC_API_KEY, ORA_USER, ORA_PASSWORD, ORA_DSN"
+  ],
+  "steps": [
+   {
+    "title": "코멘트 빈칸 찾기",
+    "body": [
+     "스키마별 채움률, 코멘트 없는 테이블, 코멘트가 없거나 컬럼명을 그대로 옮긴 컬럼, 같은 컬럼명인데 설명이 다른 컬럼(용어 불일치 후보)을 차례로 뽑습니다. <code>ALL_TABLES</code>와 조인해 뷰는 제외합니다. 첫 번째 쿼리 결과가 정비 전 기준선입니다."
+    ],
+    "code": {
+     "lang": "sql",
+     "file": "labs/s12/sql/01_find_missing.sql",
+     "src": "-- 01_find_missing.sql : 코멘트가 비어 있는 테이블·컬럼 찾기 (읽기 전용 계정으로 실행)\n-- :owner 에 대상 스키마(예: 'MART')를 넣습니다. SQL Developer / SQL*Plus 에서는 바인드 변수로 입력합니다.\n\n-- 1) 스키마별 코멘트 채움률 (보고용 한 줄)\nSELECT c.owner,\n       COUNT(*)                                             AS col_cnt,\n       COUNT(CASE WHEN TRIM(cc.comments) IS NOT NULL THEN 1 END) AS commented_cnt,\n       ROUND(100 * COUNT(CASE WHEN TRIM(cc.comments) IS NOT NULL THEN 1 END) / COUNT(*), 1) AS fill_pct\nFROM   all_tab_columns c\nJOIN   all_tables t\n       ON t.owner = c.owner AND t.table_name = c.table_name      -- 뷰는 빼고 테이블만\nLEFT JOIN all_col_comments cc\n       ON cc.owner = c.owner AND cc.table_name = c.table_name AND cc.column_name = c.column_name\nWHERE  c.owner = :owner\nGROUP  BY c.owner;\n\n-- 2) 테이블 코멘트가 없는 테이블\nSELECT t.table_name, t.num_rows, t.last_analyzed\nFROM   all_tables t\nLEFT JOIN all_tab_comments tc\n       ON tc.owner = t.owner AND tc.table_name = t.table_name\nWHERE  t.owner = :owner\nAND    TRIM(tc.comments) IS NULL\nORDER  BY t.table_name;\n\n-- 3) 컬럼 코멘트가 없거나, 컬럼명을 그대로 옮겨 적은 '무늬만 코멘트'인 컬럼\nSELECT c.table_name, c.column_id, c.column_name, c.data_type, c.data_length, c.nullable,\n       cc.comments,\n       CASE WHEN TRIM(cc.comments) IS NULL THEN '없음'\n            WHEN UPPER(REPLACE(REPLACE(cc.comments, ' ', ''), '_', '')) = REPLACE(c.column_name, '_', '') THEN '컬럼명과 같음'\n            WHEN LENGTH(TRIM(cc.comments)) < 3 THEN '너무 짧음'\n       END AS issue\nFROM   all_tab_columns c\nJOIN   all_tables t\n       ON t.owner = c.owner AND t.table_name = c.table_name\nLEFT JOIN all_col_comments cc\n       ON cc.owner = c.owner AND cc.table_name = c.table_name AND cc.column_name = c.column_name\nWHERE  c.owner = :owner\nAND   (TRIM(cc.comments) IS NULL\n       OR UPPER(REPLACE(REPLACE(cc.comments, ' ', ''), '_', '')) = REPLACE(c.column_name, '_', '')\n       OR LENGTH(TRIM(cc.comments)) < 3)\nORDER  BY c.table_name, c.column_id;\n\n-- 4) 같은 컬럼명인데 테이블마다 설명이 다른 경우 (용어 불일치 후보, LISTAGG DISTINCT 는 19c 이상)\nSELECT cc.column_name,\n       COUNT(DISTINCT cc.comments) AS variants,\n       LISTAGG(DISTINCT cc.table_name || ': ' || cc.comments, ' | ' ON OVERFLOW TRUNCATE)\n         WITHIN GROUP (ORDER BY cc.table_name || ': ' || cc.comments) AS examples\nFROM   all_col_comments cc\nJOIN   all_tables t\n       ON t.owner = cc.owner AND t.table_name = cc.table_name\nWHERE  cc.owner = :owner\nAND    TRIM(cc.comments) IS NOT NULL\nGROUP  BY cc.column_name\nHAVING COUNT(DISTINCT cc.comments) > 1\nORDER  BY variants DESC, cc.column_name;\n"
+    }
+   },
+   {
+    "title": "프로파일링과 품질 지표 쿼리",
+    "body": [
+     "먼저 통계 정보(<code>ALL_TAB_COL_STATISTICS</code>)로 테이블을 읽지 않고 NULL 수·고유값 수를 봅니다. 통계가 오래됐거나 더 자세히 봐야 하는 컬럼만 직접 셉니다. 대형 테이블은 기간 조건이나 <code>SAMPLE</code> 절을 꼭 붙입니다. 예시의 <code>MART.TRD_CHNL_DAY_M</code>은 팀의 마트 테이블로 바꿉니다."
+    ],
+    "code": {
+     "lang": "sql",
+     "file": "labs/s12/sql/02_profile.sql",
+     "src": "-- 02_profile.sql : 컬럼 프로파일링 (NULL 비율 · 고유값 수 · 최소/최대 · 상위 값)\n-- 1) 통계 정보로 빠르게: 테이블을 읽지 않고 옵티마이저 통계(ALL_TAB_COL_STATISTICS)를 봅니다.\n--    LAST_ANALYZED 가 오래됐으면 숫자도 오래된 것입니다. LOW/HIGH_VALUE 는 RAW 라 사람이 읽기 어렵습니다.\nSELECT s.table_name, s.column_name,\n       t.num_rows,\n       s.num_nulls,\n       ROUND(100 * s.num_nulls / NULLIF(t.num_rows, 0), 1) AS null_pct,\n       s.num_distinct,\n       s.last_analyzed\nFROM   all_tab_col_statistics s\nJOIN   all_tables t ON t.owner = s.owner AND t.table_name = s.table_name\nWHERE  s.owner = :owner\nAND    s.table_name = :table_name\nORDER  BY s.column_name;\n\n-- 2) 컬럼 하나를 직접 세기: 대형 테이블은 기간 조건이나 SAMPLE 절을 꼭 붙입니다.\n--    아래는 MART.TRD_CHNL_DAY_M 의 CHNL_CD 를 최근 1개월만 보는 예입니다.\nSELECT COUNT(*)                                        AS row_cnt,\n       COUNT(chnl_cd)                                  AS non_null_cnt,\n       ROUND(100 * (COUNT(*) - COUNT(chnl_cd)) / NULLIF(COUNT(*), 0), 2) AS null_pct,\n       COUNT(DISTINCT chnl_cd)                         AS distinct_cnt,\n       MIN(chnl_cd)                                    AS min_val,\n       MAX(chnl_cd)                                    AS max_val\nFROM   mart.trd_chnl_day_m\nWHERE  base_dt >= TO_CHAR(ADD_MONTHS(SYSDATE, -1), 'YYYYMMDD');\n\n-- 3) 상위 값 분포 (코드값 사전과 비교할 때)\nSELECT chnl_cd, COUNT(*) AS cnt,\n       ROUND(100 * RATIO_TO_REPORT(COUNT(*)) OVER (), 2) AS pct\nFROM   mart.trd_chnl_day_m SAMPLE (5)          -- 5% 표본. 작은 테이블이면 SAMPLE 절을 뺍니다\nGROUP  BY chnl_cd\nORDER  BY cnt DESC\nFETCH FIRST 20 ROWS ONLY;\n\n-- 4) 품질 지표 예시: 유효성(코드값 사전에 없는 값) · 일관성(마트와 DW 합계 비교) · 적시성(최근 적재일)\nSELECT 'VALIDITY'    AS rule, COUNT(*) AS bad_cnt\nFROM   mart.trd_chnl_day_m m\nWHERE  NOT EXISTS (SELECT 1 FROM dw.cmn_code_d c WHERE c.code_grp = 'CHNL' AND c.code_val = m.chnl_cd)\nUNION ALL\nSELECT 'CONSISTENCY', ABS(NVL((SELECT SUM(trd_amt) FROM mart.trd_chnl_day_m WHERE base_dt = :base_dt), 0)\n                        - NVL((SELECT SUM(trd_amt) FROM dw.trd_day_f      WHERE base_dt = :base_dt), 0))\nFROM   dual\nUNION ALL\nSELECT 'TIMELINESS_DAYS', TRUNC(SYSDATE) - TO_DATE(MAX(base_dt), 'YYYYMMDD')\nFROM   mart.trd_chnl_day_m;\n"
+    }
+   },
+   {
+    "title": "업무 용어 사전 (CSV)",
+    "body": [
+     "엑셀로 관리하던 용어집을 CSV로 저장합니다. 동의어·금지표현이 여러 개면 <code>|</code>로 구분합니다. 이 파일이 LLM 초안의 기준이자 확정 단계의 검사 기준이 됩니다. 패키지는 <code>pip install anthropic oracledb</code>로 설치합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s12/glossary.csv",
+     "src": "표준용어,영문약어,정의,동의어,금지표현\n기준일자,BASE_DT,데이터가 기준으로 삼는 일자(YYYYMMDD 문자열),기준일,일자\n영업일,BIZ_DAY,주말·공휴일을 뺀 거래소 개장일,거래일,평일\n거래금액,TRD_AMT,매수+매도 약정금액 합계(원),약정금액,거래액\n수수료금액,FEE_AMT,고객에게 받은 위탁수수료(원),수수료,커미션\n거래채널코드,CHNL_CD,주문이 들어온 채널(공통코드 CHNL: 01 영업점 02 HTS 03 MTS),채널,매체\n관리지점코드,BRN_CD,계좌를 관리하는 지점 코드,지점코드,부점코드\n상품분류코드,PRD_CLS_CD,상품 대분류(공통코드 PRD_CLS: 01 주식 02 채권 03 펀드 04 ELS),상품구분,상품종류\n적재일시,LOAD_DTTM,ETL 이 이 행을 마지막으로 적재한 일시,처리일시,등록일\n"
+    }
+   },
+   {
+    "title": "LLM으로 컬럼 설명 초안 만들기",
+    "body": [
+     "코멘트가 없는 컬럼마다 샘플 2,000행으로 프로파일을 만들고, 컬럼명 조각과 겹치는 용어 사전 행만 골라 LLM에 줍니다. 결과는 확신도 낮은 순으로 정렬한 검토용 CSV와 <code>_DRAFT.sql</code> 파일 두 개로만 나옵니다. 스키마·테이블·컬럼 이름은 정규식으로 검사한 뒤에만 SQL에 넣습니다. <code>python draft_comments.py DW</code>"
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s12/draft_comments.py",
+     "src": "\"\"\"컬럼 설명 초안 만들기 — python draft_comments.py MART [테이블명 ...]\n코멘트가 없는 컬럼마다 이름 · 타입 · 샘플 값 · 프로파일 · 용어사전을 LLM에 주고 설명 초안을 받습니다.\n결과는 검토용 CSV 와 COMMENT ON 스크립트(.sql) 두 파일로만 씁니다. DB 에는 절대 쓰지 않습니다.\n\"\"\"\nimport csv\nimport datetime as dt\nimport json\nimport os\nimport re\nimport sys\n\nimport oracledb\nfrom anthropic import Anthropic\n\nMODEL = os.getenv(\"CLAUDE_MODEL\", \"claude-sonnet-5-5\")\nSAMPLE_ROWS = 2000          # 샘플은 앞쪽 일부만 (대형 테이블 보호)\nclient = Anthropic()\n\nMISSING_SQL = \"\"\"\nSELECT c.table_name, c.column_name, c.data_type, c.data_length, c.nullable, tc.comments\nFROM   all_tab_columns c\nJOIN   all_tables t ON t.owner = c.owner AND t.table_name = c.table_name\nLEFT JOIN all_col_comments cc\n       ON cc.owner = c.owner AND cc.table_name = c.table_name AND cc.column_name = c.column_name\nLEFT JOIN all_tab_comments tc ON tc.owner = c.owner AND tc.table_name = c.table_name\nWHERE  c.owner = :owner AND TRIM(cc.comments) IS NULL\nAND    c.data_type NOT IN ('CLOB', 'NCLOB', 'BLOB', 'LONG', 'LONG RAW', 'RAW', 'XMLTYPE')   -- 프로파일 불가 타입 제외\nORDER  BY c.table_name, c.column_id\n\"\"\"\n\nIDENT = re.compile(r\"^[A-Z][A-Z0-9_$#]{0,127}$\")   # 식별자 검사: SQL 에 끼워 넣기 전에 반드시 확인\n\n\ndef text_of(msg) -> str:\n    \"\"\"응답 앞에 thinking 블록이 올 수 있으므로 text 블록만 모읍니다.\"\"\"\n    return \"\".join(b.text for b in msg.content if b.type == \"text\")\n\n\ndef load_glossary(path=\"glossary.csv\") -> list[dict]:\n    with open(path, encoding=\"utf-8-sig\") as f:\n        return list(csv.DictReader(f))\n\n\ndef related_terms(column: str, glossary: list[dict]) -> list[dict]:\n    \"\"\"컬럼명 조각(TRD, AMT, CHNL…)이 용어사전 영문약어와 겹치는 항목만 고릅니다.\"\"\"\n    parts = set(column.split(\"_\"))\n    return [g for g in glossary if parts & set(g[\"영문약어\"].split(\"_\")) or g[\"영문약어\"] == column]\n\n\ndef profile(conn, owner: str, table: str, column: str) -> dict:\n    \"\"\"샘플 SAMPLE_ROWS 행에서 NULL 비율·고유값 수·최소/최대·상위 값 5개를 셉니다.\"\"\"\n    for name in (owner, table, column):\n        if not IDENT.match(name):\n            raise ValueError(f\"식별자 형식이 아닙니다: {name}\")\n    src = f'(SELECT \"{column}\" AS v FROM \"{owner}\".\"{table}\" FETCH FIRST {SAMPLE_ROWS} ROWS ONLY)'\n    with conn.cursor() as cur:\n        cur.execute(f\"SELECT COUNT(*), COUNT(v), COUNT(DISTINCT v), MIN(v), MAX(v) FROM {src}\")\n        n, nn, nd, mn, mx = cur.fetchone()\n        cur.execute(f\"SELECT v, COUNT(*) c FROM {src} WHERE v IS NOT NULL GROUP BY v ORDER BY c DESC FETCH FIRST 5 ROWS ONLY\")\n        top = [(str(v)[:30], c) for v, c in cur.fetchall()]\n    return {\"rows\": n, \"null_pct\": round(100 * (n - nn) / n, 1) if n else None,\n            \"distinct\": nd, \"min\": str(mn)[:30], \"max\": str(mx)[:30], \"top\": top}\n\n\nSYSTEM = \"\"\"당신은 증권사 정보계 DW 의 메타데이터 담당자를 돕습니다.\n컬럼 이름, 타입, 테이블 설명, 샘플 프로파일, 업무 용어사전을 보고 컬럼 코멘트 초안을 씁니다.\n규칙:\n- 용어사전에 표준용어가 있으면 반드시 그 표준용어로 시작합니다. 금지표현은 쓰지 않습니다.\n- 형식: '표준용어(단위·형식). 한 문장 보충 설명'. 80자 이내.\n- 코드 컬럼이면 샘플에 보이는 코드값을 '01 영업점'처럼 적되, 의미를 모르면 값만 적고 추측하지 않습니다.\n- 근거가 약하면 confidence 를 low 로 하고 question 에 담당자에게 물을 점을 씁니다.\nJSON 한 줄로만 답하세요: {\"comment\": \"...\", \"confidence\": \"high|medium|low\", \"question\": \"...\"}\"\"\"\n\n\ndef draft(table: str, tcomment: str, column: str, dtype: str, prof: dict, terms: list[dict]) -> dict:\n    user = json.dumps({\"table\": table, \"table_comment\": tcomment, \"column\": column, \"type\": dtype,\n                       \"profile\": prof, \"glossary\": terms}, ensure_ascii=False)\n    msg = client.messages.create(model=MODEL, max_tokens=1000, system=SYSTEM,\n                                 messages=[{\"role\": \"user\", \"content\": user}])\n    text = text_of(msg)\n    try:\n        return json.loads(text[text.index(\"{\"): text.rindex(\"}\") + 1])\n    except (ValueError, json.JSONDecodeError):\n        return {\"comment\": \"\", \"confidence\": \"low\", \"question\": \"초안 생성 실패: \" + text[:60]}\n\n\ndef sql_literal(s: str) -> str:\n    \"\"\"작은따옴표를 두 번 써서 SQL 문자열로 만듭니다. 줄바꿈은 공백으로.\"\"\"\n    return \"'\" + \" \".join(s.split()).replace(\"'\", \"''\") + \"'\"\n\n\ndef main(owner: str, only: list[str]):\n    owner = owner.upper()\n    glossary = load_glossary()\n    conn = oracledb.connect(user=os.environ[\"ORA_USER\"], password=os.environ[\"ORA_PASSWORD\"],\n                            dsn=os.environ.get(\"ORA_DSN\", \"localhost:1521/FREEPDB1\"))\n    conn.call_timeout = 60_000\n    with conn, conn.cursor() as cur:\n        cur.execute(MISSING_SQL, owner=owner)\n        targets = [r for r in cur.fetchall() if not only or r[0] in only]\n        rows = []\n        for table, column, dtype, dlen, nullable, tcomment in targets:\n            try:\n                prof = profile(conn, owner, table, column)\n            except oracledb.DatabaseError as e:          # 권한 없음·타입 문제 등은 건너뛰고 기록\n                print(f\"{table}.{column}: 프로파일 실패 {e}\")\n                continue\n            d = draft(table, tcomment or \"\", column, f\"{dtype}({dlen})\", prof, related_terms(column, glossary))\n            rows.append({\"table\": table, \"column\": column, \"type\": f\"{dtype}({dlen})\",\n                         \"null_pct\": prof[\"null_pct\"], \"distinct\": prof[\"distinct\"],\n                         \"top\": \" / \".join(f\"{v}:{c}\" for v, c in prof[\"top\"]),\n                         \"draft\": d.get(\"comment\", \"\"), \"confidence\": d.get(\"confidence\", \"low\"),\n                         \"question\": d.get(\"question\", \"\"), \"final\": \"\", \"reviewer\": \"\"})\n            print(f\"{table}.{column:<20} [{rows[-1]['confidence']:<6}] {rows[-1]['draft']}\")\n\n    stamp = dt.datetime.now().strftime(\"%Y%m%d_%H%M\")\n    order = {\"low\": 0, \"medium\": 1, \"high\": 2}\n    rows.sort(key=lambda r: (order.get(r[\"confidence\"], 0), r[\"table\"]))   # 확신도 낮은 것부터 검토\n    with open(f\"review_{owner}_{stamp}.csv\", \"w\", newline=\"\", encoding=\"utf-8-sig\") as f:\n        w = csv.DictWriter(f, fieldnames=list(rows[0]) if rows else [\"table\"])\n        w.writeheader()\n        w.writerows(rows)\n    with open(f\"comments_{owner}_{stamp}_DRAFT.sql\", \"w\", encoding=\"utf-8\") as f:\n        f.write(f\"-- LLM 초안 ({MODEL}, {stamp}). 검토 전 실행 금지. 검토 후 apply_reviewed.py 로 확정본을 만드세요.\\n\")\n        for r in rows:\n            if r[\"draft\"]:\n                f.write(f\"-- [{r['confidence']}] {r['question']}\\n\" if r[\"question\"] else \"\")\n                f.write(f\"COMMENT ON COLUMN {owner}.{r['table']}.{r['column']} IS {sql_literal(r['draft'])};\\n\")\n    print(f\"\\n{len(rows)}개 컬럼 초안 → review_{owner}_{stamp}.csv, comments_{owner}_{stamp}_DRAFT.sql\")\n\n\nif __name__ == \"__main__\":\n    if len(sys.argv) < 2:\n        raise SystemExit(\"사용법: python draft_comments.py 스키마명 [테이블명 ...]\")\n    main(sys.argv[1], [t.upper() for t in sys.argv[2:]])\n"
+    }
+   },
+   {
+    "title": "반영 전 백업 스크립트",
+    "body": [
+     "확정본을 반영하기 전에 현재 코멘트를 되돌리기용 <code>COMMENT ON</code> 문으로 떠 둡니다. 변경 요청서에 확정 스크립트와 함께 첨부합니다."
+    ],
+    "code": {
+     "lang": "sql",
+     "file": "labs/s12/sql/03_backup_comments.sql",
+     "src": "-- 03_backup_comments.sql : 반영 전에 현재 코멘트를 되돌리기용 스크립트로 떠 둡니다\nSELECT 'COMMENT ON COLUMN ' || cc.owner || '.' || cc.table_name || '.' || cc.column_name\n       || ' IS ''' || REPLACE(NVL(cc.comments, ''), '''', '''''') || ''';' AS rollback_stmt\nFROM   all_col_comments cc\nJOIN   all_tables t ON t.owner = cc.owner AND t.table_name = cc.table_name\nWHERE  cc.owner = :owner\nORDER  BY cc.table_name, cc.column_name;\n"
+    }
+   }
+  ],
+  "check": [
+   "01_find_missing.sql로 정비 전 채움률(%)을 기록했는가",
+   "draft_comments.py가 DB에 아무것도 쓰지 않고 CSV와 _DRAFT.sql 두 파일만 만들었는가",
+   "확신도 low 초안 3개를 골라 팀원과 직접 고쳐 보고, LLM이 어떤 정보가 없어서 틀렸는지 이야기했는가"
+  ]
+ },
+ "example": {
+  "title": "신규 마트 테이블 30개 설명 채우기 · 2주 정비",
+  "context": "차세대 정보계 오픈으로 영업 실적 마트 테이블 30개(컬럼 약 450개)가 새로 생겼는데, 코멘트 채움률은 12%입니다. 다음 분기에 Text-to-SQL을 이 마트에 붙이기로 해서, 데이터팀 3명이 <b>2주 안에 설명을 채우고 용어집과 맞추는</b> 정비를 합니다.",
+  "diagram": {
+   "src": "diagrams/s12-example.svg",
+   "caption": "1주차는 측정과 초안·1차 검토, 2주차는 용어 통일·계보·반영과 효과 확인입니다."
+  },
+  "flow": [
+   "1일차: 01_find_missing.sql로 채움률(12%)과 용어 불일치 후보를 뽑고, 테이블 30개를 담당자 3명에게 나눕니다",
+   "2일차: 02_profile.sql로 컬럼별 NULL 비율·고유값·범위를 뽑습니다. 고객 식별 컬럼이 있는 테이블은 초안 대상에서 빼고 사람이 씁니다",
+   "3~4일차: draft_comments.py로 초안을 만들고, 담당자가 확신도 low부터 검토해 final 열을 채웁니다",
+   "6~7일차: 용어집 담당자와 금지표현·동의어를 맞추고, apply_reviewed.py로 용어 경고를 0건으로 만듭니다",
+   "8~9일차: 금액·건수 컬럼부터 계보(원천 컬럼·변환·워크플로)와 품질 규칙(검사 SQL)을 적습니다",
+   "10일차: 백업 스크립트와 확정 스크립트를 변경 요청으로 DBA에게 넘기고, 반영 후 채움률과 Text-to-SQL 평가셋 정답률을 다시 잽니다"
+  ],
+  "code": {
+   "lang": "python",
+   "file": "labs/s12/apply_reviewed.py",
+   "src": "\"\"\"검토 끝난 CSV 로 확정 스크립트 만들기 — python apply_reviewed.py review_MART_....csv\n'final' 열이 채워진 행만 COMMENT ON 문으로 만듭니다. 실행은 변경 요청 절차에 따라 DBA 가 합니다.\n\"\"\"\nimport csv\nimport re\nimport sys\nfrom pathlib import Path\n\nfrom draft_comments import load_glossary, sql_literal\n\nIDENT = re.compile(r\"^[A-Z][A-Z0-9_$#]{0,127}$\")\n\n\ndef lint(comment: str, glossary: list[dict]) -> list[str]:\n    \"\"\"용어집과 맞는지 기계적으로 한 번 더 봅니다: 금지표현 사용, 너무 긴 설명.\"\"\"\n    issues = []\n    for g in glossary:\n        for bad in filter(None, g[\"금지표현\"].split(\"|\")):\n            if bad in comment and g[\"표준용어\"] not in comment:\n                issues.append(f\"'{bad}' 대신 표준용어 '{g['표준용어']}'\")\n    if len(comment) > 200:\n        issues.append(\"200자 초과\")\n    return issues\n\n\ndef main(path: str):\n    m = re.match(r\"review_(.+)_\\d{8}_\\d{4}\\.csv$\", Path(path).name)   # review_<스키마>_<일시>.csv\n    if not m:\n        raise SystemExit(\"draft_comments.py 가 만든 review_스키마_일시.csv 파일을 넣어 주세요\")\n    owner = m.group(1)\n    glossary = load_glossary()\n    ok, warn = [], []\n    with open(path, encoding=\"utf-8-sig\") as f:\n        for r in csv.DictReader(f):\n            final = r[\"final\"].strip()\n            if not final:\n                continue\n            if not (IDENT.match(owner) and IDENT.match(r[\"table\"]) and IDENT.match(r[\"column\"])):\n                raise SystemExit(f\"식별자 형식 오류: {r['table']}.{r['column']}\")\n            issues = lint(final, glossary)\n            (warn if issues else ok).append((r, final, issues))\n    out = str(Path(path).with_name(Path(path).name.replace(\"review_\", \"comments_\").replace(\".csv\", \"_FINAL.sql\")))\n    with open(out, \"w\", encoding=\"utf-8\") as f:\n        f.write(f\"-- 검토 완료 코멘트 {len(ok)}건 (용어 경고 {len(warn)}건은 아래 주석 처리)\\n\")\n        f.write(\"-- 실행 전 대상 DB·스키마를 확인하세요. 되돌리기: 이전 값을 담은 백업 스크립트를 함께 보관합니다.\\n\")\n        for r, final, _ in ok:\n            f.write(f\"COMMENT ON COLUMN {owner}.{r['table']}.{r['column']} IS {sql_literal(final)};  -- {r['reviewer']}\\n\")\n        for r, final, issues in warn:\n            f.write(f\"-- 확인 필요({'; '.join(issues)}): COMMENT ON COLUMN {owner}.{r['table']}.{r['column']} IS {sql_literal(final)};\\n\")\n    print(f\"확정 {len(ok)}건, 용어 경고 {len(warn)}건 → {out}\")\n\n\nif __name__ == \"__main__\":\n    main(sys.argv[1])\n"
+  },
+  "tips": [
+   "채움률·용어 경고 건수·Text-to-SQL 정답률을 정비 전후로 같이 보고하면 정비 작업의 가치를 설명하기 쉽습니다",
+   "ETL 매핑 정의서와 테이블 정의서가 이미 있으면 그 문서를 RAG로 붙여 초안 품질을 크게 올릴 수 있습니다",
+   "신규 테이블은 배포 체크리스트에 '코멘트 채움률 100%'를 넣어 다시 빈칸이 생기지 않게 합니다"
+  ],
+  "pitfalls": [
+   "LLM 초안을 검토 없이 일괄 반영해, 그럴듯하지만 틀린 설명이 정식 메타데이터가 되는 경우",
+   "샘플 값을 뽑으면서 고객명·계좌번호 같은 민감정보를 외부 LLM으로 보내는 경우 (대상 한정·마스킹·사내 승인 모델)",
+   "코멘트만 고치고 용어집·테이블 정의서는 그대로 둬서 세 곳의 설명이 다시 어긋나는 경우"
+  ]
+ },
+ "refs": [
+  {
+   "label": "Oracle 23ai SQL Reference · COMMENT",
+   "url": "https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/COMMENT.html"
+  },
+  {
+   "label": "Oracle Database Reference · ALL_TAB_COL_STATISTICS",
+   "url": "https://docs.oracle.com/en/database/oracle/oracle-database/26/refrn/ALL_TAB_COL_STATISTICS.html"
+  },
+  {
+   "label": "Oracle Database Reference · ALL_TAB_COLS",
+   "url": "https://docs.oracle.com/en/database/oracle/oracle-database/23/refrn/ALL_TAB_COLS.html"
+  },
+  {
+   "label": "python-oracledb 튜토리얼 (Oracle)",
+   "url": "https://oracle.github.io/python-oracledb/samples/tutorial/Python-and-Oracle-Database-The-New-Wave-of-Scripting.html"
+  }
+ ]
+}

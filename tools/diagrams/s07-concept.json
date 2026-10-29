@@ -1,0 +1,136 @@
+{
+ "title": "AI Agent 노드는 모델 · 메모리 · 도구를 붙여 스스로 다음 행동을 고릅니다",
+ "subtitle": "루트 노드 하나에 하위 노드(sub-node)를 꽂는 구조",
+ "cols": 5,
+ "rows": 3,
+ "cell_h": 118,
+ "nodes": [
+  {
+   "id": "in",
+   "col": 0,
+   "row": 1,
+   "label": "입력",
+   "sub": "메일 · 채팅 · 웹훅",
+   "icon": "inbox",
+   "color": "blue"
+  },
+  {
+   "id": "ag",
+   "col": 1,
+   "row": 1,
+   "span": 3,
+   "label": "AI Agent",
+   "sub": "System Message · 도구 선택 → 실행 → 결과 확인 반복 (기본 최대 10회)",
+   "icon": "bot",
+   "color": "purple",
+   "emph": true
+  },
+  {
+   "id": "out",
+   "col": 4,
+   "row": 1,
+   "label": "결과",
+   "sub": "답 · 구조화 JSON",
+   "icon": "check",
+   "color": "green"
+  },
+  {
+   "id": "m",
+   "col": 1,
+   "row": 0,
+   "label": "Chat Model",
+   "sub": "Anthropic · OpenAI",
+   "icon": "spark",
+   "color": "pink"
+  },
+  {
+   "id": "mem",
+   "col": 3,
+   "row": 0,
+   "label": "Memory",
+   "sub": "최근 대화 맥락",
+   "icon": "brain",
+   "color": "teal"
+  },
+  {
+   "id": "op",
+   "col": 2,
+   "row": 0,
+   "label": "Output Parser",
+   "sub": "결과를 JSON 으로",
+   "icon": "list",
+   "color": "navy"
+  },
+  {
+   "id": "t1",
+   "col": 1,
+   "row": 2,
+   "label": "앱 노드 도구",
+   "sub": "Sheets · Gmail · HTTP",
+   "icon": "plug",
+   "color": "orange"
+  },
+  {
+   "id": "t2",
+   "col": 2,
+   "row": 2,
+   "label": "워크플로 도구",
+   "sub": "Call n8n Workflow",
+   "icon": "nodes",
+   "color": "orange"
+  },
+  {
+   "id": "t3",
+   "col": 3,
+   "row": 2,
+   "label": "MCP Client Tool",
+   "sub": "MCP 서버의 도구들",
+   "icon": "server",
+   "color": "orange"
+  }
+ ],
+ "edges": [
+  {
+   "from": "in",
+   "to": "ag"
+  },
+  {
+   "from": "ag",
+   "to": "out"
+  },
+  {
+   "from": "m",
+   "to": "ag",
+   "label": "판단"
+  },
+  {
+   "from": "mem",
+   "to": "ag",
+   "label": "기억"
+  },
+  {
+   "from": "op",
+   "to": "ag",
+   "label": "형식"
+  },
+  {
+   "from": "t1",
+   "to": "ag",
+   "both": true
+  },
+  {
+   "from": "t2",
+   "to": "ag",
+   "both": true,
+   "label": "호출 · 결과"
+  },
+  {
+   "from": "t3",
+   "to": "ag",
+   "both": true
+  }
+ ],
+ "notes": [
+  "모델이 '어떤 도구를 어떤 값으로 부를지'를 정하고, n8n 이 실제로 실행한 뒤 결과를 다시 모델에 돌려줍니다."
+ ]
+}

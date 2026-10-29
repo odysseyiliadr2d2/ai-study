@@ -1,0 +1,28 @@
+[워크플로 이름] 아침 메일·RSS 브리핑
+
+① Schedule Trigger
+   Trigger Interval: Days / Days Between Triggers: 1
+   Trigger at Hour: 7am / Trigger at Minute: 30
+
+② Gmail  (Resource: Message, Operation: Get Many)
+   Credential: Gmail OAuth2 (내 실습 계정)
+   Return All: 끔 / Limit: 30 / Simplify: 켬
+   Filters › Received After:  {{ $now.minus({ hours: 24 }).toISO() }}
+   Filters › Search:          -category:promotions
+
+③ RSS Read
+   URL: 팀이 보는 기술 블로그·공지 RSS 주소 하나
+   (② 와 ③ 은 둘 다 ① 에 연결 — 갈래가 두 개)
+
+④ Merge
+   Mode: Append      ← ② 와 ③ 의 항목을 한 줄로 이어 붙입니다
+   Input 1 = Gmail, Input 2 = RSS Read
+
+⑤ Code  (이름을 'Digest' 로 바꾸기, Mode: Run Once for All Items)
+   → 다음 단계의 JavaScript
+
+⑥ Basic LLM Chain  + 하위 노드 Anthropic Chat Model
+   Prompt: Define below  → 7단계 프롬프트
+
+⑦ Gmail (Operation: Send)  또는 Slack / Telegram 노드
+⑧ Google Sheets (Operation: Append Row)

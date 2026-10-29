@@ -1,0 +1,100 @@
+{
+ "title": "같은 요청도 네 칸을 채우면 결과가 바로 쓸 수 있는 모양이 됩니다",
+ "subtitle": "장애 로그 요약 — 나쁜 프롬프트와 고친 프롬프트 비교",
+ "cols": 2,
+ "rows": 3,
+ "cell_h": 118,
+ "groups": [
+  {
+   "label": "나쁜 프롬프트",
+   "col": 0,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "red"
+  },
+  {
+   "label": "고친 프롬프트",
+   "col": 1,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "green"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "b1",
+   "col": 0,
+   "row": 0,
+   "label": "\"이 로그 요약해줘\"",
+   "sub": "역할·대상·형식 없음",
+   "icon": "chat",
+   "color": "gray"
+  },
+  {
+   "id": "b2",
+   "col": 0,
+   "row": 1,
+   "label": "결과가 매번 다름",
+   "sub": "길이·항목·말투가 요청마다 바뀜",
+   "icon": "warn",
+   "color": "yellow"
+  },
+  {
+   "id": "b3",
+   "col": 0,
+   "row": 2,
+   "label": "다시 손으로 정리",
+   "sub": "보고서에 붙이려면 재작성",
+   "icon": "clock",
+   "color": "red"
+  },
+  {
+   "id": "g1",
+   "col": 1,
+   "row": 0,
+   "label": "역할 + 맥락 + 제약 + 형식",
+   "sub": "당직 보고용 · 로그 밖 추측 금지 · 5칸 표",
+   "icon": "list",
+   "color": "blue"
+  },
+  {
+   "id": "g2",
+   "col": 1,
+   "row": 1,
+   "label": "예시 1~3개 · 단계적 확인",
+   "sub": "원하는 모양을 보여 주고 근거부터 찾게 함",
+   "icon": "layers",
+   "color": "purple"
+  },
+  {
+   "id": "g3",
+   "col": 1,
+   "row": 2,
+   "label": "바로 붙여 쓰는 표",
+   "sub": "발생 시각 · 작업 · 원인 · 영향 · 조치",
+   "icon": "check",
+   "color": "green",
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "b1",
+   "to": "b2"
+  },
+  {
+   "from": "b2",
+   "to": "b3"
+  },
+  {
+   "from": "g1",
+   "to": "g2"
+  },
+  {
+   "from": "g2",
+   "to": "g3"
+  }
+ ]
+}

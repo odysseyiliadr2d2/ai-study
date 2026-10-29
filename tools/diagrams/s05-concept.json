@@ -1,0 +1,151 @@
+{
+ "title": "n8n 워크플로는 트리거 → 처리 → 전달 세 칸으로 나뉩니다",
+ "subtitle": "노드를 선으로 잇고, 자격증명·표현식·실행 기록이 뒤를 받칩니다",
+ "cols": 5,
+ "rows": 2,
+ "groups": [
+  {
+   "label": "트리거 · 언제",
+   "col": 0,
+   "row": 0,
+   "cols": 1,
+   "rows": 1,
+   "color": "orange"
+  },
+  {
+   "label": "처리 · 무엇을",
+   "col": 1,
+   "row": 0,
+   "cols": 3,
+   "rows": 1,
+   "color": "purple"
+  },
+  {
+   "label": "전달 · 어디로",
+   "col": 4,
+   "row": 0,
+   "cols": 1,
+   "rows": 1,
+   "color": "green"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "t",
+   "col": 0,
+   "row": 0,
+   "label": "트리거",
+   "sub": "스케줄 · 웹훅 · 메일 수신",
+   "icon": "clock",
+   "color": "orange",
+   "badge": 1
+  },
+  {
+   "id": "g",
+   "col": 1,
+   "row": 0,
+   "label": "가져오기",
+   "sub": "Gmail · RSS · HTTP",
+   "icon": "inbox",
+   "color": "blue",
+   "badge": 2
+  },
+  {
+   "id": "c",
+   "col": 2,
+   "row": 0,
+   "label": "가공",
+   "sub": "Code · IF · Merge",
+   "icon": "code",
+   "color": "purple",
+   "badge": 3
+  },
+  {
+   "id": "l",
+   "col": 3,
+   "row": 0,
+   "label": "LLM 요약",
+   "sub": "Basic LLM Chain",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 4
+  },
+  {
+   "id": "s",
+   "col": 4,
+   "row": 0,
+   "label": "전달 · 기록",
+   "sub": "메일 · 메신저 · Sheets",
+   "icon": "send",
+   "color": "green",
+   "badge": 5,
+   "emph": true
+  },
+  {
+   "id": "k",
+   "col": 1,
+   "row": 1,
+   "label": "자격증명",
+   "sub": "API 키 · OAuth 를 따로 보관",
+   "icon": "key",
+   "color": "gray"
+  },
+  {
+   "id": "e",
+   "col": 2,
+   "row": 1,
+   "label": "표현식",
+   "sub": "{{ $json.subject }}",
+   "icon": "bolt",
+   "color": "gray"
+  },
+  {
+   "id": "h",
+   "col": 4,
+   "row": 1,
+   "label": "실행 기록",
+   "sub": "노드별 입력·출력 확인",
+   "icon": "list",
+   "color": "gray"
+  }
+ ],
+ "edges": [
+  {
+   "from": "t",
+   "to": "g"
+  },
+  {
+   "from": "g",
+   "to": "c"
+  },
+  {
+   "from": "c",
+   "to": "l"
+  },
+  {
+   "from": "l",
+   "to": "s"
+  },
+  {
+   "from": "k",
+   "to": "g",
+   "dashed": true,
+   "label": "인증"
+  },
+  {
+   "from": "e",
+   "to": "c",
+   "dashed": true,
+   "label": "값 참조"
+  },
+  {
+   "from": "h",
+   "to": "s",
+   "dashed": true,
+   "label": "디버깅"
+  }
+ ],
+ "notes": [
+  "노드 사이로 흐르는 것은 항목(item) 배열이고, 각 항목은 json 객체 하나입니다."
+ ]
+}

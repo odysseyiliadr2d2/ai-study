@@ -1,0 +1,73 @@
+# k8s/ticket-desk-api.yaml — 네임스페이스 ticketdesk 에 적용: kubectl apply -f k8s/
+# 비밀값은 이 파일에 쓰지 않습니다. Secret 은 따로 만듭니다 (아래 주석 참고).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ticket-desk-api-config
+  namespace: ticketdesk
+data:
+  DB_URL: jdbc:oracle:thin:@//oracle-scan.example.internal:1521/TICKETDESK_SVC
+  DB_USER: ticketdesk_app
+  CLAUDE_MODEL: claude-sonnet-5-5
+  SPRING_AI_ANTHROPIC_BASE_URL: https://ai-gateway.example.internal   # 사내 AI 게이트웨이
+  N8N_WEBHOOK_URL: http://n8n.automation.svc.cluster.local:5678/webhook/ticket-created
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+---
+# Secret 생성 (값은 배포 담당자가 직접, 또는 Vault · External Secrets 연동)
+# kubectl -n ticketdesk create secret generic ticket-desk-api-secret \
+#   --from-literal=DB_PASSWORD=... --from-literal=ANTHROPIC_API_KEY=... \
+#   --from-literal=N8N_WEBHOOK_SECRET=... --from-literal=DEMO_PASSWORD=...
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticket-desk-api
+  namespace: ticketdesk
+  labels: { app: ticket-desk-api }
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5          # rollout undo 로 돌아갈 수 있는 이전 버전 수
+  selector:
+    matchLabels: { app: ticket-desk-api }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }   # 새 Pod 가 준비돼야 옛 Pod 를 내림
+  template:
+    metadata:
+      labels: { app: ticket-desk-api }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: app
+          image: ghcr.io/example/ticket-desk-api:REPLACED_BY_CI
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef: { name: ticket-desk-api-config }
+            - secretRef: { name: ticket-desk-api-secret }
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { memory: 1Gi }
+          startupProbe:            # 기동이 느려도 최대 150초 기다림
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:           # 멈췄으면 재시작
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:          # 준비 안 됐으면 트래픽 제외
+            httpGet: { path: /actuator/health/readiness, port: 8080 }
+            periodSeconds: 5
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticket-desk-api
+  namespace: ticketdesk
+spec:
+  selector: { app: ticket-desk-api }
+  ports:
+    - port: 80
+      targetPort: 8080

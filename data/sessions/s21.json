@@ -1,0 +1,260 @@
+{
+ "id": 21,
+ "part": 6,
+ "title": "온프레미스·폐쇄망 LLM",
+ "summary": "오픈웨이트 모델 선정, 양자화, vLLM 서빙, GPU 사양 산정",
+ "level": "심화",
+ "tags": [
+  "인프라"
+ ],
+ "duration": "120분 (설명 40 · 실습 60 · 토론 20)",
+ "goals": [
+  "라이선스 · 한국어 성능 · 크기 · 컨텍스트 네 기준으로 오픈웨이트 모델 후보를 고를 수 있다",
+  "가중치와 KV 캐시로 GPU 메모리를 추정하고, 양자화 수준을 정할 수 있다",
+  "vLLM 으로 OpenAI 호환 서버를 띄우고, 같은 클라이언트 코드로 호출·벤치마크한다",
+  "모델 파일 · 컨테이너 이미지 · 파이썬 휠을 해시와 함께 폐쇄망에 반입하는 절차를 설계한다"
+ ],
+ "output": "사내 GPU 서버 1대 기준 모델 선정표 + VRAM 산정 결과 + 반입 체크리스트 (팀별 1쪽)",
+ "concept": {
+  "lead": "온프레미스 LLM은 <b>가중치가 공개된 모델(오픈웨이트)을 사내 GPU 서버에 직접 올려</b> 쓰는 방식입니다. 데이터가 회사 밖으로 나가지 않으므로 폐쇄망 정보계에서도 생성형 AI를 쓸 수 있는 가장 현실적인 경로입니다.",
+  "body": [
+   "외부 API 모델은 성능이 높지만 프롬프트가 회사 밖 서버로 나갑니다. 금융권은 망분리 규제 때문에 업무망에서 외부 API를 바로 부르기 어렵고, 규제 특례를 받더라도 심의와 보안 대책이 필요합니다(세션 23). 오픈웨이트 모델은 파일을 한 번 반입하면 인터넷 없이 돌아갑니다.",
+   "구성은 네 층입니다. <b>GPU</b> 위에 <b>모델 가중치</b>를 올리고, <b>서빙 엔진</b>(vLLM 등)이 여러 요청을 묶어 처리하며, 엔진이 <b>OpenAI 호환 API</b>를 열어 줍니다. 업무 앱은 이 API만 보므로, 세션 9의 RAG 코드도 주소와 모델 이름만 바꾸면 사내 모델로 옮겨집니다.",
+   "대신 성능의 상한은 GPU가 정합니다. 모델이 클수록 답이 좋지만 메모리가 더 들고, 동시 사용자와 문서 길이가 늘수록 KV 캐시가 커집니다. 그래서 '어떤 모델이 제일 좋은가'보다 <b>'우리 GPU 한 대에 들어가는 모델 중 우리 업무에 충분한 것'</b>을 찾는 것이 목표입니다."
+  ],
+  "diagram": {
+   "src": "diagrams/s21-concept.svg",
+   "caption": "GPU · 가중치 · 서빙 엔진 · API 네 층. 앱은 OpenAI 호환 API만 봅니다."
+  },
+  "terms": [
+   {
+    "term": "오픈웨이트 (Open-weight)",
+    "desc": "학습된 가중치 파일을 내려받아 직접 실행할 수 있게 공개한 모델. 학습 데이터·코드까지 공개된 '오픈소스'와는 구분하며, 사용 조건은 라이선스마다 다릅니다."
+   },
+   {
+    "term": "양자화 (Quantization)",
+    "desc": "가중치를 16비트에서 8비트·4비트로 줄여 메모리와 속도를 아끼는 방법. AWQ·GPTQ(GPU용), GGUF(llama.cpp용) 형식이 흔합니다."
+   },
+   {
+    "term": "KV 캐시",
+    "desc": "이미 읽은 토큰의 어텐션 계산 결과(Key·Value)를 저장해 두는 메모리. 컨텍스트 길이 × 동시 요청 수에 비례해 커집니다."
+   },
+   {
+    "term": "MoE (전문가 혼합)",
+    "desc": "전체 파라미터 중 일부 전문가만 토큰마다 계산하는 구조. 계산량은 활성 파라미터만큼이지만, 메모리에는 전체 파라미터를 올려야 합니다."
+   },
+   {
+    "term": "OpenAI 호환 API",
+    "desc": "OpenAI 의 /v1/chat/completions 형식을 그대로 흉내 낸 API. vLLM · Ollama · llama.cpp 서버가 모두 제공합니다."
+   }
+  ]
+ },
+ "theory": {
+  "lead": "모델 선정은 <b>라이선스 → 크기(메모리) → 한국어 성능 → 컨텍스트</b> 순서로 거르는 것이 빠릅니다. 라이선스에서 탈락하면 나머지는 볼 필요가 없습니다.",
+  "diagram": {
+   "src": "diagrams/s21-theory.svg",
+   "caption": "가중치 크기는 비트 수로, KV 캐시는 컨텍스트와 동시 요청으로 정해집니다. 모두 추정값입니다."
+  },
+  "sections": [
+   {
+    "title": "1. 선정 기준 네 가지",
+    "body": [
+     "기준마다 확인할 곳이 다릅니다. 라이선스와 컨텍스트는 Hugging Face 모델 카드와 LICENSE 파일, 크기는 config.json, 한국어 성능은 <b>우리 업무 질문 30~50개로 직접 만든 평가셋</b>으로 확인합니다. 공개 벤치마크 점수는 1차 거르기에만 씁니다."
+    ],
+    "bullets": [
+     "<b>라이선스</b>: 상업적 이용 가능 여부, 사용자 수 제한, 경쟁 모델 개발 금지 조항, 파생 모델 표기 의무. 법무·정보보호 부서 검토 대상",
+     "<b>크기</b>: 파라미터 수와 MoE 여부. MoE 는 메모리는 전체, 속도는 활성 파라미터 기준",
+     "<b>한국어</b>: 존댓말·업무 용어·표 요약 품질. 같은 질문을 후보 모델에 돌려 블라인드로 비교",
+     "<b>컨텍스트</b>: 모델 최대치보다 실제로 설정할 max-model-len 이 중요. 길게 잡을수록 KV 캐시가 커짐"
+    ]
+   },
+   {
+    "title": "2. 2026년 10월 기준 주요 오픈웨이트 모델 (확인한 것만)",
+    "body": [
+     "아래는 공식 모델 카드·발표 기사로 확인한 내용입니다. 모델은 몇 달 단위로 바뀌므로 반입 전에 모델 카드와 LICENSE 원문을 다시 확인하세요(확인일 2026-10-29)."
+    ],
+    "bullets": [
+     "<b>Qwen3.5</b> (Alibaba, 2026-02 공개): Apache-2.0(<a href=\"https://huggingface.co/Qwen/Qwen3.5-9B\">모델 카드</a>). 0.8B · 2B · 4B · 9B · 27B 밀집형과 35B-A3B · 122B-A10B · 397B-A17B MoE, FP8·GPTQ-Int4 판도 공식 제공. 기본 컨텍스트 262,144 토큰",
+     "<b>Gemma 4</b> (Google, 2026-04 공개): Apache 2.0 으로 배포(이전 Gemma 는 Google 자체 라이선스). E2B · E4B · 26B MoE · 31B, 컨텍스트 128K~256K(<a href=\"https://the-decoder.com/googles-gemma-4-is-now-available-with-apache-2-0-licensing-for-the-first-time/\">보도</a>)",
+     "<b>gpt-oss</b> (OpenAI): Apache 2.0(<a href=\"https://huggingface.co/openai/gpt-oss-120b\">모델 카드</a>). 20b(총 21B, 활성 3.6B)는 16GB 메모리, 120b(총 117B, 활성 5.1B)는 80GB GPU 한 장에 들어가도록 MXFP4 로 배포",
+     "<b>Llama 4</b> (Meta, 2025-04 공개): Scout(총 109B) · Maverick(총 400B) MoE. Llama 4 Community License 로, 월간 사용자 7억 명 초과 기업은 Meta 에 별도 라이선스를 받아야 함(<a href=\"https://huggingface.co/meta-llama/Llama-4-Maverick-17B-128E-Original\">모델 카드</a>)",
+     "<b>LG K-EXAONE 2.0</b> (2026-07-31 공개): 750B 규모, Apache 2.0(<a href=\"https://www.lgresearch.ai/news/view?seq=678\">LG AI연구원 발표</a>). 반면 <b>EXAONE 4.0</b> 은 'EXAONE AI Model License Agreement 1.2 - NC' 로 상업적 이용이 금지되어, 별도 상업 라이선스 없이는 업무에 쓸 수 없음(<a href=\"https://scancode-licensedb.aboutcode.org/exaone-ai-model-1.2-nc.html\">라이선스 원문</a>)",
+     "<b>NAVER HyperCLOVA X SEED</b>: 0.5B·1.5B·3B(2025-04), Think 14B(2025-07, 컨텍스트 32K). 상업적 이용 가능으로 공개됐지만 전용 라이선스(HyperCLOVA X SEED Model License)이므로 조건은 원문 확인(<a href=\"https://huggingface.co/naver-hyperclovax/HyperCLOVAX-SEED-Think-14B\">모델 카드</a>)",
+     "<b>Upstage Solar Open 2</b> (2026-07-23 공개): 총 250B · 활성 15B MoE. 보도에 따르면 Apache 2.0 기반 Upstage Solar License 로 상업 이용·파생 개발 허용 — 반입 전 라이선스 원문 확인(<a href=\"https://www.koreatimes.co.kr/business/companies/20260723/upstage-unveils-solar-open-2-open-weight-ai-model-built-for-autonomous-tasks\">보도</a>)"
+    ]
+   },
+   {
+    "title": "3. GPU 메모리 산정 공식 (추정)",
+    "body": [
+     "필요 VRAM 은 대략 <b>가중치 + KV 캐시 + 여유분</b>입니다. 가중치는 <code>파라미터 수 × 파라미터당 바이트</code>(FP16=2, INT8=1, INT4≈0.5)이고, KV 캐시는 토큰 하나당 <code>2 × 층 수 × KV 헤드 수 × 헤드 차원 × 바이트</code>에 <code>컨텍스트 × 동시 요청</code>을 곱합니다.",
+     "<b>예시(추정)</b>: 층 32 · KV 헤드 8 · 헤드 차원 128 인 8B 모델을 FP16 으로 올리면 가중치 약 16GB. KV 캐시는 토큰당 2×32×8×128×2 = 131,072바이트(128KiB). 8K 토큰 × 동시 8건이면 약 8.6GB. 여유분 15%를 더하면 약 28GB 로, 48GB GPU 한 장에 들어갑니다. 같은 모델을 INT4 로 줄이면 가중치가 약 4~5GB 로 줄어 컨텍스트나 동시 요청을 더 늘릴 수 있습니다.",
+     "실제 값은 모델 구조(config.json), 엔진, 활성값 메모리에 따라 달라집니다. 실습의 추정기로 후보를 거른 뒤, 실제 서버에서 <code>nvidia-smi</code> 와 벤치마크로 확인합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "src": "필요 VRAM ≈ (가중치 + KV 캐시) × 1.1~1.2\n가중치    = 파라미터 수 × (비트 ÷ 8)\nKV/토큰   = 2 × 층 수 × KV 헤드 수 × 헤드 차원 × KV 바이트\nKV 캐시   = KV/토큰 × 최대 컨텍스트 × 동시 요청 수\n판정      : 필요 VRAM ≤ GPU 메모리 × 0.9  (vLLM --gpu-memory-utilization 기본값과 같은 비율)"
+    }
+   },
+   {
+    "title": "4. 양자화와 서빙 엔진 고르기",
+    "body": [
+     "양자화는 메모리를 줄이는 대신 품질이 조금 떨어질 수 있습니다. 8비트는 차이가 작은 편이고, 4비트는 모델·작업에 따라 차이가 납니다. 반드시 같은 평가셋으로 FP16 과 비교합니다. 모델 제작사가 공식 양자화 판(FP8·GPTQ-Int4 등)을 내놓았다면 그것을 먼저 씁니다."
+    ],
+    "bullets": [
+     "<b>vLLM</b>: 여러 요청을 묶어 처리(배칭)하는 GPU 서빙 엔진. <code>vllm serve 모델</code> 한 줄로 OpenAI 호환 서버(기본 포트 8000). AWQ · GPTQ · FP8 · GGUF 등 양자화 형식 지원. 동시 사용자가 있는 사내 서비스에 적합",
+     "<b>Ollama</b>: 설치와 모델 관리가 쉬운 로컬 실행 도구. <code>http://localhost:11434/v1</code> 로 OpenAI 호환. 개인 실습·시연용",
+     "<b>llama.cpp</b>: GGUF 파일을 CPU·저사양 GPU 에서도 실행. <code>llama-server -m 모델.gguf</code>(기본 포트 8080). GPU 가 없는 검증 서버에 유용"
+    ]
+   },
+   {
+    "title": "5. 폐쇄망 반입 절차",
+    "body": [
+     "반입물은 세 가지입니다. <b>모델 파일</b>(safetensors·토크나이저·LICENSE), <b>컨테이너 이미지</b>(<code>docker save</code> 로 tar 파일), <b>파이썬 휠</b>(<code>pip download</code> 로 받아 사내에서 <code>--no-index</code> 설치). 세 가지 모두 버전을 고정하고 SHA-256 해시 목록을 만들어 반입 전후로 대조합니다."
+    ],
+    "bullets": [
+     "휠은 사내 서버와 같은 OS · 파이썬 버전 · CUDA 버전에서 받아야 설치됩니다",
+     "모델 파일과 함께 LICENSE · 모델 카드 사본을 심의 자료로 남깁니다",
+     "운영 중에는 <code>HF_HUB_OFFLINE=1</code> 로 외부 접속 시도를 막고, 사내 저장소(파일 서버·사설 레지스트리·pip 미러)를 단일 출처로 씁니다"
+    ]
+   }
+  ]
+ },
+ "lab": {
+  "title": "GPU 메모리 추정 → vLLM 서빙 → 벤치마크",
+  "lead": "GPU 가 있는 클라우드 인스턴스(24GB 이상 권장)나 사내 실습 서버에서 진행합니다. GPU 가 없으면 추정기와 Ollama 로 클라이언트·벤치마크 코드만 따라 해도 됩니다.",
+  "env": [
+   "Python 3.11+",
+   "NVIDIA GPU 24GB 이상 (vLLM 단계)",
+   "vllm (공식 문서의 설치 명령 확인)",
+   "openai",
+   "Docker (반입 연습)"
+  ],
+  "steps": [
+   {
+    "title": "패키지 목록",
+    "body": [
+     "클라이언트와 벤치마크는 openai 패키지 하나로 충분합니다. vLLM 은 GPU 서버에만 설치합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s21/requirements.txt",
+     "src": "openai>=2.0\npyyaml>=6.0\n"
+    }
+   },
+   {
+    "title": "GPU 메모리 추정기",
+    "body": [
+     "파라미터 수 · 비트 · 모델 구조 · 컨텍스트 · 동시 요청을 넣으면 필요한 VRAM 을 추정합니다. 모델 폴더의 config.json 을 주면 층 수와 KV 헤드를 자동으로 읽습니다. 결과는 추정값이므로 실제 서버에서 다시 확인합니다.",
+     "실행: <code>python estimate_vram.py --params 8 --bits 16 --ctx 8192 --concurrency 8 --gpu-gb 48</code>"
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s21/estimate_vram.py",
+     "src": "\"\"\"GPU 메모리 추정기 — 추정값입니다. 실제 사용량은 엔진·설정에 따라 다릅니다.\n\n사용 예:\n  python estimate_vram.py --params 8 --bits 16 --layers 32 --kv-heads 8 --head-dim 128 --ctx 8192 --concurrency 8\n  python estimate_vram.py --config ./Qwen3.5-9B/config.json --params 9 --bits 4 --ctx 16384 --concurrency 4\n\"\"\"\nimport argparse\nimport json\n\n\ndef from_config(path: str):\n    \"\"\"Hugging Face config.json 에서 층 수·KV 헤드·헤드 차원을 읽습니다.\n    멀티모달 모델은 text_config 아래에 값이 있는 경우가 많습니다.\"\"\"\n    cfg = json.load(open(path, encoding=\"utf-8\"))\n    cfg = cfg.get(\"text_config\", cfg)\n    layers = cfg[\"num_hidden_layers\"]\n    heads = cfg[\"num_attention_heads\"]\n    kv_heads = cfg.get(\"num_key_value_heads\", heads)\n    head_dim = cfg.get(\"head_dim\") or cfg[\"hidden_size\"] // heads\n    return layers, kv_heads, head_dim\n\n\ndef estimate(params_b, bits, layers, kv_heads, head_dim, ctx, concurrency, kv_bytes=2, overhead=0.15):\n    weights_gb = params_b * 1e9 * bits / 8 / 1e9\n    # K 와 V 두 벌 × 층 × KV 헤드 × 헤드 차원 × 바이트 = 토큰 하나당 KV 캐시\n    kv_per_token = 2 * layers * kv_heads * head_dim * kv_bytes\n    kv_gb = kv_per_token * ctx * concurrency / 1e9\n    total = (weights_gb + kv_gb) * (1 + overhead)\n    return weights_gb, kv_per_token, kv_gb, total\n\n\ndef main():\n    ap = argparse.ArgumentParser()\n    ap.add_argument(\"--params\", type=float, required=True, help=\"파라미터 수(십억, B)\")\n    ap.add_argument(\"--bits\", type=float, default=16, help=\"가중치 비트: 16, 8, 4\")\n    ap.add_argument(\"--config\", help=\"config.json 경로(있으면 아래 세 값을 자동으로 읽음)\")\n    ap.add_argument(\"--layers\", type=int, default=32)\n    ap.add_argument(\"--kv-heads\", type=int, default=8)\n    ap.add_argument(\"--head-dim\", type=int, default=128)\n    ap.add_argument(\"--ctx\", type=int, default=8192, help=\"요청당 최대 토큰(입력+출력)\")\n    ap.add_argument(\"--concurrency\", type=int, default=4, help=\"동시에 처리할 요청 수\")\n    ap.add_argument(\"--kv-bytes\", type=int, default=2, help=\"KV 캐시 바이트(FP16=2, FP8=1)\")\n    ap.add_argument(\"--gpu-gb\", type=float, default=48, help=\"GPU 한 장의 VRAM(GB)\")\n    a = ap.parse_args()\n\n    layers, kv_heads, head_dim = (from_config(a.config) if a.config\n                                  else (a.layers, a.kv_heads, a.head_dim))\n    w, per_tok, kv, total = estimate(a.params, a.bits, layers, kv_heads, head_dim,\n                                     a.ctx, a.concurrency, a.kv_bytes)\n    print(f\"구조: 층 {layers} · KV 헤드 {kv_heads} · 헤드 차원 {head_dim}\")\n    print(f\"가중치        {w:6.1f} GB  ({a.params}B × {a.bits}bit)\")\n    print(f\"KV 캐시/토큰  {per_tok / 1024:6.1f} KiB\")\n    print(f\"KV 캐시 합계  {kv:6.1f} GB  ({a.ctx} 토큰 × 동시 {a.concurrency})\")\n    print(f\"여유분 포함   {total:6.1f} GB  (추정)\")\n    budget = a.gpu_gb * 0.9\n    verdict = \"들어감\" if total <= budget else \"부족 — 비트·컨텍스트·동시 요청을 줄이거나 GPU 추가\"\n    print(f\"GPU {a.gpu_gb:.0f}GB × 0.9 = {budget:.1f} GB → {verdict}\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+    }
+   },
+   {
+    "title": "vLLM 으로 OpenAI 호환 서버 띄우기",
+    "body": [
+     "모델을 로컬 폴더로 받아 두고 그 경로로 서버를 띄웁니다. <code>--served-model-name</code> 으로 짧은 이름을 붙이면 클라이언트 코드가 단순해집니다. <code>--max-model-len</code> 을 업무에 필요한 만큼만 잡으면 KV 캐시 메모리가 줄어듭니다. 사고(thinking) 모드가 있는 모델은 모델 카드의 권장 옵션(<code>--reasoning-parser</code> 등)을 따릅니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s21/serve.sh",
+     "src": "# 1) 설치 (인터넷 되는 실습 PC, NVIDIA GPU) — vLLM 공식 빠른 시작 기준\nuv pip install vllm --torch-backend=auto\n\n# 2) 모델을 미리 받아 둡니다 (폐쇄망에서는 이 폴더를 반입)\nhf download Qwen/Qwen3.5-9B --local-dir ./models/Qwen3.5-9B\n\n# 3) OpenAI 호환 서버 실행 (기본 포트 8000)\nexport VLLM_API_KEY=change-me            # 키를 요구하게 합니다\nvllm serve ./models/Qwen3.5-9B \\\n  --served-model-name qwen3.5-9b \\\n  --max-model-len 16384 \\\n  --gpu-memory-utilization 0.90 \\\n  --reasoning-parser qwen3\n\n# 4) 확인\ncurl -s http://localhost:8000/v1/models -H \"Authorization: Bearer $VLLM_API_KEY\"\n\n# 노트북(GPU 없음)에서 연습할 때는 Ollama 도 OpenAI 호환 주소를 줍니다\n#   base_url = http://localhost:11434/v1   (api_key 는 아무 값)\n# llama.cpp 는 GGUF 파일로:  llama-server -m model.gguf -c 8192  (기본 포트 8080)\n"
+    }
+   },
+   {
+    "title": "OpenAI SDK 로 호출하기",
+    "body": [
+     "주소 · 키 · 모델 이름을 환경변수로 빼 두면 vLLM, Ollama, llama.cpp, 외부 API 를 같은 코드로 바꿔 끼울 수 있습니다. 실행: <code>python client.py \"질문\"</code>"
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s21/client.py",
+     "src": "\"\"\"사내 vLLM 서버를 OpenAI SDK 로 호출 — python client.py \"질문\"\n\nLLM_BASE_URL, LLM_API_KEY, LLM_MODEL 환경변수로 대상만 바꾸면\nvLLM · Ollama · llama.cpp 어느 쪽이든 같은 코드로 부를 수 있습니다.\n\"\"\"\nimport os\nimport sys\n\nfrom openai import OpenAI\n\nclient = OpenAI(\n    base_url=os.getenv(\"LLM_BASE_URL\", \"http://localhost:8000/v1\"),\n    api_key=os.getenv(\"LLM_API_KEY\", \"change-me\"),\n)\nMODEL = os.getenv(\"LLM_MODEL\", \"qwen3.5-9b\")   # --served-model-name 과 같게\n\nSYSTEM = \"당신은 증권사 정보계 운영 문서를 요약하는 도우미입니다. 한국어로, 5줄 이내로 답합니다.\"\n\n\ndef ask(question: str) -> str:\n    resp = client.chat.completions.create(\n        model=MODEL,\n        messages=[{\"role\": \"system\", \"content\": SYSTEM},\n                  {\"role\": \"user\", \"content\": question}],\n        temperature=0.2,\n        max_tokens=600,\n    )\n    return resp.choices[0].message.content\n\n\nif __name__ == \"__main__\":\n    print(ask(\" \".join(sys.argv[1:]) or \"야간 배치 재처리 절차를 신규 담당자에게 설명하듯 요약해 주세요.\"))\n"
+    }
+   },
+   {
+    "title": "처리량·지연 벤치마크",
+    "body": [
+     "동시 요청 수를 1 → 4 → 16 으로 늘려 가며 첫 토큰까지 시간(TTFT)과 초당 출력 토큰을 잽니다. 동시 요청이 늘면 처리량은 오르고 개별 지연은 늘어나는 지점이 보이는데, 그 지점이 이 서버의 적정 동시 사용자 수입니다. 정밀 측정은 vLLM 의 <code>vllm bench serve</code> 명령을 씁니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s21/bench.py",
+     "src": "\"\"\"간단 처리량·지연 벤치마크 — python bench.py --concurrency 4 --requests 20\n\n각 요청을 스트리밍으로 받아 TTFT(첫 토큰까지 시간)와 전체 시간을 재고,\n청크 수를 출력 토큰의 근사값으로 씁니다(정밀 측정은 vllm bench serve 사용).\n\"\"\"\nimport argparse\nimport asyncio\nimport os\nimport statistics\nimport time\n\nfrom openai import AsyncOpenAI\n\nclient = AsyncOpenAI(base_url=os.getenv(\"LLM_BASE_URL\", \"http://localhost:8000/v1\"),\n                     api_key=os.getenv(\"LLM_API_KEY\", \"change-me\"))\nMODEL = os.getenv(\"LLM_MODEL\", \"qwen3.5-9b\")\n\nPROMPT = (\"다음 장애 보고를 3줄로 요약하세요.\\n\"\n          \"02:10 원장 일배치 지연. 원천 파일 수신이 40분 늦어 STG 적재가 대기했고, \"\n          \"03:05 수신 확인 후 재처리하여 04:20 정상 종료. 영향: 아침 보고서 20분 지연.\")\n\n\nasync def one(sem: asyncio.Semaphore):\n    async with sem:\n        start = time.perf_counter()\n        first, chunks = None, 0\n        stream = await client.chat.completions.create(\n            model=MODEL, stream=True, max_tokens=256, temperature=0,\n            messages=[{\"role\": \"user\", \"content\": PROMPT}])\n        async for ev in stream:\n            if ev.choices and ev.choices[0].delta.content:\n                if first is None:\n                    first = time.perf_counter() - start\n                chunks += 1\n        return first or 0.0, time.perf_counter() - start, chunks\n\n\nasync def main(concurrency: int, requests: int):\n    sem = asyncio.Semaphore(concurrency)\n    t0 = time.perf_counter()\n    results = await asyncio.gather(*[one(sem) for _ in range(requests)])\n    wall = time.perf_counter() - t0\n    ttft = sorted(r[0] for r in results)\n    total = [r[1] for r in results]\n    toks = sum(r[2] for r in results)\n    p95 = ttft[int(len(ttft) * 0.95) - 1] if len(ttft) > 1 else ttft[0]\n    print(f\"동시 {concurrency} · 요청 {requests}건 · 총 {wall:.1f}초\")\n    print(f\"TTFT 중앙값 {statistics.median(ttft):.2f}s · p95 {p95:.2f}s\")\n    print(f\"요청당 평균 {statistics.mean(total):.2f}s\")\n    print(f\"출력 처리량 약 {toks / wall:.0f} 토큰/초 (청크 기준 근사)\")\n\n\nif __name__ == \"__main__\":\n    ap = argparse.ArgumentParser()\n    ap.add_argument(\"--concurrency\", type=int, default=4)\n    ap.add_argument(\"--requests\", type=int, default=20)\n    a = ap.parse_args()\n    asyncio.run(main(a.concurrency, a.requests))\n"
+    }
+   },
+   {
+    "title": "폐쇄망 반입 꾸러미 만들기",
+    "body": [
+     "외부 PC 에서 모델 · 이미지 · 휠을 한 폴더에 모으고, 해시 매니페스트를 만들어 반입합니다. 사내에서는 해시를 다시 대조한 뒤에만 설치합니다. <code>&lt;버전&gt;</code> 자리에는 검증한 이미지 태그를 넣습니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s21/offline_bundle.sh",
+     "src": "# ── 인터넷 구간(외부 PC)에서 반입 꾸러미 만들기\nmkdir -p bundle/{models,images,wheels}\n\n# 모델 파일 (라이선스 파일 LICENSE 도 함께 받아집니다)\nhf download Qwen/Qwen3.5-9B --local-dir bundle/models/Qwen3.5-9B\n\n# 컨테이너 이미지 — 태그는 latest 대신 버전을 고정\ndocker pull vllm/vllm-openai:<버전>\ndocker save vllm/vllm-openai:<버전> -o bundle/images/vllm-openai.tar\n\n# 파이썬 휠 — 사내 서버와 같은 OS·파이썬 버전에서 받아야 합니다\npip download -r requirements.txt -d bundle/wheels\n\n# 해시 매니페스트 (예제 코드 manifest.py)\npython manifest.py make bundle > bundle/MANIFEST.json\n\n# ── 사내 폐쇄망에서 풀기\npython manifest.py verify bundle bundle/MANIFEST.json   # 해시가 하나라도 다르면 중단\ndocker load -i bundle/images/vllm-openai.tar\npip install --no-index --find-links bundle/wheels -r requirements.txt\nexport HF_HUB_OFFLINE=1        # 실행 중 외부로 나가려는 시도를 막습니다\n"
+    }
+   }
+  ],
+  "check": [
+   "추정기로 계산한 VRAM 과 vLLM 실행 후 nvidia-smi 사용량을 비교해 차이를 설명했는가",
+   "client.py 의 LLM_BASE_URL 만 바꿔 vLLM 과 Ollama(또는 llama.cpp)를 모두 호출했는가",
+   "동시 요청 1 · 4 · 16 의 TTFT 와 처리량을 표로 정리하고 적정 동시 사용자 수를 정했는가"
+  ]
+ },
+ "example": {
+  "title": "사내 GPU 서버 1대로 문서 Q&A·요약 모델 고르고 반입하기",
+  "context": "정보계 운영팀이 48GB GPU 한 장짜리 서버(가정)를 배정받았습니다. 용도는 운영 매뉴얼 Q&A(RAG)와 장애 보고서 요약이고, 사용자는 동시 10명 안팎입니다. 외부 API 는 쓸 수 없으므로 <b>라이선스가 깨끗하고 한국어가 되는 오픈웨이트 모델</b>을 골라 반입 계획까지 세웁니다.",
+  "diagram": {
+   "src": "diagrams/s21-example.svg",
+   "caption": "밖에서 받고 해시를 만들고, 심의를 거쳐 사내 저장소에서 다시 검증한 뒤 GPU 서버에 올립니다."
+  },
+  "flow": [
+   "요구사항을 수치로 적습니다: 동시 10명, 입력 최대 8K 토큰(매뉴얼 근거 포함), 응답 5초 안에 첫 글자",
+   "라이선스로 거릅니다: 상업 이용이 명시된 모델만 후보로 남기고(예: Apache 2.0 계열), 비상업(NC) 라이선스는 제외합니다",
+   "추정기로 크기를 거릅니다: 48GB × 0.9 안에 '가중치 + 8K × 동시 10 KV 캐시'가 들어가는 크기와 비트(FP16/FP8/INT4)를 찾습니다",
+   "남은 2~3개 후보를 실습 PC 에서 같은 평가셋(매뉴얼 질문 30개, 요약 10건)으로 블라인드 비교합니다",
+   "선정 모델의 반입 꾸러미(모델 · vLLM 이미지 · 휠 · LICENSE · MANIFEST)를 만들고 보안 심의를 신청합니다",
+   "사내 반입 후 해시 재검증 → vLLM 기동 → 벤치마크로 동시 10명 지연을 확인하고 운영 기준(max-model-len, 동시 요청 상한)을 확정합니다"
+  ],
+  "code": {
+   "lang": "python",
+   "file": "labs/s21/manifest.py",
+   "src": "\"\"\"반입 꾸러미 해시 매니페스트 — 밖에서 make, 안에서 verify\n\n  python manifest.py make bundle > bundle/MANIFEST.json\n  python manifest.py verify bundle bundle/MANIFEST.json\n\"\"\"\nimport hashlib\nimport json\nimport sys\nfrom datetime import date\nfrom pathlib import Path\n\n\ndef sha256(path: Path) -> str:\n    h = hashlib.sha256()\n    with open(path, \"rb\") as f:\n        for block in iter(lambda: f.read(1024 * 1024), b\"\"):   # 1MB 씩 읽어 대용량 파일도 처리\n            h.update(block)\n    return h.hexdigest()\n\n\ndef make(root: str):\n    base = Path(root)\n    files = {}\n    for p in sorted(base.rglob(\"*\")):\n        if p.is_file() and p.name != \"MANIFEST.json\" and \".cache\" not in p.parts:\n            files[str(p.relative_to(base))] = {\"sha256\": sha256(p), \"bytes\": p.stat().st_size}\n    licenses = [k for k in files if Path(k).name.upper().startswith(\"LICENSE\")]\n    manifest = {\n        \"created\": date.today().isoformat(),\n        \"file_count\": len(files),\n        \"total_gb\": round(sum(v[\"bytes\"] for v in files.values()) / 1e9, 2),\n        \"license_files\": licenses,          # 심의 자료에 라이선스 원문을 첨부합니다\n        \"files\": files,\n    }\n    print(json.dumps(manifest, ensure_ascii=False, indent=1))\n    if not licenses:\n        print(\"경고: LICENSE 파일이 없습니다. 모델 카드에서 라이선스를 확인하세요.\", file=sys.stderr)\n\n\ndef verify(root: str, manifest_path: str) -> int:\n    base = Path(root)\n    manifest = json.load(open(manifest_path, encoding=\"utf-8\"))\n    bad = 0\n    for rel, meta in manifest[\"files\"].items():\n        p = base / rel\n        if not p.exists():\n            print(\"없음  \", rel)\n            bad += 1\n        elif sha256(p) != meta[\"sha256\"]:\n            print(\"불일치\", rel)\n            bad += 1\n    print(f\"검증 {manifest['file_count']}개 중 문제 {bad}개\")\n    return 1 if bad else 0\n\n\nif __name__ == \"__main__\":\n    cmd, *args = sys.argv[1:]\n    sys.exit(make(*args) if cmd == \"make\" else verify(*args))\n"
+  },
+  "tips": [
+   "후보 비교표에는 모델명 · 라이선스 · 파라미터(총/활성) · 비트 · 추정 VRAM · 평가 점수 · 확인일을 한 줄씩 적습니다. 심의 자료로 그대로 씁니다",
+   "모델과 이미지는 버전을 고정하고, 업그레이드도 같은 반입 절차와 평가셋 재측정을 거치게 합니다",
+   "처음에는 작은 모델(8~14B급)로 RAG 품질을 맞추고, 부족할 때만 큰 모델이나 GPU 증설을 검토합니다"
+  ],
+  "pitfalls": [
+   "MoE 모델의 '활성 파라미터'만 보고 메모리를 잡아, 전체 가중치가 GPU 에 들어가지 않는 경우",
+   "모델 최대 컨텍스트(수십만 토큰)를 그대로 max-model-len 으로 잡아 KV 캐시 때문에 서버가 뜨지 않는 경우",
+   "외부 PC 와 사내 서버의 파이썬·CUDA 버전이 달라 반입한 휠이 설치되지 않는 경우"
+  ]
+ },
+ "refs": [
+  {
+   "label": "vLLM 문서 · Quickstart (vllm serve, OpenAI 호환 서버)",
+   "url": "https://docs.vllm.ai/en/latest/getting_started/quickstart/"
+  },
+  {
+   "label": "Qwen3.5 모델 모음 (Hugging Face)",
+   "url": "https://huggingface.co/collections/Qwen/qwen35"
+  },
+  {
+   "label": "LG AI연구원 · K-EXAONE 2.0 공개 (2026-07-31, Apache 2.0)",
+   "url": "https://www.lgresearch.ai/news/view?seq=678"
+  },
+  {
+   "label": "EXAONE AI Model License Agreement 1.2 - NC 원문 (EXAONE 4.0)",
+   "url": "https://scancode-licensedb.aboutcode.org/exaone-ai-model-1.2-nc.html"
+  },
+  {
+   "label": "Hugging Face Hub CLI 가이드 (hf download)",
+   "url": "https://huggingface.co/docs/huggingface_hub/main/en/guides/cli"
+  }
+ ]
+}

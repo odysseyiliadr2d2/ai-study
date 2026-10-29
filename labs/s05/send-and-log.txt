@@ -1,0 +1,19 @@
+[⑦ Gmail — Operation: Send]
+To:       나 또는 팀 메일
+Subject:  [아침 브리핑] {{ $('Digest').item.json.date }}
+Email Type: Text
+Message:  {{ $json.text }}
+          ↑ Basic LLM Chain 의 출력 필드 이름은 실행 기록에서 확인 (보통 text)
+Options › Append n8n Attribution: 끔
+
+[⑧ Google Sheets — Operation: Append Row]
+Document: 'AI 브리핑 기록' 스프레드시트 (첫 행에 date, mails, feeds, summary 헤더)
+Sheet:    Sheet1
+Mapping Column Mode: Map Each Column Manually
+  date    = {{ $('Digest').item.json.date }}
+  mails   = {{ $('Digest').item.json.mailCount }}
+  feeds   = {{ $('Digest').item.json.feedCount }}
+  summary = {{ $json.text.slice(0, 500) }}
+
+[⑦ 대신 메신저로 보내려면]
+Slack: Send Message / Telegram: Send Message — 본문 표현식은 같습니다.

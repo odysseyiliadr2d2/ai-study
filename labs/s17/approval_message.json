@@ -1,0 +1,13 @@
+{
+  "_comment": "ask_approval() 를 메신저 승인 요청으로 바꿀 때 보내는 메시지 예 (Slack Block Kit 형식)",
+  "channel": "#dw-ops-oncall",
+  "text": "[승인 요청] ADW_ACCT_TXN_DAILY 20261028 STG_LOAD 부터 재실행",
+  "blocks": [
+    {"type": "section", "text": {"type": "mrkdwn", "text": "*재실행 요청 승인 필요* (run_id d4c4efbd2584)\n작업: ADW_ACCT_TXN_DAILY · 기준일자 20261028 · 시작 블록 STG_LOAD"}},
+    {"type": "section", "text": {"type": "mrkdwn", "text": "*원인*: STG.STG_ACCT_TXN.BRNCH_CD VARCHAR2(5) 에 6자리 지점코드 유입 (ORA-12899)\n*선행 조치*: 컬럼 VARCHAR2(6) 확장 — 변경관리 CR 번호 기입 후 승인"}},
+    {"type": "actions", "elements": [
+      {"type": "button", "text": {"type": "plain_text", "text": "승인"}, "style": "primary", "value": "approve:d4c4efbd2584"},
+      {"type": "button", "text": {"type": "plain_text", "text": "거절"}, "style": "danger", "value": "deny:d4c4efbd2584"}
+    ]}
+  ]
+}

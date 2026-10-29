@@ -1,0 +1,8 @@
+2026-10-28 01:58:02 INFO  [JOB_ODS_TRD] start
+2026-10-28 02:03:44 INFO  [JOB_ODS_TRD] 1,982,331 rows loaded
+2026-10-28 02:04:10 INFO  [JOB_STG_TRD] start
+2026-10-28 02:11:57 ERROR [JOB_STG_TRD] ORA-01653: unable to extend table STG.TB_STG_TRD by 8192 in tablespace TS_STG
+2026-10-28 02:11:57 FATAL [JOB_STG_TRD] step 3/5 failed, rollback done
+2026-10-28 02:12:00 WARN  [JOB_ADW_DAILY] waiting for JOB_STG_TRD
+2026-10-28 03:30:00 ERROR [JOB_ADW_DAILY] dependency timeout (90 min), skipped
+2026-10-28 03:30:05 INFO  [SCHEDULER] 2 jobs failed, 14 jobs succeeded

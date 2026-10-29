@@ -1,0 +1,122 @@
+{
+ "title": "두 트랙은 배포 대상만 다르고, 테스트 → 빌드 → 배포 → 확인 순서는 같습니다",
+ "subtitle": "기본 트랙(Vercel)과 Java 트랙(사내 Kubernetes) 비교",
+ "cols": 3,
+ "rows": 3,
+ "cell_h": 118,
+ "nodes": [
+  {
+   "id": "h1",
+   "col": 0,
+   "row": 0,
+   "label": "빌드 결과물",
+   "sub": "무엇을 배포하나",
+   "icon": "layers",
+   "color": "gray"
+  },
+  {
+   "id": "h2",
+   "col": 0,
+   "row": 1,
+   "label": "비밀값 주입",
+   "sub": "어디에 두나",
+   "icon": "key",
+   "color": "gray"
+  },
+  {
+   "id": "h3",
+   "col": 0,
+   "row": 2,
+   "label": "확인 · 롤백",
+   "sub": "실패하면",
+   "icon": "cycle",
+   "color": "gray"
+  },
+  {
+   "id": "v1",
+   "col": 1,
+   "row": 0,
+   "label": "Vercel",
+   "sub": "빌드 결과를 --prebuilt 로 배포",
+   "icon": "cloud",
+   "color": "blue"
+  },
+  {
+   "id": "v2",
+   "col": 1,
+   "row": 1,
+   "label": "Vercel 환경변수",
+   "sub": "Production · Preview 분리",
+   "icon": "key",
+   "color": "blue"
+  },
+  {
+   "id": "v3",
+   "col": 1,
+   "row": 2,
+   "label": "vercel rollback",
+   "sub": "이전 배포로 즉시 전환",
+   "icon": "cycle",
+   "color": "blue"
+  },
+  {
+   "id": "k1",
+   "col": 2,
+   "row": 0,
+   "label": "컨테이너 이미지",
+   "sub": "Spring Boot 계층형 jar",
+   "icon": "server",
+   "color": "orange"
+  },
+  {
+   "id": "k2",
+   "col": 2,
+   "row": 1,
+   "label": "Kubernetes Secret",
+   "sub": "envFrom 으로 주입",
+   "icon": "lock",
+   "color": "orange"
+  },
+  {
+   "id": "k3",
+   "col": 2,
+   "row": 2,
+   "label": "kubectl rollout undo",
+   "sub": "readiness 실패 시 기존 Pod 유지",
+   "icon": "cycle",
+   "color": "orange"
+  }
+ ],
+ "edges": [
+  {
+   "from": "h1",
+   "to": "v1",
+   "dashed": true
+  },
+  {
+   "from": "v1",
+   "to": "k1",
+   "both": true
+  },
+  {
+   "from": "h2",
+   "to": "v2",
+   "dashed": true
+  },
+  {
+   "from": "v2",
+   "to": "k2",
+   "both": true
+  },
+  {
+   "from": "h3",
+   "to": "v3",
+   "dashed": true
+  },
+  {
+   "from": "v3",
+   "to": "k3",
+   "both": true
+  }
+ ]
+}

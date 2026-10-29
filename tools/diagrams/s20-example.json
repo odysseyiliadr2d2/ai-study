@@ -1,0 +1,100 @@
+{
+ "title": "그림자 모드 2주로 기준을 넘으면 정식 전환, 못 넘으면 연장합니다",
+ "subtitle": "운영 에이전트 도입 단계",
+ "cols": 4,
+ "rows": 2,
+ "cell_h": 128,
+ "nodes": [
+  {
+   "id": "s0",
+   "col": 0,
+   "row": 0,
+   "label": "오프라인 평가",
+   "sub": "시나리오 통과율 90%+",
+   "icon": "flask",
+   "color": "purple",
+   "badge": 1
+  },
+  {
+   "id": "s1",
+   "col": 1,
+   "row": 0,
+   "label": "그림자 모드 2주",
+   "sub": "진단만, 사람은 못 봄",
+   "icon": "eye",
+   "color": "gray",
+   "badge": 2
+  },
+  {
+   "id": "s2",
+   "col": 2,
+   "row": 0,
+   "label": "전환 판정",
+   "sub": "원인 80% · 조치 70% · 위험 0",
+   "icon": "target",
+   "color": "yellow",
+   "badge": 3,
+   "emph": true
+  },
+  {
+   "id": "s3",
+   "col": 3,
+   "row": 0,
+   "label": "정식 전환",
+   "sub": "읽기 + 승인형 쓰기",
+   "icon": "rocket",
+   "color": "green",
+   "badge": 4
+  },
+  {
+   "id": "x",
+   "col": 2,
+   "row": 1,
+   "label": "기준 미달",
+   "sub": "불일치 사례를 시나리오로",
+   "icon": "warn",
+   "color": "red"
+  },
+  {
+   "id": "rb",
+   "col": 3,
+   "row": 1,
+   "label": "운영 중 이상",
+   "sub": "차단 스위치 → 읽기 전용",
+   "icon": "cycle",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "s0",
+   "to": "s1"
+  },
+  {
+   "from": "s1",
+   "to": "s2"
+  },
+  {
+   "from": "s2",
+   "to": "s3",
+   "label": "통과"
+  },
+  {
+   "from": "s2",
+   "to": "x",
+   "label": "미달"
+  },
+  {
+   "from": "x",
+   "to": "s0",
+   "route": "hv",
+   "dashed": true,
+   "label": "보완"
+  },
+  {
+   "from": "s3",
+   "to": "rb",
+   "dashed": true
+  }
+ ]
+}

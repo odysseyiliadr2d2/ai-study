@@ -1,0 +1,13 @@
+{
+ "영업일": "DW.CMN_BIZ_DAY_D.BIZ_DAY_YN = 'Y' 인 일자. 주말·공휴일 제외. 거래 팩트는 영업일만 적재되어 있음",
+ "전영업일": "기준일보다 작은 BASE_DT 중 BIZ_DAY_YN = 'Y' 인 가장 큰 일자",
+ "최근 N영업일": "기준일 이하 영업일을 BASE_DT 내림차순으로 N개",
+ "거래금액": "DW.TRD_DAY_F.TRD_AMT 합계(원). '약정금액'과 같은 뜻",
+ "약정금액": "거래금액과 같음 (TRD_AMT)",
+ "수수료": "DW.TRD_DAY_F.FEE_AMT 합계(원)",
+ "채널": "DW.TRD_DAY_F.CHNL_CD. 이름은 DW.CMN_CODE_D 에서 CODE_GRP = 'CHNL' 로 조인",
+ "비대면": "채널코드 02(HTS), 03(MTS)",
+ "상품분류": "DW.PRD_PRODUCT_D.PRD_CLS_CD. 이름은 CODE_GRP = 'PRD_CLS'",
+ "지점": "DW.ORG_BRANCH_D. 거래 팩트의 BRN_CD 로 조인",
+ "지난달": "기준일이 속한 달의 바로 전 달 1일~말일 (BASE_DT 문자열 비교)"
+}

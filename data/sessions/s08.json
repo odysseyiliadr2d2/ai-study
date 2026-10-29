@@ -1,0 +1,274 @@
+{
+ "id": 8,
+ "part": 2,
+ "title": "임베딩과 벡터DB",
+ "summary": "의미 유사도 검색의 원리, 청킹 전략, pgvector로 저장·검색",
+ "level": "기초",
+ "tags": [
+  "Python",
+  "SQL"
+ ],
+ "duration": "120분 (설명 40 · 실습 60 · 토론 20)",
+ "goals": [
+  "임베딩과 코사인 유사도로 '의미가 가깝다'를 숫자로 설명할 수 있다",
+  "다국어·로컬 임베딩 모델을 고르고 e5 계열의 query · passage 규칙을 지킨다",
+  "문서 종류에 맞는 청킹 단위를 정한다 (문단 · 섹션 · 표의 행)",
+  "pgvector 에 벡터를 저장하고 HNSW 인덱스와 <code>&lt;=&gt;</code> 연산자로 검색한다"
+ ],
+ "output": "테이블 정의서·용어집을 의미로 찾는 pgvector 검색 스크립트 (세션 9 RAG 의 저장소로 그대로 사용)",
+ "concept": {
+  "lead": "임베딩은 문장의 <b>뜻을 숫자 벡터(예: 384개의 실수)로 바꾼 것</b>입니다. 뜻이 비슷한 문장은 벡터 공간에서 가까이 놓이므로, 벡터 사이의 거리로 '의미가 비슷한 문서'를 찾을 수 있습니다.",
+  "body": [
+   "사내 검색은 대부분 키워드 일치입니다. 테이블 정의서에서 '손님 번호'를 찾으면 '고객번호'는 나오지 않습니다. 임베딩 모델은 수많은 문장 쌍으로 학습해 '손님 번호'와 '고객 식별 번호'를 가까운 벡터로 바꿔 주므로, 단어가 달라도 뜻으로 찾을 수 있습니다.",
+   "가까움은 보통 <b>코사인 유사도</b>로 잽니다. 두 벡터가 같은 방향이면 1, 직각이면 0 에 가깝습니다. 벡터를 길이 1로 정규화해 두면 코사인 유사도는 단순한 내적과 같아져 계산이 빠릅니다. pgvector 의 <code>&lt;=&gt;</code> 연산자는 '코사인 거리'(1 − 유사도)를 돌려주므로 작을수록 가깝습니다.",
+   "벡터가 수만~수백만 개가 되면 질문마다 전부와 비교하기 어렵습니다. <b>벡터DB</b>는 벡터를 원문·메타데이터와 함께 저장하고, HNSW 같은 <b>근사 인덱스</b>로 가까운 것을 빠르게 찾아 줍니다. 이 세션의 저장소가 다음 세션 RAG 의 '검색' 단계가 됩니다."
+  ],
+  "diagram": {
+   "src": "diagrams/s08-concept.svg",
+   "caption": "같은 뜻의 두 표현은 가까운 벡터가 되고, 다른 주제는 먼 벡터가 됩니다."
+  },
+  "terms": [
+   {
+    "term": "임베딩 (Embedding)",
+    "desc": "텍스트를 고정 길이 실수 벡터로 바꾼 것. 같은 모델로 만든 벡터끼리만 비교할 수 있습니다."
+   },
+   {
+    "term": "코사인 유사도",
+    "desc": "두 벡터 방향이 얼마나 같은지 나타내는 값(−1~1). 길이 1로 정규화하면 내적과 같습니다."
+   },
+   {
+    "term": "차원 (Dimension)",
+    "desc": "벡터의 숫자 개수. multilingual-e5-small 은 384, 큰 모델은 1,024 이상. 차원이 크면 저장·검색 비용도 커집니다."
+   },
+   {
+    "term": "청킹 (Chunking)",
+    "desc": "문서를 검색 단위로 자르는 일. 한 청크는 한 가지 내용을 담는 것이 좋습니다."
+   },
+   {
+    "term": "ANN 인덱스",
+    "desc": "근사 최근접 이웃(Approximate Nearest Neighbor) 인덱스. 정확도를 조금 내주고 속도를 얻습니다. HNSW, IVFFlat 이 대표적입니다."
+   },
+   {
+    "term": "pgvector",
+    "desc": "PostgreSQL 에 vector 타입과 거리 연산자, HNSW·IVFFlat 인덱스를 더하는 오픈소스 확장. 확장 이름은 <code>vector</code>."
+   }
+  ]
+ },
+ "theory": {
+  "lead": "의미 검색의 품질은 <b>임베딩 모델 · 청킹 · 인덱스 설정</b> 세 가지로 정해지고, 저장소 선택은 그다음 문제입니다.",
+  "diagram": {
+   "src": "diagrams/s08-theory.svg",
+   "caption": "Chroma · pgvector · Oracle AI Vector Search 를 쓰임새와 주의점으로 비교합니다."
+  },
+  "sections": [
+   {
+    "title": "1. 코사인 유사도 계산",
+    "body": [
+     "코사인 유사도 = (A · B) / (|A| × |B|) 입니다. 임베딩할 때 <code>normalize_embeddings=True</code> 로 길이를 1로 맞추면 분모가 1이 되어 내적만 계산하면 됩니다. 유사도의 절대값은 모델마다 분포가 달라서, e5 계열은 관련 없는 문장도 0.7 대가 나오기도 합니다. 그래서 <b>'몇 점 이상이면 관련 있음' 기준은 내 데이터로 정해야</b> 합니다."
+    ],
+    "code": {
+     "lang": "python",
+     "src": "import numpy as np\na = np.array([0.6, 0.8])      # 길이 1\nb = np.array([0.8, 0.6])      # 길이 1\nprint(a @ b)                  # 0.96 → 코사인 유사도\nprint(1 - a @ b)              # 0.04 → 코사인 거리 (pgvector <=> 가 돌려주는 값)"
+    }
+   },
+   {
+    "title": "2. 임베딩 모델 고르기",
+    "body": [
+     "한국어 업무 문서라면 <b>다국어 모델</b>이어야 하고, 폐쇄망이라면 <b>내려받아 사내 서버에서 돌릴 수 있는</b> 모델이어야 합니다. 실습에 쓰는 <code>intfloat/multilingual-e5-small</code> 은 384차원·12층의 작은 모델로 CPU 에서도 돌고, 입력은 512 토큰까지 봅니다. 저장할 문서에는 <code>passage: </code>, 질문에는 <code>query: </code> 접두어를 붙이는 규칙이 있습니다."
+    ],
+    "bullets": [
+     "모델을 바꾸면 모든 벡터를 다시 만들어야 합니다 — 모델 이름을 메타데이터로 저장",
+     "같은 계열의 base · large 는 품질이 오르는 대신 차원·속도 비용이 커집니다",
+     "고르는 기준은 벤치마크 순위보다 '우리 질문 30개로 상위 5개 안에 정답이 드는 비율'",
+     "외부 임베딩 API 는 문서 원문이 밖으로 나가므로 사내 데이터에는 승인 후에만"
+    ]
+   },
+   {
+    "title": "3. 청킹 전략",
+    "body": [
+     "청크는 <b>한 가지 내용을 담는 가장 작은 덩어리</b>가 좋습니다. 운영 매뉴얼은 제목(섹션) 단위로 나누고 긴 섹션만 300~800자로 다시 자릅니다. 테이블 정의서·용어집 같은 표는 <b>행 하나를 문장 하나로</b> 풀어 씁니다. '테이블 TB_CUST_BASE 의 컬럼 CUST_NO (고객번호): 고객을 식별하는 고유 번호' 처럼 물리명·한글명·설명을 함께 넣으면 어떤 표현으로 물어도 걸립니다."
+    ],
+    "bullets": [
+     "매뉴얼·설계서: 섹션 단위 + 300~800자, 앞뒤 10~20% 겹치기",
+     "표·메타데이터: 행 단위 문장화, 코드값 설명 포함",
+     "청크마다 출처(문서명·섹션·개정일)를 별도 컬럼에 저장 — 필터와 출처 표시에 씀",
+     "모델 입력 한도(e5-small 은 512 토큰)를 넘는 부분은 잘려서 무시됩니다"
+    ]
+   },
+   {
+    "title": "4. 인덱스: HNSW 와 IVFFlat",
+    "body": [
+     "<b>HNSW</b>는 벡터들을 여러 층의 그래프로 이어 두고 위층에서 큰 걸음, 아래층에서 작은 걸음으로 가까운 점을 찾아갑니다. 빈 테이블에 미리 만들어도 되고 검색 품질·속도 균형이 좋아 기본 선택입니다. <b>IVFFlat</b>은 벡터를 <code>lists</code> 개의 묶음으로 나눠 가까운 묶음만 뒤집니다. 만들기가 빠르고 메모리를 덜 쓰지만, 데이터를 넣은 뒤에 만들어야 합니다."
+    ],
+    "bullets": [
+     "HNSW 기본값: m 16 · ef_construction 64 · 검색 시 <code>hnsw.ef_search</code> 40 — 키우면 정확해지고 느려짐",
+     "IVFFlat 시작값: lists = 행 수 / 1000 (100만 행까지)",
+     "<code>vector</code> 타입 인덱스는 2,000 차원까지 (README 기준)",
+     "인덱스 opclass(<code>vector_cosine_ops</code>)와 쿼리 연산자(<code>&lt;=&gt;</code>)가 맞아야 인덱스를 씁니다"
+    ],
+    "code": {
+     "lang": "sql",
+     "src": "-- 5단계: 인덱스를 실제로 쓰는지 확인\n-- 질문 벡터 대신 저장된 행 하나의 벡터로 시험합니다\nEXPLAIN ANALYZE\nSELECT title\nFROM meta_chunk\nORDER BY embedding <=> (SELECT embedding FROM meta_chunk WHERE column_name = 'CUST_NO')\nLIMIT 5;\n-- 'Index Scan using meta_chunk_embedding_hnsw' 가 보이면 HNSW 사용\n-- 행이 수십 건이면 플래너가 순차 스캔(Seq Scan)을 고를 수 있습니다 (정상)\n\n-- 다른 거리 연산자 비교 (pgvector README)\n--   <->  L2(유클리드) 거리       → 인덱스 opclass: vector_l2_ops\n--   <#>  음의 내적(-1 × 내적)    → vector_ip_ops\n--   <=>  코사인 거리             → vector_cosine_ops\n-- 정규화한 벡터라면 세 가지 순위가 같습니다. 인덱스 opclass 와 연산자를 꼭 맞춥니다.\n\n-- IVFFlat 을 쓴다면 데이터를 넣은 뒤에 만들고, lists 는 행 수 / 1000 정도에서 시작\n-- CREATE INDEX ON meta_chunk USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);\n"
+    }
+   },
+   {
+    "title": "5. Oracle 을 쓰는 곳이라면",
+    "body": [
+     "Oracle Database 23ai 부터 <b>AI Vector Search</b> 가 들어갔고, 현재 이름은 Oracle AI Database 26ai 입니다. <code>VECTOR</code> 데이터 타입, <code>VECTOR_DISTANCE</code> 함수(기본 COSINE), HNSW 형태의 <code>INMEMORY NEIGHBOR GRAPH</code> 인덱스, ONNX 임베딩 모델을 DB 안에 올려 SQL 로 임베딩하는 기능이 있습니다. 업무 데이터 옆에 벡터를 두고 권한·백업 체계를 그대로 쓸 수 있는 것이 장점입니다. 다만 사내 운영 DB 가 19c 라면 바로 쓸 수 없으므로 버전과 라이선스를 먼저 확인합니다."
+    ],
+    "code": {
+     "lang": "sql",
+     "src": "-- 참고: Oracle AI Vector Search (23ai 이후, 현재 26ai) 로 같은 일을 할 때의 모양\n-- 실제 문법·지원 버전은 사내 DB 버전의 공식 문서로 확인합니다\nCREATE TABLE meta_chunk (\n    id         NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n    title      VARCHAR2(200),\n    content    VARCHAR2(4000),\n    embedding  VECTOR                 -- 차원·형식을 지정할 수도 있습니다\n);\n\nCREATE VECTOR INDEX meta_chunk_hnsw ON meta_chunk (embedding)\n    ORGANIZATION INMEMORY NEIGHBOR GRAPH\n    DISTANCE COSINE\n    WITH TARGET ACCURACY 95;\n\nSELECT title\nFROM meta_chunk\nORDER BY VECTOR_DISTANCE(embedding, :query_vec, COSINE)   -- 또는 embedding <=> :query_vec\nFETCH APPROX FIRST 5 ROWS ONLY;\n"
+    }
+   }
+  ]
+ },
+ "lab": {
+  "title": "pgvector 로 메타데이터 의미 검색 만들기",
+  "lead": "Docker 로 pgvector 를 띄우고, 테이블 정의서·용어집 샘플을 문장으로 풀어 임베딩해 저장한 뒤 코사인 거리로 검색합니다. 임베딩 모델은 로컬에서 돌기 때문에 API 키가 필요 없고, 폐쇄망에서도 같은 구성으로 쓸 수 있습니다. 샘플 메타데이터는 지어낸 예시입니다.",
+  "env": [
+   "Docker",
+   "pgvector/pgvector 이미지 (PostgreSQL + pgvector)",
+   "Python 3.11+",
+   "sentence-transformers · psycopg 3 · pgvector(파이썬)",
+   "디스크 1GB (임베딩 모델 다운로드)"
+  ],
+  "steps": [
+   {
+    "title": "pgvector 컨테이너와 파이썬 환경",
+    "body": [
+     "pgvector 가 미리 설치된 공식 이미지를 씁니다. 태그는 PostgreSQL 버전과 OS 를 뜻하므로 pgvector README 에서 최신 태그를 확인합니다. 폐쇄망에서는 이미지와 모델 파일을 외부에서 받아 사내 저장소로 옮깁니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s08/setup.sh",
+     "src": "# 1) pgvector 가 들어 있는 PostgreSQL 컨테이너 (태그는 pgvector README 의 최신 태그 확인)\ndocker run -d --name pgvector \\\n  -e POSTGRES_PASSWORD=study \\\n  -e POSTGRES_DB=meta \\\n  -p 5432:5432 \\\n  -v pgvector_data:/var/lib/postgresql \\\n  pgvector/pgvector:pg18-trixie\n\n# 2) 접속 확인\ndocker exec -it pgvector psql -U postgres -d meta -c \"SELECT version();\"\n\n# 3) 파이썬 패키지\npython -m venv .venv && source .venv/bin/activate\npip install -r requirements.txt\nexport PGURL=\"postgresql://postgres:study@localhost:5432/meta\"\n"
+    }
+   },
+   {
+    "title": "패키지 목록",
+    "body": [
+     "pgvector 파이썬 패키지는 psycopg 에 vector 타입 변환을 등록해 numpy 배열을 그대로 넣고 꺼낼 수 있게 합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s08/requirements.txt",
+     "src": "sentence-transformers>=3.0\nnumpy>=1.26\npsycopg[binary]>=3.1\npgvector>=0.3\n"
+    }
+   },
+   {
+    "title": "임베딩과 코사인 유사도 감 잡기",
+    "body": [
+     "DB 없이 문장 4개와 질문 1개로 유사도를 계산해 봅니다. '손님'이라는 단어가 없어도 고객번호 문장이 위로 오는지, 정규화한 벡터에서 코사인 유사도와 내적이 같은지 확인합니다. 실행: <code>python cosine_demo.py</code>"
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s08/cosine_demo.py",
+     "src": "\"\"\"1단계: 임베딩과 코사인 유사도 감 잡기 — python cosine_demo.py\"\"\"\nimport numpy as np\nfrom sentence_transformers import SentenceTransformer\n\nmodel = SentenceTransformer(\"intfloat/multilingual-e5-small\")   # 처음 한 번 내려받음 (약 0.5GB)\n\ndocs = [\n    \"고객번호: 고객을 식별하는 고유 번호 (CUST_NO)\",\n    \"고객 식별 번호는 계좌 개설 시 부여됩니다\",\n    \"야간 배치가 실패하면 STG 적재부터 재처리합니다\",\n    \"월말 기준 고객 등급 변경 이력을 보관하는 테이블\",\n]\nquery = \"손님을 구별하는 번호가 뭐야?\"\n\n# e5 규칙: 저장할 문서는 \"passage: \", 질문은 \"query: \" 를 앞에 붙입니다\nd = model.encode([f\"passage: {t}\" for t in docs], normalize_embeddings=True)\nq = model.encode(f\"query: {query}\", normalize_embeddings=True)\nprint(\"벡터 차원:\", d.shape[1])           # 384\n\n\ndef cosine(a, b):\n    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))\n\n\nfor text, vec in zip(docs, d):\n    # 정규화했으므로 내적(np.dot) 과 코사인 유사도가 같습니다\n    print(f\"{cosine(q, vec):.3f}  {np.dot(q, vec):.3f}  {text}\")\n# 키워드 '손님'은 문서에 없지만 고객번호 관련 두 문장이 위로 올라옵니다\n"
+    }
+   },
+   {
+    "title": "확장 · 테이블 · HNSW 인덱스",
+    "body": [
+     "<code>CREATE EXTENSION vector</code> 로 확장을 켜고 <code>vector(384)</code> 컬럼을 만듭니다. 차원은 임베딩 모델과 정확히 같아야 하며, 다르면 INSERT 에서 오류가 납니다. 코사인 거리로 찾을 것이므로 인덱스는 <code>vector_cosine_ops</code> 로 만듭니다."
+    ],
+    "code": {
+     "lang": "sql",
+     "file": "labs/s08/schema.sql",
+     "src": "-- 2단계: 확장 · 테이블 · 인덱스  (docker exec -i pgvector psql -U postgres -d meta < schema.sql)\nCREATE EXTENSION IF NOT EXISTS vector;      -- 확장 이름은 pgvector 가 아니라 vector\n\nDROP TABLE IF EXISTS meta_chunk;\nCREATE TABLE meta_chunk (\n    id          bigserial PRIMARY KEY,\n    kind        text        NOT NULL,        -- 'column' | 'term'\n    table_name  text,                        -- 물리 테이블명 (용어는 NULL)\n    column_name text,                        -- 물리 컬럼명\n    title       text        NOT NULL,        -- 화면에 보여 줄 이름\n    content     text        NOT NULL,        -- 임베딩한 원문 문장\n    updated_at  date        NOT NULL DEFAULT current_date,\n    embedding   vector(384) NOT NULL         -- multilingual-e5-small 차원\n);\n\n-- 근사 최근접 인덱스: 코사인 거리(<=>) 로 찾을 것이므로 vector_cosine_ops\n-- m(기본 16) · ef_construction(기본 64) 는 기본값으로 시작\nCREATE INDEX meta_chunk_embedding_hnsw\n    ON meta_chunk USING hnsw (embedding vector_cosine_ops);\n\n-- 필터에 자주 쓰는 컬럼은 일반 인덱스\nCREATE INDEX meta_chunk_kind_idx ON meta_chunk (kind);\n"
+    }
+   },
+   {
+    "title": "메타데이터 샘플과 적재",
+    "body": [
+     "표의 한 행을 '테이블 … 의 컬럼 … (한글명): 설명' 문장으로 바꿔 <code>passage:</code> 접두어와 함께 임베딩하고 저장합니다. 원문 문장(content)과 물리명을 별도 컬럼으로 남겨 결과 표시와 필터에 씁니다. 실행: <code>python load.py meta.csv</code>"
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s08/meta.csv",
+     "src": "kind,table_name,column_name,title,description\ncolumn,TB_CUST_BASE,CUST_NO,고객번호,고객을 식별하는 고유 번호. 계좌 개설 시 부여되며 변경되지 않음\ncolumn,TB_CUST_BASE,CUST_GRD_CD,고객등급코드,월말 기준 고객 등급. 코드값 01 VIP 02 우수 03 일반\ncolumn,TB_CUST_GRD_HIST,VLD_STRT_DT,유효시작일자,고객 등급 변경 이력의 선분 시작일\ncolumn,TB_CUST_GRD_HIST,VLD_END_DT,유효종료일자,고객 등급 변경 이력의 선분 종료일. 현재 유효 건은 99991231\ncolumn,TB_ACCT_DAY_BAL,BASE_DT,기준일자,잔고를 집계한 영업일\ncolumn,TB_ACCT_DAY_BAL,EVL_AMT,평가금액,기준일 종가로 평가한 보유 자산 금액\ncolumn,TB_BATCH_LOG,JOB_ID,작업ID,야간 배치 작업 식별자\ncolumn,TB_BATCH_LOG,ERR_MSG,오류메시지,배치 실패 시 DB 또는 ETL 오류 원문\nterm,,,선분이력,유효시작일자와 유효종료일자로 한 행의 유효 기간을 표현하는 이력 관리 방식\nterm,,,영업일,휴일을 제외하고 거래가 일어나는 날. 기준일자는 영업일만 가짐\n"
+    }
+   },
+   {
+    "title": "적재 스크립트",
+    "body": [
+     "<code>register_vector(conn)</code> 를 호출해야 numpy 배열이 vector 타입으로 들어갑니다. 수만 건 이상이면 INSERT 대신 COPY 나 배치 실행을 씁니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s08/load.py",
+     "src": "\"\"\"3단계: 메타데이터를 문장으로 풀어 임베딩하고 저장 — python load.py meta.csv\"\"\"\nimport csv\nimport os\nimport sys\n\nimport psycopg\nfrom pgvector.psycopg import register_vector\nfrom sentence_transformers import SentenceTransformer\n\nPGURL = os.getenv(\"PGURL\", \"postgresql://postgres:study@localhost:5432/meta\")\nmodel = SentenceTransformer(\"intfloat/multilingual-e5-small\")\n\n\ndef to_sentence(r: dict) -> str:\n    \"\"\"표의 한 행을 검색이 잘 되는 문장으로 바꿉니다 (물리명 + 한글명 + 설명).\"\"\"\n    if r[\"kind\"] == \"column\":\n        return (f\"테이블 {r['table_name']} 의 컬럼 {r['column_name']} ({r['title']}): \"\n                f\"{r['description']}\")\n    return f\"용어 {r['title']}: {r['description']}\"\n\n\ndef main(path: str):\n    rows = list(csv.DictReader(open(path, encoding=\"utf-8\")))\n    texts = [to_sentence(r) for r in rows]\n    vecs = model.encode([f\"passage: {t}\" for t in texts],\n                        normalize_embeddings=True, batch_size=64, show_progress_bar=True)\n\n    with psycopg.connect(PGURL) as conn:\n        register_vector(conn)                 # numpy 배열 ↔ vector 타입 변환 등록\n        with conn.cursor() as cur:\n            cur.execute(\"TRUNCATE meta_chunk\")\n            for r, text, vec in zip(rows, texts, vecs):\n                cur.execute(\n                    \"\"\"INSERT INTO meta_chunk (kind, table_name, column_name, title, content, embedding)\n                       VALUES (%s, %s, %s, %s, %s, %s)\"\"\",\n                    (r[\"kind\"], r[\"table_name\"] or None, r[\"column_name\"] or None,\n                     r[\"title\"], text, vec),\n                )\n        conn.commit()\n    print(f\"{len(rows)}건 저장 완료\")\n\n\nif __name__ == \"__main__\":\n    main(sys.argv[1] if len(sys.argv) > 1 else \"meta.csv\")\n"
+    }
+   },
+   {
+    "title": "의미 검색과 인덱스 확인",
+    "body": [
+     "질문에 <code>query:</code> 접두어를 붙여 임베딩하고 <code>ORDER BY embedding &lt;=&gt; 질문벡터</code> 로 가까운 순서대로 가져옵니다. <code>1 - 거리</code> 로 유사도를 함께 보여 줍니다. 이어서 이론 4절의 <code>EXPLAIN ANALYZE</code> 로 인덱스 사용 여부를 확인합니다. 실행: <code>python search.py \"고객 등급이 바뀐 이력은 어디에 있나요?\"</code>"
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s08/search.py",
+     "src": "\"\"\"4단계: 의미 검색 — python search.py \"고객 등급이 바뀐 이력은 어디에 있나요?\" \"\"\"\nimport os\nimport sys\n\nimport psycopg\nfrom pgvector.psycopg import register_vector\nfrom sentence_transformers import SentenceTransformer\n\nPGURL = os.getenv(\"PGURL\", \"postgresql://postgres:study@localhost:5432/meta\")\nmodel = SentenceTransformer(\"intfloat/multilingual-e5-small\")\n\nSQL = \"\"\"\nSELECT kind, table_name, column_name, title,\n       1 - (embedding <=> %(q)s) AS similarity      -- <=> 는 코사인 '거리', 1 - 거리 = 유사도\nFROM meta_chunk\nWHERE (%(kind)s::text IS NULL OR kind = %(kind)s)\nORDER BY embedding <=> %(q)s                         -- 거리 오름차순 = 가까운 순\nLIMIT %(k)s\n\"\"\"\n\n\ndef search(question: str, k: int = 5, kind: str | None = None):\n    q = model.encode(f\"query: {question}\", normalize_embeddings=True)\n    with psycopg.connect(PGURL) as conn:\n        register_vector(conn)\n        conn.execute(\"SET hnsw.ef_search = 100\")    # 후보 목록 크기 (기본 40) — 크면 정확, 느림\n        return conn.execute(SQL, {\"q\": q, \"k\": k, \"kind\": kind}).fetchall()\n\n\nif __name__ == \"__main__\":\n    question = \" \".join(sys.argv[1:]) or \"고객 등급이 바뀐 이력은 어디에 있나요?\"\n    for kind, table, column, title, sim in search(question):\n        where = f\"{table}.{column}\" if table else \"(용어)\"\n        print(f\"{sim:.3f}  {where:<28} {title}\")\n"
+    }
+   }
+  ],
+  "check": [
+   "'고객 등급이 바뀐 이력' 질문에 TB_CUST_GRD_HIST 의 컬럼과 '선분이력' 용어가 상위에 오는가",
+   "<code>vector(384)</code> 를 <code>vector(768)</code> 로 바꾸면 적재가 실패하는 이유를 설명할 수 있는가",
+   "같은 질문을 접두어 없이(<code>query:</code> 빼고) 검색했을 때 순위가 어떻게 바뀌는지 비교했는가"
+  ]
+ },
+ "example": {
+  "title": "테이블 정의서·용어집 의미 검색",
+  "context": "정보계 DW 에는 테이블 수백 개, 컬럼 수천 개가 있고 메타데이터는 엑셀 정의서와 용어집에 흩어져 있습니다. 현업이 '고객 등급 바뀐 이력 어디 있어요?'라고 물으면 담당자가 정의서를 뒤집니다. 메타데이터를 행 단위 문장으로 색인해 <b>뜻으로 찾고</b>, 물리명을 정확히 친 경우는 키워드 일치를 먼저 보여 줍니다.",
+  "diagram": {
+   "src": "diagrams/s08-example.svg",
+   "caption": "색인은 메타데이터가 바뀔 때만, 검색은 질문마다 — 물리명 정확 일치와 의미 검색 결과를 합칩니다."
+  },
+  "flow": [
+   "메타데이터 원천을 정합니다: 테이블 정의서(테이블·컬럼·한글명·설명·코드값), 용어집, 표준 단어 사전",
+   "행마다 '테이블 X 의 컬럼 Y (한글명): 설명. 코드값 …' 문장을 만들고 물리명·갱신일을 별도 컬럼에 둡니다",
+   "메타데이터 변경분만 야간에 다시 임베딩해 pgvector 에 반영합니다 (모델명도 함께 저장)",
+   "질문에 대문자 물리명(CUST_GRD_CD 등)이 있으면 정확 일치 결과를 먼저 보여 줍니다",
+   "나머지는 의미 검색 상위 결과 중 유사도 기준(예: 0.80) 이상만 '테이블.컬럼 · 한글명 · 유사도' 로 보여 줍니다",
+   "결과가 없으면 메타데이터 담당자를 안내하고, 못 찾은 질문을 모아 용어집 보강 목록으로 씁니다"
+  ],
+  "code": {
+   "lang": "python",
+   "file": "labs/s08/hybrid.py",
+   "src": "\"\"\"실무형: 물리명 정확 일치 + 의미 검색 합치기 — python hybrid.py \"CUST_GRD_CD 뜻\" \"\"\"\nimport re\nimport sys\n\nimport psycopg\nfrom pgvector.psycopg import register_vector\n\nfrom search import PGURL, search\n\nCODE_RE = re.compile(r\"\\b[A-Z][A-Z0-9]*_[A-Z0-9_]+\\b\")   # 밑줄 있는 물리명 (예: CUST_GRD_CD, TB_BATCH_LOG)\n\n\ndef exact(names: list[str]):\n    if not names:\n        return []\n    with psycopg.connect(PGURL) as conn:\n        register_vector(conn)\n        return conn.execute(\n            \"\"\"SELECT kind, table_name, column_name, title, 1.0 AS similarity\n               FROM meta_chunk\n               WHERE upper(column_name) = ANY(%s) OR upper(table_name) = ANY(%s)\n               LIMIT 10\"\"\",\n            (names, names),\n        ).fetchall()\n\n\ndef hybrid(question: str, k: int = 5, min_sim: float = 0.80):\n    names = CODE_RE.findall(question.upper())\n    hits = exact(names)                                   # 1) 물리명이 있으면 정확 일치가 먼저\n    seen = {(h[1], h[2], h[3]) for h in hits}\n    for h in search(question, k=k * 2):                   # 2) 의미 검색으로 나머지 채우기\n        if h[4] >= min_sim and (h[1], h[2], h[3]) not in seen:\n            hits.append(h)\n            seen.add((h[1], h[2], h[3]))\n    return hits[:k]\n\n\nif __name__ == \"__main__\":\n    q = \" \".join(sys.argv[1:]) or \"CUST_GRD_CD 코드값이 뭐예요?\"\n    rows = hybrid(q)\n    if not rows:\n        print(\"비슷한 항목이 없습니다. 데이터팀 메타데이터 담당자에게 문의하세요.\")\n    for kind, table, column, title, sim in rows:\n        print(f\"{sim:.3f}  {(table or '(용어)')}.{column or ''}  {title}\")\n"
+  },
+  "tips": [
+   "설명이 비어 있는 컬럼은 검색되지 않습니다. 의미 검색 도입은 메타데이터 정비(세션 12)의 좋은 계기가 됩니다",
+   "유사도 기준값은 실제 질문 30~50개로 정답이 몇 등에 오는지 보고 정합니다. 모델을 바꾸면 다시 정합니다",
+   "Oracle 23ai/26ai 를 쓰는 조직이라면 같은 구조를 VECTOR 타입과 VECTOR_DISTANCE 로 옮길 수 있습니다"
+  ],
+  "pitfalls": [
+   "질문과 문서에 서로 다른 임베딩 모델(또는 다른 접두어 규칙)을 써서 유사도가 의미 없어지는 경우",
+   "인덱스는 <code>vector_cosine_ops</code> 로 만들고 쿼리는 <code>&lt;-&gt;</code>(L2)로 써서 인덱스를 타지 않는 경우",
+   "코드값 '01', '02' 처럼 짧은 값만 있는 행을 그대로 임베딩해 아무 질문에나 걸리는 경우 — 설명 문장으로 풀어 씁니다"
+  ]
+ },
+ "refs": [
+  {
+   "label": "pgvector (README · 거리 연산자 · HNSW/IVFFlat)",
+   "url": "https://github.com/pgvector/pgvector"
+  },
+  {
+   "label": "pgvector-python (psycopg 3 · register_vector)",
+   "url": "https://pypi.org/project/pgvector/"
+  },
+  {
+   "label": "multilingual-e5-small 모델 카드 (Hugging Face)",
+   "url": "https://huggingface.co/intfloat/multilingual-e5-small"
+  },
+  {
+   "label": "Oracle AI Vector Search 개요 (26ai)",
+   "url": "https://docs.oracle.com/en/database/oracle/oracle-database/26/vecse/overview-ai-vector-search.html"
+  },
+  {
+   "label": "Oracle SQL Reference · VECTOR_DISTANCE",
+   "url": "https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/vector_distance.html"
+  }
+ ]
+}

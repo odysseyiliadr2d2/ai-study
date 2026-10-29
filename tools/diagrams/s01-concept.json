@@ -1,0 +1,110 @@
+{
+ "title": "생성형 AI는 딥러닝 안의, 딥러닝은 머신러닝 안의 한 갈래입니다",
+ "subtitle": "바깥 상자일수록 넓은 개념 · 안쪽으로 갈수록 데이터와 계산량이 커집니다",
+ "cols": 4,
+ "rows": 4,
+ "cell_h": 120,
+ "groups": [
+  {
+   "label": "AI (인공지능)",
+   "col": 0,
+   "row": 0,
+   "cols": 4,
+   "rows": 4,
+   "color": "navy"
+  },
+  {
+   "label": "머신러닝",
+   "col": 1,
+   "row": 1,
+   "cols": 3,
+   "rows": 3,
+   "color": "blue"
+  },
+  {
+   "label": "딥러닝",
+   "col": 2,
+   "row": 2,
+   "cols": 2,
+   "rows": 2,
+   "color": "purple"
+  },
+  {
+   "label": "생성형 AI",
+   "col": 3,
+   "row": 3,
+   "cols": 1,
+   "rows": 1,
+   "color": "pink"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "ai",
+   "col": 0,
+   "row": 0,
+   "label": "규칙 기반",
+   "sub": "사람이 if-then 규칙을 씀",
+   "icon": "list",
+   "color": "navy"
+  },
+  {
+   "id": "ml",
+   "col": 1,
+   "row": 1,
+   "label": "고전 ML",
+   "sub": "데이터에서 규칙을 배움",
+   "icon": "chart",
+   "color": "blue"
+  },
+  {
+   "id": "dl",
+   "col": 2,
+   "row": 2,
+   "label": "신경망 인식",
+   "sub": "여러 층 신경망",
+   "icon": "nodes",
+   "color": "purple"
+  },
+  {
+   "id": "gen",
+   "col": 3,
+   "row": 3,
+   "label": "LLM",
+   "sub": "글·코드를 새로 만듦",
+   "icon": "spark",
+   "color": "pink",
+   "emph": true
+  },
+  {
+   "id": "e1",
+   "col": 1,
+   "row": 0,
+   "span": 3,
+   "label": "정보계 예: 데이터 품질 점검 SQL, 한도 초과 경고",
+   "icon": "code",
+   "color": "gray"
+  },
+  {
+   "id": "e2",
+   "col": 2,
+   "row": 1,
+   "span": 2,
+   "label": "예: 이탈 예측, 이상거래 점수",
+   "icon": "sheet",
+   "color": "gray"
+  },
+  {
+   "id": "e3",
+   "col": 3,
+   "row": 2,
+   "label": "예: 스캔 문서 인식",
+   "icon": "eye",
+   "color": "gray"
+  }
+ ],
+ "edges": [],
+ "notes": [
+  "LLM은 생성형 AI의 대표이고, 생성형 AI는 딥러닝의, 딥러닝은 머신러닝의, 머신러닝은 AI의 일부입니다."
+ ]
+}

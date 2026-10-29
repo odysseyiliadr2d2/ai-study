@@ -1,0 +1,31 @@
+# AI 유스케이스 위험 평가 신청서 (예시) — 실제 심의 양식에 맞게 항목을 조정하세요
+id: UC-2026-014
+name: 운영 매뉴얼 Q&A 봇
+owner: 정보계 운영팀
+purpose: 야간 배치 장애 대응 절차를 사내 문서 근거로 안내
+users: 내부 직원 (운영 담당 약 30명)
+
+model:
+  name: 사내 오픈웨이트 LLM (승인 목록 번호 M-03)
+  deployment: on_prem          # on_prem | external_api | saas
+  license_checked: true
+
+data:
+  classification: internal     # public | internal | confidential | personal | credit
+  contains_personal_info: false
+  pseudonymized: false
+  leaves_company_network: false
+
+impact:
+  customer_facing: false
+  affects_rights_or_obligations: false   # 대출 심사·신용평가처럼 고객 권리·의무에 영향
+  decision_type: draft         # draft(초안 제안) | human_approved | automated
+
+controls:
+  human_review: true
+  prompt_logging: true
+  log_retention_days: 365
+  pii_masking: true
+  output_filter: false
+  prompt_injection_test: false
+  rollback_plan: true

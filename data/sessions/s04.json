@@ -1,0 +1,236 @@
+{
+ "id": 4,
+ "part": 1,
+ "title": "생성형 AI 지형도와 도구 지도",
+ "summary": "상용·오픈 모델, 회사별 툴체인, 토큰 과금 구조",
+ "level": "입문",
+ "tags": [
+  "도구",
+  "비용"
+ ],
+ "duration": "120분 (설명 45 · 실습 45 · 토론 30)",
+ "goals": [
+  "상용 API 모델과 오픈웨이트 모델의 차이를 데이터 위치·비용·성능으로 설명할 수 있다",
+  "Anthropic · OpenAI · Google · 오픈소스의 앱 · CLI · 규칙 파일 · SDK · 모델을 한 표로 정리할 수 있다",
+  "입력 · 출력 · 캐시 토큰 단가로 업무 하나의 월 비용을 계산할 수 있다",
+  "폐쇄망 금융팀에 맞는 모델·도구 조합과 외부 API 사용 기준을 제안한다"
+ ],
+ "output": "팀 도구 지도 한 장 (회사별 앱·CLI·규칙 파일·SDK·모델) 과 업무 1건의 월 비용 계산표",
+ "concept": {
+  "lead": "생성형 AI 도구는 <b>모델</b>만 고르는 일이 아닙니다. 회사마다 <b>앱 · 터미널 CLI · 규칙 파일 · SDK/API · 모델</b>이 한 벌로 묶여 있고, 그 옆에 어느 모델과도 붙는 오픈소스 축이 있습니다.",
+  "body": [
+   "모델은 크게 두 갈래입니다. <b>상용 API 모델</b>(Claude, GPT, Gemini)은 회사 서버에서 돌고 우리는 API로 빌려 씁니다. 성능이 가장 높고 운영 부담이 없지만, 데이터가 회사 밖으로 나갑니다. <b>오픈웨이트 모델</b>(OpenAI gpt-oss, Google Gemma 4 등)은 가중치 파일을 내려받아 우리 서버에서 돌립니다. 데이터가 사내에 머물고 토큰 요금이 없는 대신 GPU와 운영 인력이 필요합니다. 최신 모델은 대부분 글과 함께 이미지도 입력으로 받는 <b>멀티모달</b>입니다.",
+   "도구는 층으로 보면 정리됩니다. 사람이 대화하는 <b>앱</b>, 개발자가 터미널에서 코드를 맡기는 <b>CLI 에이전트</b>(Claude Code, Codex CLI, Antigravity CLI), 그 에이전트가 매번 읽는 <b>규칙 파일</b>(CLAUDE.md, AGENTS.md), 우리 프로그램에서 부르는 <b>SDK/API</b>, 그리고 맨 아래의 <b>모델</b>입니다. 여기에 도구 연결 규격 <b>MCP</b>, 워크플로 도구 <b>n8n</b>, 로컬 모델 실행기 <b>Ollama</b> 같은 오픈소스가 어느 회사 모델과도 조합됩니다.",
+   "비용은 <b>토큰 단위</b>로 매깁니다. 입력 토큰과 출력 토큰의 단가가 다르고, 출력이 보통 입력의 5~6배 비쌉니다. 매번 같은 긴 지시문이나 정의서는 <b>프롬프트 캐싱</b>으로 단가를 크게 낮출 수 있습니다. 그래서 '어떤 모델이 싼가'보다 '우리 업무에서 입력·출력이 몇 토큰인가'를 먼저 재야 합니다."
+  ],
+  "diagram": {
+   "src": "diagrams/s04-concept.svg",
+   "caption": "행은 회사, 열은 역할입니다. 같은 열의 도구는 서로 바꿔 끼울 수 있습니다."
+  },
+  "terms": [
+   {
+    "term": "상용 API 모델",
+    "desc": "모델 회사 서버에서 실행되고 API로 빌려 쓰는 모델. 성능이 높고 운영이 쉽지만 데이터가 외부로 나갑니다."
+   },
+   {
+    "term": "오픈웨이트 모델",
+    "desc": "가중치를 공개해 사내 서버에서 직접 돌릴 수 있는 모델. gpt-oss(Apache 2.0), Gemma 4 등."
+   },
+   {
+    "term": "멀티모달",
+    "desc": "글뿐 아니라 이미지·음성 등 여러 형태의 입력을 함께 다루는 모델. 화면 캡처, 스캔 문서 해석에 씁니다."
+   },
+   {
+    "term": "규칙 파일",
+    "desc": "CLI 에이전트가 작업 시작 때마다 읽는 프로젝트 지침 파일. CLAUDE.md, AGENTS.md 가 대표입니다."
+   },
+   {
+    "term": "MCP (Model Context Protocol)",
+    "desc": "AI 도구가 외부 데이터·시스템을 같은 방식으로 연결하게 하는 공개 규격. 세션 18에서 직접 만듭니다 (n8n 연결은 세션 7)."
+   },
+   {
+    "term": "프롬프트 캐싱",
+    "desc": "매번 같은 앞부분을 저장해 두고 다시 쓸 때 낮은 단가를 적용받는 기능."
+   }
+  ]
+ },
+ "theory": {
+  "lead": "도구를 고르기 전에 세 가지를 정리합니다. <b>모델을 어디서 돌리나(상용 vs 오픈웨이트)</b>, <b>어떤 층의 도구가 필요한가</b>, <b>업무 하나에 토큰이 얼마나 드나</b>.",
+  "diagram": {
+   "src": "diagrams/s04-theory.svg",
+   "caption": "같은 요청이라도 캐시와 출력 길이에 따라 비용이 크게 달라집니다."
+  },
+  "sections": [
+   {
+    "title": "1. 상용 API 모델 vs 오픈웨이트 모델",
+    "body": [
+     "둘 중 하나를 고르기보다 업무별로 나눠 쓰는 경우가 많습니다. 기밀 데이터를 다루거나 외부 연결이 막힌 업무는 사내 오픈웨이트 모델로, 공개 정보 기반의 복잡한 작업은 승인된 상용 API로 보냅니다."
+    ],
+    "bullets": [
+     "데이터 위치: 상용은 외부 서버, 오픈웨이트는 사내 서버",
+     "성능: 일반적으로 최신 상용 모델이 높고, 오픈웨이트는 요약·분류·초안 같은 정형 업무에서 충분한 경우가 많음",
+     "비용 구조: 상용은 토큰당 과금, 오픈웨이트는 GPU 서버·전력·운영 인력 고정비",
+     "변경 관리: 상용은 모델 교체·종료 일정을 따라가야 함 (Claude 문서는 모델별 퇴역 예정일을 공개)"
+    ]
+   },
+   {
+    "title": "2. 회사별 툴체인 지도 (2026-10 기준)",
+    "body": [
+     "Anthropic은 Claude 앱, 터미널·IDE·데스크톱·웹에서 쓰는 Claude Code(서브에이전트·훅·스킬·MCP 지원, 규칙 파일 CLAUDE.md), 에이전트를 직접 만드는 Claude Agent SDK, 모델 Opus · Sonnet · Haiku 5.5 를 제공합니다. OpenAI는 ChatGPT, 오픈소스(Apache-2.0) Codex CLI(GPT-5.5 기본, 규칙 파일 AGENTS.md), 새 프로젝트용 Responses API + Agents SDK 를 제공하며, OpenAI가 루프를 대신 돌리는 Agents API 는 2026-09 공개 베타입니다. AgentKit 은 2026-11-30 종료 예정이고 Assistants API 는 종료되었습니다.",
+     "Google은 Gemini CLI 의 개인 사용자 서비스를 2026-06-18 종료하고 Antigravity CLI(<code>agy</code>)로 옮겼습니다. agy 는 AGENTS.md 를 권장하고 GEMINI.md 도 계속 읽습니다. 유료 API 키로는 Gemini CLI 를 계속 쓸 수 있습니다. 모델 이름은 자주 바뀌므로 ai.google.dev 의 변경 기록에서 확인합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "src": "층          Anthropic           OpenAI                  Google                  오픈소스\n앱          Claude 앱           ChatGPT                 Gemini 앱               OpenClaw(셀프호스팅 개인 에이전트)\nCLI         Claude Code         Codex CLI (Apache-2.0)  Antigravity CLI (agy)   -\n규칙 파일   CLAUDE.md           AGENTS.md               AGENTS.md / GEMINI.md   AGENTS.md (OpenClaw)\nSDK/API     Agent SDK·Messages  Agents SDK·Responses    Gemini API              -\n자동화      -                   -                       -                       n8n (AI Agent·MCP 노드)\n연결 규격   MCP (Claude Code·agy·n8n 등 지원)\n모델        Opus·Sonnet·Haiku   GPT-5.5 / gpt-oss       Gemini / Gemma 4        Ollama 로 로컬 실행"
+    }
+   },
+   {
+    "title": "3. 오픈소스 축: Ollama · n8n · MCP · OpenClaw",
+    "body": [
+     "<b>Ollama</b>는 오픈웨이트 모델을 내려받아 노트북이나 서버에서 실행하고, <code>http://localhost:11434/v1</code> 에서 OpenAI 호환 API를 제공합니다. 그래서 OpenAI SDK 코드의 주소만 바꾸면 로컬 모델을 부를 수 있습니다. <b>n8n</b>은 셀프호스팅 가능한 워크플로 도구로, AI Agent 노드와 MCP Client Tool 노드(에이전트에 MCP 도구 연결), MCP Server Trigger(워크플로를 MCP 도구로 공개)를 제공합니다. <b>OpenClaw</b>는 MIT 라이선스의 셀프호스팅 개인 에이전트 런타임으로, 메신저 채널과 스킬, 파일 기반 메모리를 갖추고 모델을 골라 씁니다. 실행 권한이 넓으므로 격리된 환경에서 씁니다."
+    ]
+   },
+   {
+    "title": "4. 토큰 과금 구조와 캐싱",
+    "body": [
+     "요청 한 건의 비용은 <b>일반 입력 × 입력 단가 + 캐시 읽기 × 캐시 읽기 단가 + 캐시 쓰기 × 캐시 쓰기 단가 + 출력 × 출력 단가</b>입니다. Claude는 <code>cache_control</code> 을 붙이면 앞부분을 캐시하고, 응답의 <code>usage</code> 에 <code>cache_creation_input_tokens</code>, <code>cache_read_input_tokens</code>, <code>input_tokens</code> 가 따로 나옵니다. 캐시는 기본 5분 유지되고 다시 쓰면 갱신되며, Sonnet 5.5 기준 최소 512토큰부터 캐시됩니다.",
+     "아래 표는 작성 시점에 공식 페이지에서 확인한 값입니다. 가격은 자주 바뀌므로 실습의 계산기는 값을 코드에 넣지 않고, 각자 공식 페이지에서 확인해 채우게 했습니다."
+    ],
+    "code": {
+     "lang": "text",
+     "src": "2026-10-29 공식 페이지에서 확인한 값 (USD / 100만 토큰, 바뀔 수 있음)\n\n모델                입력     캐시 쓰기(5분)  캐시 읽기   출력\nClaude Opus 5.5     $4       $5             $0.20      $20\nClaude Sonnet 5.5   $2       $2.50          $0.10      $10\nClaude Haiku 5.5    $0.10    $0.125         $0.01      $0.50   (입력 10만 토큰 초과 요청은 $0.50 / $2.50)\nGPT-5.5             $5       -              $0.50      $30     (입력 27.2만 토큰 초과 시 입력 2배, 출력 1.5배)\n\n공통: Batch API 50% 할인 (Claude, 비동기 처리)\n출처: platform.claude.com/docs/en/about-claude/pricing · developers.openai.com/api/docs/models/gpt-5.5"
+    }
+   }
+  ]
+ },
+ "lab": {
+  "title": "토큰 비용 계산기와 세 모델 나란히 호출하기",
+  "lead": "가격을 설정 파일로 분리한 비용 계산기를 만들어 업무 하나의 월 비용을 추정하고, 같은 프롬프트를 Claude · OpenAI · 로컬 모델에 보내 답 · 지연 · 토큰 수를 비교합니다.",
+  "env": [
+   "Python 3.11+",
+   "anthropic",
+   "openai",
+   "Ollama + gemma4:e4b (로컬 비교용)",
+   "ANTHROPIC_API_KEY · OPENAI_API_KEY (있는 것만)"
+  ],
+  "steps": [
+   {
+    "title": "환경 준비",
+    "body": [
+     "API 키는 있는 것만 넣으면 됩니다. 키가 없는 대상은 비교 스크립트가 건너뜁니다. 폐쇄망 PC에서는 로컬(Ollama) 항목만 실행하면 됩니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s04/setup.sh",
+     "src": "python -m venv .venv && source .venv/bin/activate\npip install -r requirements.txt\n# 1) prices.json 의 null 을 공식 가격 페이지 값으로 채운 뒤\npython cost_calc.py\n# 2) 세 곳에 같은 프롬프트 보내기 (키가 없는 곳은 건너뜀)\nexport ANTHROPIC_API_KEY=sk-ant-...\nexport OPENAI_API_KEY=sk-...\nollama pull gemma4:e4b\npython compare_models.py\n"
+    }
+   },
+   {
+    "title": "패키지 목록",
+    "body": [
+     "openai 패키지는 OpenAI 호출과 Ollama 호출에 함께 씁니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s04/requirements.txt",
+     "src": "anthropic>=2.3\nopenai>=2.0\n"
+    }
+   },
+   {
+    "title": "가격 설정 파일 채우기",
+    "body": [
+     "가격은 코드가 아니라 <code>prices.json</code> 에 둡니다. Anthropic·OpenAI 공식 가격 페이지를 열어 <code>null</code> 을 채우고 <code>checked</code> 에 확인 날짜를 적습니다. 긴 입력에서 단가가 달라지는 모델(Haiku 5.5 의 10만 토큰, GPT-5.5 의 27.2만 토큰)은 <code>long_context</code> 배수도 채웁니다."
+    ],
+    "code": {
+     "lang": "json",
+     "file": "labs/s04/prices.json",
+     "src": "{\n \"_안내\": \"단위는 USD / 100만 토큰. 공식 가격 페이지에서 값을 확인해 채우고 checked 에 확인 날짜를 적으세요.\",\n \"_출처\": {\n  \"anthropic\": \"https://platform.claude.com/docs/en/about-claude/pricing\",\n  \"openai\": \"https://developers.openai.com/api/docs/pricing\"\n },\n \"claude-sonnet-5-5\": {\"input\": null, \"output\": null, \"cache_write\": null, \"cache_read\": null, \"checked\": null},\n \"claude-haiku-5-5\": {\"input\": null, \"output\": null, \"cache_write\": null, \"cache_read\": null, \"checked\": null,\n                      \"long_context\": {\"threshold\": 100000, \"input_mult\": null, \"output_mult\": null}},\n \"gpt-5.5\": {\"input\": null, \"output\": null, \"cache_write\": null, \"cache_read\": null, \"checked\": null,\n             \"long_context\": {\"threshold\": 272000, \"input_mult\": null, \"output_mult\": null}},\n \"local-gemma4\": {\"input\": 0, \"output\": 0, \"cache_write\": 0, \"cache_read\": 0, \"checked\": \"로컬 · 토큰 과금 없음 (서버·GPU 비용은 별도)\"}\n}\n"
+    }
+   },
+   {
+    "title": "비용 계산기",
+    "body": [
+     "'장애 로그 요약' 업무를 예로, 고정 지시·정의서 8,000토큰을 캐시한 경우와 안 한 경우의 건당·월 비용을 계산합니다. 하루 호출 수(<code>per_day</code>)와 토큰 수를 세션 3의 run_template.py 에서 나온 실제 값으로 바꿔 보세요. 값이 비어 있는 모델은 계산하지 않고 무엇을 채워야 하는지 알려 줍니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s04/cost_calc.py",
+     "src": "\"\"\"토큰 비용 계산기 — python cost_calc.py\n가격은 코드에 넣지 않고 prices.json 에서 읽습니다. 값이 비어 있는 모델은 계산하지 않고 알려 줍니다.\n\"\"\"\nimport json\nfrom dataclasses import dataclass\n\nPRICES = {k: v for k, v in json.load(open(\"prices.json\", encoding=\"utf-8\")).items() if not k.startswith(\"_\")}\nM = 1_000_000\n\n\n@dataclass\nclass Usage:\n    input_tokens: int            # 캐시를 거치지 않은 입력\n    output_tokens: int\n    cache_read_tokens: int = 0   # 캐시에서 읽은 입력\n    cache_write_tokens: int = 0  # 이번 요청에서 캐시에 쓴 입력\n\n\ndef request_cost(model: str, u: Usage) -> float:\n    p = PRICES[model]\n    keys = (\"input\", \"output\", \"cache_write\", \"cache_read\")\n    missing = [k for k in keys if p.get(k) is None]\n    if missing:\n        raise ValueError(f\"{model}: prices.json 에 {missing} 값을 채우세요\")\n    in_mult = out_mult = 1.0\n    lc = p.get(\"long_context\")\n    prompt_len = u.input_tokens + u.cache_read_tokens + u.cache_write_tokens\n    if lc and prompt_len > lc[\"threshold\"]:\n        if lc.get(\"input_mult\") is None or lc.get(\"output_mult\") is None:\n            raise ValueError(f\"{model}: 긴 입력({prompt_len:,}토큰) 단가 배수를 채우세요\")\n        in_mult, out_mult = lc[\"input_mult\"], lc[\"output_mult\"]\n    return (\n        u.input_tokens * p[\"input\"] * in_mult\n        + u.cache_read_tokens * p[\"cache_read\"] * in_mult\n        + u.cache_write_tokens * p[\"cache_write\"] * in_mult\n        + u.output_tokens * p[\"output\"] * out_mult\n    ) / M\n\n\ndef monthly(model: str, per_request: Usage, requests_per_day: int, days: int = 21) -> float:\n    return request_cost(model, per_request) * requests_per_day * days\n\n\nif __name__ == \"__main__\":\n    # 시나리오: 장애 로그 요약 — 고정 지시·정의서 8,000토큰(캐시) + 로그 1,500토큰 → 요약 800토큰\n    scenarios = {\n        \"캐시 없음\": Usage(input_tokens=9_500, output_tokens=800),\n        \"캐시 적중\": Usage(input_tokens=1_500, output_tokens=800, cache_read_tokens=8_000),\n    }\n    per_day = 200   # 팀 전체 하루 호출 수\n    print(f\"{'모델':20s} {'시나리오':8s} {'건당($)':>10s} {'월($, 21일)':>12s}\")\n    for model in PRICES:\n        for name, u in scenarios.items():\n            try:\n                print(f\"{model:20s} {name:8s} {request_cost(model, u):>10.4f} {monthly(model, u, per_day):>12.2f}\")\n            except ValueError as e:\n                print(f\"{model:20s} 건너뜀 — {e}\")\n                break\n"
+    }
+   },
+   {
+    "title": "같은 프롬프트를 세 곳에 보내기",
+    "body": [
+     "Claude 는 Messages API, OpenAI 는 Responses API, 로컬 모델은 Ollama 의 OpenAI 호환 Chat Completions 로 부릅니다. 답의 품질, 지연 시간, 입력·출력 토큰 수를 표로 비교하고, 같은 문장인데도 입력 토큰 수가 모델마다 다른 이유(토크나이저 차이)를 이야기해 봅니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s04/compare_models.py",
+     "src": "\"\"\"같은 프롬프트를 Claude · OpenAI · 로컬(Ollama) 에 보내 답 · 지연 · 토큰을 비교 — python compare_models.py\nAPI 키가 없거나 로컬 서버가 꺼져 있으면 그 항목은 건너뜁니다.\n\"\"\"\nimport os\nimport time\n\nPROMPT = \"Oracle 에서 파티션 테이블의 오래된 파티션을 정리할 때 주의할 점 3가지를 한 줄씩 알려 주세요.\"\n\n\ndef ask_claude(prompt: str):\n    from anthropic import Anthropic\n    client = Anthropic()\n    msg = client.messages.create(\n        model=os.getenv(\"CLAUDE_MODEL\", \"claude-sonnet-5-5\"), max_tokens=1024,\n        messages=[{\"role\": \"user\", \"content\": prompt}],\n    )\n    text = \"\".join(b.text for b in msg.content if b.type == \"text\")\n    return text, msg.usage.input_tokens, msg.usage.output_tokens\n\n\ndef ask_openai(prompt: str):\n    from openai import OpenAI\n    client = OpenAI()\n    resp = client.responses.create(model=os.getenv(\"OPENAI_MODEL\", \"gpt-5.5\"), input=prompt)\n    return resp.output_text, resp.usage.input_tokens, resp.usage.output_tokens\n\n\ndef ask_local(prompt: str):\n    from openai import OpenAI\n    # Ollama 의 OpenAI 호환 엔드포인트. 키는 검사하지 않지만 값이 필요합니다.\n    client = OpenAI(base_url=os.getenv(\"LOCAL_BASE_URL\", \"http://localhost:11434/v1\"), api_key=\"ollama\")\n    resp = client.chat.completions.create(\n        model=os.getenv(\"LOCAL_MODEL\", \"gemma4:e4b\"),\n        messages=[{\"role\": \"user\", \"content\": prompt}],\n    )\n    usage = resp.usage\n    return (resp.choices[0].message.content,\n            getattr(usage, \"prompt_tokens\", None), getattr(usage, \"completion_tokens\", None))\n\n\nTARGETS = [\n    (\"Claude\", ask_claude, \"ANTHROPIC_API_KEY\"),\n    (\"OpenAI\", ask_openai, \"OPENAI_API_KEY\"),\n    (\"로컬(Ollama)\", ask_local, None),\n]\n\nrows = []\nfor name, fn, key in TARGETS:\n    if key and not os.getenv(key):\n        print(f\"[{name}] {key} 가 없어 건너뜁니다\")\n        continue\n    start = time.perf_counter()\n    try:\n        text, tin, tout = fn(PROMPT)\n    except Exception as e:      # 연결 실패, 모델 없음 등\n        print(f\"[{name}] 실패: {e}\")\n        continue\n    sec = time.perf_counter() - start\n    rows.append((name, sec, tin, tout))\n    print(f\"\\n===== {name} ({sec:.1f}초) =====\\n{text.strip()}\")\n\nprint(f\"\\n{'대상':14s} {'지연(초)':>8s} {'입력 토큰':>9s} {'출력 토큰':>9s}\")\nfor name, sec, tin, tout in rows:\n    print(f\"{name:14s} {sec:>8.1f} {str(tin):>9s} {str(tout):>9s}\")\nprint(\"\\n같은 문장이라도 모델마다 토크나이저가 달라 입력 토큰 수가 다릅니다.\")\n"
+    }
+   }
+  ],
+  "check": [
+   "prices.json 에 최소 두 모델의 값과 확인 날짜를 채우고 cost_calc.py 가 건당·월 비용을 출력하는가",
+   "캐시 적중 시나리오가 캐시 없음보다 얼마나 싼지 비율로 말할 수 있는가",
+   "compare_models.py 로 두 곳 이상의 답·지연·토큰 수를 한 표로 비교했는가"
+  ]
+ },
+ "example": {
+  "title": "폐쇄망 금융팀의 모델·도구 조합 정하기",
+  "context": "증권사 정보계팀이 AI 도구 도입안을 만들어야 합니다. 업무망은 외부 인터넷이 막혀 있고, 고객 정보가 들어간 데이터는 외부로 나갈 수 없습니다. 반면 공개 기술 문서 요약이나 코드 초안처럼 민감정보가 없는 일은 승인을 받으면 외부 API를 쓸 수 있습니다.",
+  "diagram": {
+   "src": "diagrams/s04-example.svg",
+   "caption": "기본 경로는 사내 승인 모델, 외부 API는 반출 심사를 통과한 요청만 씁니다."
+  },
+  "flow": [
+   "업무별로 다루는 데이터 등급(공개 · 내부 · 기밀)과 하루 호출 수, 평균 입력·출력 토큰을 표로 만듭니다",
+   "기밀 등급 업무는 사내 GPU 서버의 오픈웨이트 모델(OpenAI 호환 API로 제공)로만 처리한다고 정합니다",
+   "공개·내부 등급이면서 성능이 필요한 업무는 계약된 상용 API 후보로 두고, 비식별·마스킹 기준을 정합니다",
+   "모든 호출을 LLM 게이트웨이 한 곳으로 모아 인증, 사용량, 프롬프트·응답 로그를 남깁니다",
+   "개발자용 CLI 에이전트는 사내 모델 주소를 쓰도록 설정하고, 규칙 파일(CLAUDE.md · AGENTS.md)에 '운영 DB 접속 금지, 개인정보 포함 파일 열람 금지'를 넣습니다",
+   "위 결정을 model_policy.py 처럼 코드(또는 게이트웨이 설정)로 적어 두면, 업무가 추가될 때 등급만 정하면 경로가 자동으로 정해집니다",
+   "사내 소형·대형 모델과 상용 모델에 같은 평가 질문 20개를 돌려, '사내 모델로 충분한 업무'와 '외부 승인이 필요한 업무'를 나눕니다",
+   "cost_calc.py 로 상용 API 월 비용과 사내 GPU 서버 고정비를 비교해 도입안에 붙입니다"
+  ],
+  "code": {
+   "lang": "python",
+   "file": "labs/s04/model_policy.py",
+   "src": "\"\"\"폐쇄망 팀의 모델 선택 정책을 코드로 — python model_policy.py\n업무(데이터 등급 · 필요 성능)에 따라 어느 엔드포인트로 보낼지 정하고, 이유를 함께 돌려줍니다.\n엔드포인트 주소와 모델 이름은 예시입니다. 실제 값은 사내 게이트웨이 담당자에게 받아 바꿉니다.\n\"\"\"\nfrom dataclasses import dataclass\n\n# 모든 엔드포인트는 OpenAI 호환 API 로 통일 → 호출 코드는 base_url 과 model 만 바꿉니다\nENDPOINTS = {\n    \"internal-small\": {\"base_url\": \"http://llm-gw.internal:8080/v1\", \"model\": \"gemma4:e4b\",\n                       \"where\": \"사내 GPU\", \"note\": \"분류·요약·초안\"},\n    \"internal-large\": {\"base_url\": \"http://llm-gw.internal:8080/v1\", \"model\": \"gpt-oss-120b\",\n                       \"where\": \"사내 GPU\", \"note\": \"SQL 리뷰·긴 문서\"},\n    \"external-api\":   {\"base_url\": \"http://llm-gw.internal:8080/external/v1\", \"model\": \"claude-sonnet-5-5\",\n                       \"where\": \"외부(계약)\", \"note\": \"게이트웨이가 마스킹 후 중계\"},\n}\n\nGRADES = (\"공개\", \"내부\", \"기밀\")\n\n\n@dataclass\nclass Job:\n    name: str\n    grade: str               # 공개 · 내부 · 기밀\n    needs_top_model: bool    # 사내 모델 평가 점수가 기준 미달이었나\n    approved_external: bool  # 업무 × 데이터 등급 단위로 외부 API 승인을 받았나\n\n\ndef route(job: Job) -> tuple[str, str]:\n    if job.grade not in GRADES:\n        raise ValueError(f\"{job.name}: 데이터 등급을 먼저 정하세요 ({'/'.join(GRADES)})\")\n    if job.grade == \"기밀\":\n        return \"internal-large\" if job.needs_top_model else \"internal-small\", \"기밀 데이터는 사내 모델만\"\n    if job.needs_top_model and job.approved_external:\n        return \"external-api\", f\"{job.grade} 등급 · 승인됨 · 사내 모델 평가 미달\"\n    if job.needs_top_model:\n        return \"internal-large\", \"외부 승인 전이므로 사내 대형 모델로 대체\"\n    return \"internal-small\", \"사내 소형 모델로 충분\"\n\n\nJOBS = [\n    Job(\"장애 로그 요약\", \"내부\", False, False),\n    Job(\"고객 문의 메일 분류\", \"기밀\", False, False),\n    Job(\"ETL 설계서 기반 SQL 리뷰\", \"내부\", True, False),\n    Job(\"공개 규제 문서 요약·비교\", \"공개\", True, True),\n]\n\nif __name__ == \"__main__\":\n    print(f\"{'업무':18s} {'등급':4s} → {'엔드포인트':15s} {'모델':18s} 이유\")\n    for j in JOBS:\n        key, why = route(j)\n        ep = ENDPOINTS[key]\n        print(f\"{j.name:18s} {j.grade:4s} → {key:15s} {ep['model']:18s} {why} ({ep['where']})\")\n\n    # 호출 예 (게이트웨이가 있을 때): OpenAI SDK 하나로 세 엔드포인트를 모두 부릅니다\n    # import os\n    # from openai import OpenAI\n    # ep = ENDPOINTS[route(JOBS[0])[0]]\n    # client = OpenAI(base_url=ep[\"base_url\"], api_key=os.environ[\"LLM_GW_KEY\"])\n    # client.chat.completions.create(model=ep[\"model\"], messages=[{\"role\": \"user\", \"content\": \"...\"}])\n"
+  },
+  "tips": [
+   "도구 이름보다 'OpenAI 호환 API'처럼 인터페이스를 기준으로 정하면 모델을 바꿔도 코드가 그대로입니다",
+   "외부 API 사용 승인은 '도구 단위'가 아니라 '업무 × 데이터 등급' 단위로 받으면 심사가 빠릅니다",
+   "사내 모델과 상용 모델에 같은 평가 질문 20개를 돌려 점수를 붙이면 '왜 이 모델인가'를 설명하기 쉽습니다",
+   "데이터 등급이 정해지지 않은 업무는 오류로 막습니다. '일단 외부로' 기본값이 사고의 시작입니다",
+   "외부 API 를 쓰더라도 개인 키가 아니라 게이트웨이의 회사 계약 키로만 나가게 하면 사용량과 로그가 한곳에 모입니다"
+  ],
+  "pitfalls": [
+   "개인 노트북에서 쓰던 클라우드 API 키를 업무에 그대로 쓰는 경우 (계약·로그·책임 소재가 없음)",
+   "가격표를 문서에 고정해 두고 갱신하지 않아 비용 추정이 몇 배씩 틀어지는 경우",
+   "출력 단가가 입력보다 5배 이상 비싼데 답변 길이 제한 없이 운영해 비용이 늘어나는 경우"
+  ]
+ },
+ "refs": [
+  {
+   "label": "Claude 문서 · 가격 (입력·출력·캐시·Batch)",
+   "url": "https://platform.claude.com/docs/en/about-claude/pricing"
+  },
+  {
+   "label": "Claude 문서 · 프롬프트 캐싱",
+   "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-caching"
+  },
+  {
+   "label": "OpenAI 문서 · GPT-5.5 모델 (가격·컨텍스트)",
+   "url": "https://developers.openai.com/api/docs/models/gpt-5.5"
+  },
+  {
+   "label": "OpenAI · 오픈웨이트 모델 gpt-oss (Apache 2.0)",
+   "url": "https://openai.com/open-models/"
+  },
+  {
+   "label": "Ollama 문서 · OpenAI 호환 API",
+   "url": "https://docs.ollama.com/api/openai-compatibility"
+  }
+ ]
+}

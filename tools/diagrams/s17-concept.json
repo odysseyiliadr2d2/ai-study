@@ -1,0 +1,133 @@
+{
+ "title": "챗봇은 한 번 답하고, 에이전트는 도구로 확인하며 끝날 때까지 돕니다",
+ "subtitle": "같은 질문 '어젯밤 배치 왜 실패했어?'를 받았을 때 · 2↔3 이 tool_use 루프",
+ "cols": 5,
+ "rows": 2,
+ "groups": [
+  {
+   "label": "챗봇 · 한 번 호출",
+   "col": 0,
+   "row": 0,
+   "cols": 3,
+   "rows": 1,
+   "color": "gray"
+  },
+  {
+   "label": "에이전트 · 도구 호출 루프",
+   "col": 0,
+   "row": 1,
+   "cols": 5,
+   "rows": 1,
+   "color": "orange"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "q1",
+   "col": 0,
+   "row": 0,
+   "label": "질문",
+   "icon": "user",
+   "color": "gray"
+  },
+  {
+   "id": "l1",
+   "col": 1,
+   "row": 0,
+   "label": "LLM",
+   "sub": "학습한 지식만",
+   "icon": "spark",
+   "color": "gray"
+  },
+  {
+   "id": "a1",
+   "col": 2,
+   "row": 0,
+   "label": "일반론 답변",
+   "sub": "로그를 못 봄",
+   "icon": "warn",
+   "color": "red"
+  },
+  {
+   "id": "q2",
+   "col": 0,
+   "row": 1,
+   "label": "질문",
+   "icon": "user",
+   "color": "orange",
+   "badge": 1
+  },
+  {
+   "id": "l2",
+   "col": 1,
+   "row": 1,
+   "label": "LLM",
+   "sub": "다음 행동 결정",
+   "icon": "brain",
+   "color": "pink",
+   "badge": 2
+  },
+  {
+   "id": "t2",
+   "col": 2,
+   "row": 1,
+   "label": "도구 실행",
+   "sub": "로그·건수·정의서",
+   "icon": "gear",
+   "color": "blue",
+   "badge": 3
+  },
+  {
+   "id": "h2",
+   "col": 3,
+   "row": 1,
+   "label": "사람 승인",
+   "sub": "쓰기 작업 전",
+   "icon": "shield",
+   "color": "yellow",
+   "badge": 4
+  },
+  {
+   "id": "a2",
+   "col": 4,
+   "row": 1,
+   "label": "근거 있는 보고",
+   "sub": "원인·조치·재실행",
+   "icon": "check",
+   "color": "green",
+   "badge": 5,
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "q1",
+   "to": "l1"
+  },
+  {
+   "from": "l1",
+   "to": "a1"
+  },
+  {
+   "from": "q2",
+   "to": "l2"
+  },
+  {
+   "from": "l2",
+   "to": "t2",
+   "both": true
+  },
+  {
+   "from": "t2",
+   "to": "h2",
+   "dashed": true
+  },
+  {
+   "from": "h2",
+   "to": "a2"
+  }
+ ],
+ "notes": [
+  "모델은 도구를 직접 실행하지 않습니다. '이 도구를 이 인자로 불러 달라'고 요청하고, 실행은 우리 코드가 합니다."
+ ]
+}

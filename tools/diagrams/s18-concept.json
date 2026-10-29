@@ -1,0 +1,178 @@
+{
+ "title": "MCP 서버를 한 번 만들면 어떤 호스트에서든 같은 도구로 씁니다",
+ "subtitle": "호스트 안의 클라이언트가 서버마다 연결 하나씩 맺습니다",
+ "cols": 5,
+ "rows": 3,
+ "cell_h": 112,
+ "groups": [
+  {
+   "label": "MCP 호스트 · 클라이언트",
+   "col": 0,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "pink"
+  },
+  {
+   "label": "MCP 서버 · ops-dw",
+   "col": 2,
+   "row": 0,
+   "cols": 2,
+   "rows": 3,
+   "color": "teal"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "h1",
+   "col": 0,
+   "row": 0,
+   "label": "Claude Code",
+   "sub": "stdio",
+   "icon": "terminal",
+   "color": "pink"
+  },
+  {
+   "id": "h2",
+   "col": 0,
+   "row": 1,
+   "label": "Codex CLI",
+   "sub": "stdio",
+   "icon": "code",
+   "color": "pink"
+  },
+  {
+   "id": "h3",
+   "col": 0,
+   "row": 2,
+   "label": "n8n 에이전트",
+   "sub": "Streamable HTTP",
+   "icon": "nodes",
+   "color": "pink"
+  },
+  {
+   "id": "p",
+   "col": 1,
+   "row": 1,
+   "label": "MCP 프로토콜",
+   "sub": "JSON-RPC",
+   "icon": "plug",
+   "color": "navy",
+   "emph": true
+  },
+  {
+   "id": "t",
+   "col": 2,
+   "row": 0,
+   "label": "도구 Tools",
+   "sub": "모델이 호출",
+   "icon": "gear",
+   "color": "blue"
+  },
+  {
+   "id": "r",
+   "col": 2,
+   "row": 1,
+   "label": "리소스 Resources",
+   "sub": "앱이 붙이는 자료",
+   "icon": "doc",
+   "color": "green"
+  },
+  {
+   "id": "pr",
+   "col": 2,
+   "row": 2,
+   "label": "프롬프트 Prompts",
+   "sub": "사용자가 고름",
+   "icon": "list",
+   "color": "purple"
+  },
+  {
+   "id": "db",
+   "col": 3,
+   "row": 0,
+   "label": "Oracle DW",
+   "sub": "읽기 전용 계정",
+   "icon": "db",
+   "color": "gray"
+  },
+  {
+   "id": "lg",
+   "col": 3,
+   "row": 1,
+   "label": "배치 로그",
+   "sub": "스케줄러 로그",
+   "icon": "terminal",
+   "color": "gray"
+  },
+  {
+   "id": "sp",
+   "col": 3,
+   "row": 2,
+   "label": "테이블 정의서",
+   "sub": "데이터 사전",
+   "icon": "sheet",
+   "color": "gray"
+  },
+  {
+   "id": "au",
+   "col": 4,
+   "row": 1,
+   "label": "인증·권한",
+   "sub": "토큰·허용 목록",
+   "icon": "lock",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "h1",
+   "to": "p",
+   "route": "hv"
+  },
+  {
+   "from": "h2",
+   "to": "p"
+  },
+  {
+   "from": "h3",
+   "to": "p",
+   "route": "hv"
+  },
+  {
+   "from": "p",
+   "to": "t",
+   "route": "vh"
+  },
+  {
+   "from": "p",
+   "to": "r"
+  },
+  {
+   "from": "p",
+   "to": "pr",
+   "route": "vh"
+  },
+  {
+   "from": "t",
+   "to": "db"
+  },
+  {
+   "from": "r",
+   "to": "lg"
+  },
+  {
+   "from": "pr",
+   "to": "sp",
+   "dashed": true
+  },
+  {
+   "from": "lg",
+   "to": "au",
+   "dashed": true
+  }
+ ],
+ "notes": [
+  "도구 = 모델이 판단해 호출, 리소스 = 앱·사용자가 컨텍스트로 붙이는 읽기 자료, 프롬프트 = 사용자가 고르는 정형 질문 템플릿."
+ ]
+}
