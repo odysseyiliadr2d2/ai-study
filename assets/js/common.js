@@ -170,6 +170,10 @@
   function renderWho() {
     const el = document.getElementById("who");
     if (!el) return;
+    // 내용 수정 안내는 운영자에게만 보입니다
+    const admin = !!(auth.user && auth.user.is_admin);
+    const note = document.getElementById("admin-note");
+    if (note) note.innerHTML = admin ? ` · 내용 수정은 <code>data/</code> 폴더의 JSON을 고친 뒤 커밋합니다.` : "";
     el.innerHTML = auth.user ? `<a href="me.html"><b>${esc(auth.user.name)}</b> 님</a>`
       : auth.me && auth.me.status === "pending" ? `<a href="me.html">승인 대기</a>`
       : auth.offline ? "" : `<a href="me.html" class="login">로그인</a>`;
@@ -188,7 +192,6 @@
           ${a("me.html", "me", "내 진도")}
           ${a("changelog.html", "changelog", "버전 기록", "hide-sm")}
           <a href="${esc(SITE.glossaryUrl)}" target="_blank" rel="noopener">용어집</a>
-          ${SITE.repoUrl ? `<a href="${esc(SITE.repoUrl)}" class="hide-sm gh" target="_blank" rel="noopener">GitHub</a>` : ""}
           <span id="who" class="who"></span>
           <button class="theme-btn" type="button" aria-label="화면 테마 바꾸기">테마</button>
         </nav>
@@ -205,8 +208,9 @@
   function footer(version, updated) {
     const f = document.createElement("footer");
     f.innerHTML = `<div class="wrap">AX 비즈니스 전환 스터디 · 로드맵 ${esc(version)} (${esc(updated)}) ·
-      <a href="changelog.html">버전 기록</a> · 내용 수정은 <code>data/</code> 폴더의 JSON을 고친 뒤 커밋합니다.</div>`;
+      <a href="changelog.html">버전 기록</a><span id="admin-note"></span></div>`;
     document.body.append(f);
+    renderWho();
   }
 
   const KAKAO_SYMBOL = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3.5C6.75 3.5 2.5 6.86 2.5 11c0 2.66 1.76 5 4.41 6.33l-.9 3.28c-.08.29.25.52.5.35l3.93-2.6c.51.06 1.03.09 1.56.09 5.25 0 9.5-3.36 9.5-7.5S17.25 3.5 12 3.5z"/></svg>';

@@ -327,7 +327,6 @@ footer { border-top: 1px solid var(--line); padding: var(--space-6) 0 var(--spac
   .nav::-webkit-scrollbar { display: none; }
   .kpis { grid-template-columns: 1fr 1fr; }
   .chk { font-size: 13px; }
-  .nav a.hide-sm.gh { display: none; }
   .chip-version { display: none; }
   .search { margin-left: 0; width: 100%; }
   .topbar .wrap { gap: var(--space-4); }
