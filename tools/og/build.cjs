@@ -94,6 +94,8 @@ function inject(file, t) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="../assets/icon/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="../assets/icon/favicon-32.png" sizes="32x32" type="image/png">
   ${tags({ title: `${pad(s.id)}. ${s.title} · AX Study`, desc: s.summary, url: `${SITE}s/${pad(s.id)}.html`, image: `${SITE}assets/og/s${pad(s.id)}.png?v=${ver}` })}
   <title>${esc(`${pad(s.id)}. ${s.title} · AX Study`)}</title>
   <meta http-equiv="refresh" content="0; url=${target}">
