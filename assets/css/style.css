@@ -347,6 +347,17 @@ footer { border-top: 1px solid var(--line); padding: var(--space-6) 0 var(--spac
 .rm-fig figcaption { text-align: center; font-size: 13px; color: var(--ink-muted); margin-top: var(--space-2); }
 .rm-h { margin: var(--space-2) 0 0; }
 #versions { margin-top: var(--space-10); scroll-margin-top: 80px; }
+.rm-dl { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-top: var(--space-6); }
+.rm-dl .btn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.rm-dl .btn:not(.ghost) { color: var(--on-charcoal); }
+@media print {
+  .rm-dl, .rm-toc, .rm-doc + #versions > .eyebrow { display: none !important; }
+  body { background: #fff; }
+  .hero { padding-top: 0; }
+  .rm-doc h2 { break-after: avoid; }
+  .rm-fig, .rm-doc table, .rel { break-inside: avoid; }
+  .panel.rm-doc, #versions .panel { break-inside: auto !important; }
+}
 
 @media (max-width: 760px) {
   .wrap { padding: 0 16px; }
