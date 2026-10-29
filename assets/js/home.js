@@ -63,7 +63,7 @@
     const tags = [`<span class="tag level">${esc(s.level)}</span>`, ...s.tags.map((t) => `<span class="tag">${esc(t)}</span>`)].join("");
     return `<a class="card" href="session.html?id=${s.id}">
       <div class="top"><span class="sess">SESSION ${pad(s.id)}</span>${st === "full" ? '<span class="done-mark">완료</span>' : st === "half" ? '<span class="done-mark half">진행 중</span>' : ""}</div>
-      <h3>${esc(s.title)}</h3>
+      <h3><span class="hl">${esc(s.title)}</span></h3>
       <p>${esc(s.summary)}</p>
       <div class="tags">${tags}</div>
       <div class="four" aria-label="구성">

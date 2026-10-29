@@ -113,6 +113,10 @@ a.card:hover { text-decoration: none; border-color: var(--ink-muted); transform:
 .card .top { display: flex; justify-content: space-between; align-items: center; }
 .card .sess { font-size: 12px; font-weight: 600; letter-spacing: .04em; color: var(--ink-muted); }
 .card h3 { margin-top: var(--space-1); }
+/* 세션 제목 형광펜: 글자 아래쪽 절반에 주황 띠, 줄바꿈돼도 줄마다 칠해짐 */
+.card h3 .hl { background: linear-gradient(transparent 52%, color-mix(in srgb, var(--orange) 28%, transparent) 52%, color-mix(in srgb, var(--orange) 28%, transparent) 92%, transparent 92%); -webkit-box-decoration-break: clone; box-decoration-break: clone; padding: 0 2px; }
+.card:hover h3 .hl { background: linear-gradient(transparent 30%, color-mix(in srgb, var(--orange) 45%, transparent) 30%, color-mix(in srgb, var(--orange) 45%, transparent) 92%, transparent 92%); }
+.card .sess { color: var(--orange-ink) !important; }
 .card p { margin: 0; color: var(--ink-muted); font-size: 14px; line-height: 22px; flex: 1; }
 .card .tags { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-2); }
 .tag { font-size: 12px; line-height: 16px; font-weight: 600; padding: 3px 8px; border-radius: var(--radius-sm); background: var(--surface-200); color: var(--ink-muted); }
