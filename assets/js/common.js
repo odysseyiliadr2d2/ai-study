@@ -170,10 +170,8 @@
   function renderWho() {
     const el = document.getElementById("who");
     if (!el) return;
-    // GitHub 저장소 링크와 수정 안내는 운영자에게만 보입니다
+    // 내용 수정 안내는 운영자에게만 보입니다
     const admin = !!(auth.user && auth.user.is_admin);
-    const nav = document.getElementById("admin-nav");
-    if (nav) nav.innerHTML = admin && SITE.repoUrl ? `<a href="${esc(SITE.repoUrl)}" class="hide-sm gh" target="_blank" rel="noopener">GitHub</a>` : "";
     const note = document.getElementById("admin-note");
     if (note) note.innerHTML = admin ? ` · 내용 수정은 <code>data/</code> 폴더의 JSON을 고친 뒤 커밋합니다.` : "";
     el.innerHTML = auth.user ? `<a href="me.html"><b>${esc(auth.user.name)}</b> 님</a>`
@@ -194,7 +192,6 @@
           ${a("me.html", "me", "내 진도")}
           ${a("changelog.html", "changelog", "버전 기록", "hide-sm")}
           <a href="${esc(SITE.glossaryUrl)}" target="_blank" rel="noopener">용어집</a>
-          <span id="admin-nav" class="admin-nav"></span>
           <span id="who" class="who"></span>
           <button class="theme-btn" type="button" aria-label="화면 테마 바꾸기">테마</button>
         </nav>
