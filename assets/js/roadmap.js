@@ -4,6 +4,14 @@
   topbar("roadmap", v.current);
   footer(v.current, v.updated);
 
+  // 내려받기 (tools/roadmap/export.cjs 로 만든 downloads/ 파일)
+  const fname = (ext) => `downloads/${encodeURIComponent(`AI-로드맵-${v.current}`)}.${ext}`;
+  const DL = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 2.5v8M4.5 7.5 8 11l3.5-3.5M3 13.5h10"/></svg>';
+  document.getElementById("dl").innerHTML =
+    `<a class="btn" href="${fname("pdf")}" download>${DL}PDF로 받기</a>
+     <a class="btn ghost" href="${fname("docx")}" download>${DL}Word로 받기</a>
+     <span class="small muted">${esc(v.current)} · ${esc(v.updated)} 기준 · 도식 포함</span>`;
+
   // 로드맵 문서 본문 (data/roadmap.html — tools/roadmap 으로 문서에서 생성)
   const doc = document.getElementById("doc");
   try {

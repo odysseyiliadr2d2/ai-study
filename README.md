@@ -129,6 +129,13 @@ cd tools/roadmap && npm install
 node build.mjs <내보낸 문서.html> <도식 jsx 폴더> ../../data/roadmap.html
 ```
 
+PDF·Word 내려받기 파일(`downloads/AI-로드맵-<버전>.pdf/.docx`)은 사이트를 띄운 상태에서 만듭니다.
+
+```bash
+python3 -m http.server 8000 &          # 저장소 루트에서
+node tools/roadmap/export.cjs http://localhost:8000
+```
+
 도식은 정적 SVG로 바뀌고 색은 CSS 변수(`--cds-*`)를 써서 밝은·어두운 테마를 따릅니다.
 문서의 '버전 이력' 표는 빼고, 페이지 아래 '버전 기록'은 `data/version.json`으로 그립니다.
 
