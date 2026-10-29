@@ -97,6 +97,8 @@ python3 tools/export_labs.py      # 실습 코드를 바꿨다면
 python3 tools/validate.py         # 오류 0건 확인
 ```
 
+CSS·JS 파일을 고쳤다면 모든 HTML의 `?v=` 값을 바꿔 주세요. 그래야 방문자 브라우저가 예전 파일을 쓰지 않습니다.
+
 `main` 브랜치에 올리면 GitHub Actions(`.github/workflows/validate.yml`)가 같은 검증을 돌립니다.
 
 ## 도식 사양
