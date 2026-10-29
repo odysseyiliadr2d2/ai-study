@@ -5,7 +5,7 @@ AI 업무자동화부터 서비스·에이전트 개발까지 **6파트 24세션
 세션마다 **개념 · 이론(도식) · 실습 코드 · 실무 예제 · 퀴즈·자료** 다섯 장의 카드로 구성됩니다.
 카카오 로그인 · 운영자 승인 · 진도 대시보드는 이전 16주 사이트에서 그대로 옮겨 왔습니다.
 
-- 현재 버전: **v1.1** (2026-10-29) — 변경 내역은 [CHANGELOG.md](CHANGELOG.md)와 사이트의 '버전 기록' 페이지
+- 현재 버전: **v1.1** (2026-10-29) — 변경 내역은 [CHANGELOG.md](CHANGELOG.md)와 사이트 '로드맵' 페이지 아래 '버전 기록'
 - 디자인: AX Study 디자인 시스템 (차콜 + 오렌지 한 가지 강조색, Pretendard)
 - 외부 CDN 없이 동작합니다. 글꼴(Pretendard 서브셋), 코드 하이라이터(Prism), supabase-js를 `assets/vendor/`에 포함했습니다. 로그인 서버에 닿지 않으면 진도는 브라우저에만 저장됩니다.
 
@@ -27,12 +27,14 @@ index.html            홈: 파트별 세션 카드, 검색, 내 진도
 session.html          세션 상세: ?id=9#lab 처럼 탭까지 바로 열기
 me.html               내 진도: 카카오 로그인, 가입 신청, 세션별 진도, 운영자 승인 관리
 dashboard.html        대시보드: 승인 멤버의 세션별 완료 인원, 멤버 × 세션 표
-changelog.html        버전 기록
+roadmap.html          로드맵: 로드맵 문서 본문(도식 포함) + 아래에 버전 기록
+changelog.html        예전 주소 → roadmap.html#versions 로 이동
 config.js             용어집 · 저장소 · Supabase 주소
 supabase/schema.sql   테이블·함수 정의 (참고용, 이미 적용됨)
 data/
   curriculum.json     파트·세션 목록 (카드에 쓰는 제목·요약·태그)
   version.json        현재 버전과 이력
+  roadmap.html        로드맵 문서 본문 (tools/roadmap 으로 생성)
   sessions/s01..s24.json   세션 본문 (개념·이론·실습·예제)
   quiz.json           세션별 확인 퀴즈 {세션: [{q, options[4], answer(0부터), explain}]}
   media.json          세션별 추천 영상·글
@@ -116,6 +118,19 @@ CSS·JS 파일을 고쳤다면 모든 HTML의 `?v=` 값을 바꿔 주세요. 그
   "groups": [{"label": "질의 단계", "col": 0, "row": 1, "cols": 5, "rows": 1, "color": "orange"}]
 }
 ```
+
+## 로드맵 문서 게시
+
+'로드맵' 메뉴는 Claude 문서 「AI 업무자동화·서비스·에이전트 개발 로드맵」을 그대로 옮긴 것입니다.
+문서를 고친 뒤에는 문서를 HTML로 내보내고 도식 코드(JSX)를 받아 다시 생성합니다.
+
+```bash
+cd tools/roadmap && npm install
+node build.mjs <내보낸 문서.html> <도식 jsx 폴더> ../../data/roadmap.html
+```
+
+도식은 정적 SVG로 바뀌고 색은 CSS 변수(`--cds-*`)를 써서 밝은·어두운 테마를 따릅니다.
+문서의 '버전 이력' 표는 빼고, 페이지 아래 '버전 기록'은 `data/version.json`으로 그립니다.
 
 ## 버전 관리 규칙
 

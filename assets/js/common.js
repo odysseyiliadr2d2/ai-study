@@ -190,7 +190,7 @@
           ${a("index.html", "home", "커리큘럼")}
           ${a("dashboard.html", "dashboard", "대시보드")}
           ${a("me.html", "me", "내 진도")}
-          ${a("changelog.html", "changelog", "버전 기록", "hide-sm")}
+          ${a("roadmap.html", "roadmap", "로드맵")}
           <a href="${esc(SITE.glossaryUrl)}" target="_blank" rel="noopener">용어집</a>
           <span id="who" class="who"></span>
           <button class="theme-btn" type="button" aria-label="화면 테마 바꾸기">테마</button>
@@ -208,7 +208,7 @@
   function footer(version, updated) {
     const f = document.createElement("footer");
     f.innerHTML = `<div class="wrap">AX 비즈니스 전환 스터디 · 로드맵 ${esc(version)} (${esc(updated)}) ·
-      <a href="changelog.html">버전 기록</a><span id="admin-note"></span></div>`;
+      <a href="roadmap.html#versions">버전 기록</a><span id="admin-note"></span></div>`;
     document.body.append(f);
     renderWho();
   }
