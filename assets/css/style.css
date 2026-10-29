@@ -347,6 +347,8 @@ footer { border-top: 1px solid var(--line); padding: var(--space-6) 0 var(--spac
 .rm-fig figcaption { text-align: center; font-size: 13px; color: var(--ink-muted); margin-top: var(--space-2); }
 .rm-h { margin: var(--space-2) 0 0; }
 #versions { margin-top: var(--space-10); scroll-margin-top: 80px; }
+.share { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; border: 1px solid var(--line); background: var(--surface-000); color: var(--ink-muted); border-radius: var(--radius-pill); padding: 3px 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.share:hover { color: var(--ink); border-color: var(--ink-muted); }
 .rm-dl { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-top: var(--space-6); }
 .rm-dl .btn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 .rm-dl .btn:not(.ghost) { color: var(--on-charcoal); }
