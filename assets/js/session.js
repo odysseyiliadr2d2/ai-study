@@ -125,6 +125,8 @@
         <span class="tag level">${esc(s.level)}</span>
         ${s.duration ? `<span class="tag">${esc(s.duration)}</span>` : ""}
         ${(s.tags || []).map((g) => `<span class="tag">${esc(g)}</span>`).join("")}
+        <button class="share" type="button" id="share" title="카카오톡·메신저에 붙여 넣으면 이 세션 미리보기가 보입니다">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6.5 9.5 9.5 6.5M7 4.5l1.3-1.3a2.5 2.5 0 0 1 3.5 3.5L10.5 8M9 11.5l-1.3 1.3a2.5 2.5 0 0 1-3.5-3.5L5.5 8"/></svg>공유 링크 복사</button>
       </div>
     </header>
     <section class="goals">
@@ -156,6 +158,17 @@
     }));
   }
   renderTrack();
+
+  // 공유 링크: s/NN.html 은 세션별 미리보기(제목·요약·이미지)를 담고 이 화면으로 이동합니다
+  document.getElementById("share").addEventListener("click", async () => {
+    const url = new URL(`s/${pad(s.id)}.html`, location.href).href;
+    const text = `${pad(s.id)}. ${s.title} · AX Study`;
+    if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+      try { await navigator.share({ title: text, text: s.summary, url }); return; } catch (e) { if (e.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(url); AX.toast("링크를 복사했습니다. 카카오톡에 붙여 넣으면 미리보기가 나옵니다"); }
+    catch (e) { AX.toast("복사가 막혀 있습니다. 이 주소를 직접 복사하세요: " + url); }
+  });
   AX.onChange(renderTrack);
 
   // ── 탭 전환 (#lab 처럼 주소로 바로 열기) ──
