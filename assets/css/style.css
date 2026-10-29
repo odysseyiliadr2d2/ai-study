@@ -316,6 +316,34 @@ footer { border-top: 1px solid var(--line); padding: var(--space-6) 0 var(--spac
 .tip { position: absolute; z-index: 60; background: var(--charcoal); color: var(--on-charcoal); font-size: 12px; line-height: 18px; padding: 6px 10px; border-radius: var(--radius-sm); white-space: pre-line; max-width: 280px; pointer-events: none; }
 .tip[hidden] { display: none; }
 
+/* ── 로드맵 문서 ─────────────────────────── */
+:root {
+  --cds-text-primary: var(--ink); --cds-text-secondary: var(--ink-muted);
+  --cds-chart-axis: #8a8781; --cds-chart-grid: var(--line); --cds-chart-reference-tint: var(--surface-100);
+  --cds-chart-status-good: #f5a524; --cds-chart-status-bad: var(--danger); --cds-chart-status-warning: #e0a100;
+  --cds-chart-categorical-1: #f26b1d; --cds-chart-categorical-2: #2f7fd1; --cds-chart-categorical-3: #1d9a6c;
+  --cds-chart-categorical-4: #8b5cf6; --cds-chart-categorical-5: #d9467a; --cds-chart-categorical-6: #0f9fb5;
+  --cds-chart-categorical-7: #b58a00; --cds-chart-categorical-8: #6b7280;
+}
+:root[data-theme="dark"] { --cds-chart-axis: #8f8c87; --cds-chart-reference-tint: var(--surface-200); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cds-chart-axis: #8f8c87; --cds-chart-reference-tint: var(--surface-200); } }
+.rm-toc { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--space-6); }
+.rm-toc a { font-size: 13px; font-weight: 600; padding: 4px 10px; border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--ink-muted); background: var(--surface-000); }
+.rm-toc a:hover { color: var(--ink); border-color: var(--ink-muted); text-decoration: none; }
+.rm-doc h2 { margin: var(--space-10) 0 var(--space-4); padding-top: var(--space-6); border-top: 1px solid var(--line); scroll-margin-top: 80px; }
+.rm-doc h2:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.rm-doc li > p { margin: 0; }
+.rm-doc table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 0 0 var(--space-4); }
+.rm-doc th, .rm-doc td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.rm-doc th { color: var(--ink-muted); font-weight: 600; font-size: 13px; white-space: nowrap; background: var(--surface-100); }
+.rm-doc ul:has(> li[data-checked]) { list-style: none; padding-left: 0; }
+.rm-doc li[data-checked] input { margin-right: 6px; accent-color: var(--orange); }
+.rm-fig { margin: var(--space-6) 0; }
+.rm-fig svg { display: block; width: 100%; height: auto; font-family: var(--sans); }
+.rm-fig figcaption { text-align: center; font-size: 13px; color: var(--ink-muted); margin-top: var(--space-2); }
+.rm-h { margin: var(--space-2) 0 0; }
+#versions { margin-top: var(--space-10); scroll-margin-top: 80px; }
+
 @media (max-width: 760px) {
   .wrap { padding: 0 16px; }
   .display { font-size: 30px; line-height: 38px; }
