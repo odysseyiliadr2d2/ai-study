@@ -1,0 +1,259 @@
+{
+ "id": 7,
+ "part": 2,
+ "title": "n8n AI Agent 노드와 사람 승인",
+ "summary": "모델·메모리·도구를 조합한 노코드 에이전트와 승인 후 실행 흐름",
+ "level": "기초",
+ "tags": [
+  "n8n",
+  "에이전트"
+ ],
+ "duration": "120분 (설명 35 · 실습 70 · 토론 15)",
+ "goals": [
+  "AI Agent 노드의 Chat Model · Memory · Tool · Output Parser 연결점을 설명할 수 있다",
+  "Google Sheets·다른 워크플로·MCP Client Tool 을 에이전트의 도구로 붙인다",
+  "Send and Wait 승인 단계로 '사람이 승인해야 발송되는' 흐름을 만든다",
+  "오류 워크플로와 노드 재시도로 실패를 놓치지 않게 한다"
+ ],
+ "output": "PART 2 산출물 — 문의 메일을 분류·요약하고 답장 초안을 만든 뒤, 담당자 승인 후 발송하고 기록하는 n8n 에이전트",
+ "concept": {
+  "lead": "n8n 의 <b>AI Agent 노드</b>는 채팅 모델에 메모리와 도구를 붙여, 모델이 <b>어떤 도구를 언제 쓸지 스스로 정하게</b> 하는 노드입니다. 세션 5 의 워크플로가 정해진 길을 따라간다면, 에이전트는 길 일부를 모델이 고릅니다.",
+  "body": [
+   "Basic LLM Chain 은 프롬프트를 한 번 보내고 답을 받으면 끝납니다. AI Agent 는 답 대신 '이 도구를 이 값으로 불러 달라'고 요청할 수 있고, n8n 이 도구를 실행해 결과를 돌려주면 모델이 다시 판단합니다. 이 반복이 <b>에이전트 루프</b>이며, n8n 은 기본 10회까지 돕니다.",
+   "도구는 따로 코드를 짤 필요가 없습니다. Google Sheets·Gmail·HTTP Request 같은 앱 노드를 Tool 연결점에 붙이면 그대로 도구가 되고, <b>Call n8n Workflow Tool</b> 로 기존 워크플로를, <b>MCP Client Tool</b> 로 MCP 서버의 도구를 붙일 수 있습니다. 모델은 각 도구의 설명(Description)을 읽고 쓸지 말지 판단합니다.",
+   "에이전트가 스스로 판단한다는 것은 <b>틀린 판단도 스스로 실행할 수 있다</b>는 뜻입니다. 그래서 메일 발송·데이터 수정처럼 되돌릴 수 없는 행동 앞에는 사람 승인을 둡니다. n8n 은 Gmail·Slack·Telegram 등의 <b>Send and Wait</b> 작업과 도구별 <b>Human review</b> 로 이를 지원합니다."
+  ],
+  "diagram": {
+   "src": "diagrams/s07-concept.svg",
+   "caption": "AI Agent 는 루트 노드이고, 모델·메모리·도구는 아래·위 연결점에 꽂는 하위 노드입니다."
+  },
+  "terms": [
+   {
+    "term": "AI Agent 노드",
+    "desc": "채팅 모델이 도구를 골라 쓰며 반복 실행하는 루트 노드. System Message, Max Iterations(기본 10), Output Parser 를 설정합니다."
+   },
+   {
+    "term": "하위 노드 (Sub-node)",
+    "desc": "루트 노드의 연결점에 꽂아 기능을 더하는 노드. Chat Model, Memory, Tool, Output Parser 가 있습니다."
+   },
+   {
+    "term": "Simple Memory",
+    "desc": "최근 대화 몇 턴을 기억하는 메모리 하위 노드. 채팅형 에이전트에 쓰고, 메일처럼 건별로 독립된 처리에는 붙이지 않는 편이 안전합니다."
+   },
+   {
+    "term": "MCP Client Tool",
+    "desc": "MCP(모델 컨텍스트 프로토콜) 서버에 접속해 그 서버의 도구를 에이전트에게 노출하는 하위 노드. 노출할 도구를 골라 제한할 수 있습니다."
+   },
+   {
+    "term": "Send and Wait",
+    "desc": "메시지를 보내고 수신자가 승인·거절·입력할 때까지 실행을 멈추는 작업. 대기 시간 제한을 걸 수 있습니다."
+   },
+   {
+    "term": "오류 워크플로 (Error workflow)",
+    "desc": "다른 워크플로가 실패하면 실행되는 워크플로. Error Trigger 로 시작하고 실패 노드·오류 메시지·실행 링크를 받습니다."
+   }
+  ]
+ },
+ "theory": {
+  "lead": "노코드 에이전트도 설계 원칙은 코드와 같습니다. <b>도구는 좁게, 출력은 구조화, 되돌릴 수 없는 행동 앞에는 사람, 실패는 반드시 알림</b>.",
+  "diagram": {
+   "src": "diagrams/s07-theory.svg",
+   "caption": "왼쪽은 워크플로에 승인 노드를 넣는 방식, 오른쪽은 에이전트의 특정 도구 호출 앞에 승인을 거는 방식입니다."
+  },
+  "sections": [
+   {
+    "title": "1. AI Agent 노드 구성",
+    "body": [
+     "프롬프트는 앞 노드의 <code>chatInput</code> 을 자동으로 받거나(Chat Trigger 와 함께), <b>Define below</b> 로 직접 씁니다. 메일 처리처럼 트리거가 채팅이 아니면 Define below 에 표현식으로 메일 내용을 넣습니다. 역할·규칙·도구 사용 순서는 Options 의 <b>System Message</b> 에 씁니다."
+    ],
+    "bullets": [
+     "<b>Require Specific Output Format</b> 을 켜고 Structured Output Parser 를 붙이면 결과가 <code>output</code> 아래 JSON 으로 나옵니다",
+     "Max Iterations 를 3~5 로 낮추면 도구를 헛도는 비용 사고를 막습니다",
+     "Return Intermediate Steps 를 켜면 어떤 도구를 어떤 값으로 불렀는지 기록에 남습니다"
+    ]
+   },
+   {
+    "title": "2. 도구 붙이기: 앱 노드 · 워크플로 · MCP",
+    "body": [
+     "도구는 <b>설명(Description)이 곧 사용 설명서</b>입니다. '고객지원 FAQ 시트에서 행을 읽습니다. 답장을 쓰기 전에 사용합니다' 처럼 무엇을 하고 언제 쓰는지 씁니다. 도구가 많을수록 모델이 헷갈리므로 처음에는 2~3개로 시작합니다."
+    ],
+    "bullets": [
+     "앱 노드 도구: Google Sheets Tool, Gmail Tool, HTTP Request Tool 등 — 조회 작업부터",
+     "Call n8n Workflow Tool: 기존 워크플로를 도구로. 입력값을 명확히 정의",
+     "MCP Client Tool: Endpoint(예: <code>http://host.docker.internal:8765/mcp</code>)와 Server Transport(HTTP Streamable), 인증을 넣고 Tools to Include 를 <b>Selected</b> 로 두어 필요한 도구만 노출",
+     "쓰기 도구(발송·수정·삭제)는 직접 붙이지 말고 승인 뒤 일반 노드로 실행합니다"
+    ]
+   },
+   {
+    "title": "3. 사람 승인: 두 가지 방식",
+    "body": [
+     "<b>A. 워크플로 단계 승인</b> — 에이전트는 초안만 만들고, 다음 노드에서 Gmail·Slack·Telegram 등의 <b>Send and Wait for Response</b> 작업으로 담당자에게 승인 버튼이 있는 메시지를 보냅니다. 실행은 응답이 올 때까지 멈추고, <b>Limit Wait Time</b> 으로 대기 상한을 둡니다. Approve Only 또는 Approve and Disapprove 를 고를 수 있습니다.",
+     "<b>B. 도구 호출 승인(Human review)</b> — AI Agent 의 Tools 패널에서 Human review 채널(Chat, Slack, Gmail, Telegram, Teams 등)을 고르고 승인이 필요한 도구를 그 아래에 붙입니다. 승인하면 모델이 정한 값 그대로 도구가 실행되고, 거절하면 실행이 취소되고 모델에게 거절 사실이 전달됩니다."
+    ],
+    "bullets": [
+     "처음 만드는 업무 흐름은 A 가 단순하고 감사 기록도 명확합니다",
+     "승인 메시지에는 판단에 필요한 것만: 원문 요약, 분류, 초안, 참고 근거",
+     "무응답은 '자동 발송'이 아니라 '수동 처리'로 떨어지게 설계합니다"
+    ]
+   },
+   {
+    "title": "4. 실패 처리: 재시도 · 오류 출력 · 오류 워크플로",
+    "body": [
+     "실패는 세 겹으로 받습니다. 노드 Settings 의 <b>Retry On Fail</b> 로 일시적인 API 오류를 흡수하고, <b>On Error</b> 를 'Continue (using error output)' 로 바꿔 실패한 항목만 다른 길로 보내며, 그래도 워크플로가 멈추면 <b>오류 워크플로</b>가 당직자에게 알립니다."
+    ],
+    "code": {
+     "lang": "text",
+     "src": "Error Trigger 가 받는 값 (docs.n8n.io)\n  execution.id · execution.url          실행 기록 링크\n  execution.error.message · .stack      오류 내용\n  execution.lastNodeExecuted            실패한 노드\n  workflow.id · workflow.name           어느 워크플로인지\n※ 트리거 노드 자체에서 실패하면 execution 대신 trigger 아래에 담깁니다.\n※ 조건을 만족하면 일부러 실패시키려면 Stop and Error 노드를 씁니다."
+    }
+   }
+  ]
+ },
+ "lab": {
+  "title": "문의 메일 처리 n8n 에이전트 (PART 2 산출물)",
+  "lead": "support 라벨이 붙은 메일이 오면 에이전트가 FAQ 를 찾아 분류·요약·답장 초안을 만들고, 담당자가 메일의 버튼으로 승인하면 원래 메일에 답장을 보내고 시트에 기록합니다. 실습은 개인 Gmail 과 지어낸 문의 메일로 합니다. 노드 버전마다 화면 이름이 조금 다를 수 있으니, 아래 설정을 화면의 같은 뜻 항목에 맞춰 넣습니다.",
+  "env": [
+   "세션 5 의 n8n (Docker, 서울 시간대)",
+   "Gmail · Google Sheets OAuth2 자격증명",
+   "Anthropic API 자격증명",
+   "Google Sheets 2개: '고객지원 FAQ', '문의 처리 기록'",
+   "(선택) MCP 서버 (세션 18 에서 직접 만듭니다)"
+  ],
+  "steps": [
+   {
+    "title": "전체 구조와 노드 이름 정하기",
+    "body": [
+     "표현식이 <code>$('노드 이름')</code> 으로 다른 노드를 참조하므로 이름을 먼저 정해 둡니다. 가져오기용 워크플로 JSON 대신 노드별 설정을 그대로 따라 하는 방식으로 진행합니다. 다른 사람이 만든 워크플로 JSON 을 가져올 때는 자격증명과 노드 설정을 하나씩 다시 확인해야 합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s07/00-overview.txt",
+     "src": "[워크플로 이름] 문의 메일 처리 에이전트\n(세션 5 의 n8n 을 그대로 씁니다. 노드 이름은 아래와 똑같이 바꿔 두면 표현식을 그대로 복사할 수 있습니다)\n\n① Gmail Trigger                     이름: 'New Mail'\n② Edit Fields (Set)                 이름: 'Mail'        — 필요한 필드만 남기기\n③ AI Agent                          이름: 'Agent'\n     ├ Chat Model : Anthropic Chat Model\n     ├ Memory     : (이번 실습은 연결하지 않음 — 메일마다 독립 처리)\n     ├ Tool       : Google Sheets Tool  'faq_lookup'\n     ├ Tool       : (선택) MCP Client Tool  'ops_mcp'   (세션 18 서버)\n     └ Output Parser : Structured Output Parser\n④ Gmail — Send and Wait for Approval  이름: 'Approval'\n⑤ IF                                 이름: 'Approved?'\n⑥ Gmail — Reply                      이름: 'Send Reply'      (⑤ true)\n⑦ Google Sheets — Append Row         이름: 'Log'             (⑥ 뒤와 ⑤ false 둘 다 연결)\n\n+ 별도 워크플로: 'Mail Agent Errors'  (Error Trigger → Gmail Send)\n"
+    }
+   },
+   {
+    "title": "메일 트리거와 필드 정리",
+    "body": [
+     "Gmail 에서 'support' 라벨과 필터 규칙을 먼저 만들고, 지어낸 문의 메일 3~4통을 보내 둡니다. Edit Fields 노드로 에이전트에 넘길 필드만 남기고 본문은 4,000자로 자릅니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s07/01-trigger.txt",
+     "src": "[① Gmail Trigger — 'New Mail']\nCredential: Gmail OAuth2 (실습용 개인 계정)\nPoll Times: Every Minute   (실습용 — 운영은 Every 5 Minutes 정도)\nEvent: Message Received\nSimplify: 끔               ← 본문 전체(text)가 필요하므로\nFilters\n  Label Names or IDs: support      (Gmail 에서 'support' 라벨과 자동 분류 규칙을 먼저 만듭니다)\n  Read Status: Unread emails only\n\n[② Edit Fields (Set) — 'Mail']\nMode: Manual Mapping\n  messageId  (String) = {{ $json.id }}\n  threadId   (String) = {{ $json.threadId }}\n  from       (String) = {{ $json.from.value[0].address }}\n  subject    (String) = {{ $json.subject }}\n  body       (String) = {{ ($json.text || '').slice(0, 4000) }}\nInclude Other Input Fields: 끔\n※ Simplify 를 끈 Gmail 출력의 필드 이름은 실행 기록(Executions)에서 한 번 확인하고 맞춥니다.\n"
+    }
+   },
+   {
+    "title": "AI Agent 노드: 프롬프트와 시스템 메시지",
+    "body": [
+     "Define below 로 메일 내용을 넣고, System Message 에 분류 기준·도구 사용 순서·금지사항을 씁니다. 'FAQ 를 먼저 찾는다'는 순서를 시스템 메시지에 명시하지 않으면 모델이 도구를 건너뛰기 쉽습니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s07/02-agent.txt",
+     "src": "[③ AI Agent — 'Agent']\nSource for Prompt (User Message): Define below\nPrompt (User Message):\n  다음 고객 문의 메일을 처리하세요.\n  보낸 사람: {{ $json.from }}\n  제목: {{ $json.subject }}\n  본문:\n  {{ $json.body }}\n\nRequire Specific Output Format: 켬   → Output Parser 연결점이 생깁니다\n\nOptions › System Message:\n  당신은 SI 회사 고객지원팀의 1차 응대 담당입니다.\n  1. 문의를 '계정·로그인 / 요금·계약 / 장애·오류 / 기능 요청 / 기타' 중 하나로 분류합니다.\n  2. 답을 쓰기 전에 반드시 faq_lookup 도구로 관련 FAQ 를 찾습니다.\n  3. FAQ 에 근거가 있으면 그 내용으로, 없으면 \"담당자가 확인 후 회신드리겠습니다\"로 답장 초안을 씁니다.\n  4. 가격·계약 조건·장애 원인은 추측해서 쓰지 않습니다.\n  5. 답장은 합니다체, 5문장 이내, 서명은 '고객지원팀'.\n  6. 확신이 없으면 needs_human 을 true 로 둡니다.\nOptions › Max Iterations: 5          (도구 호출이 무한히 반복되지 않게)\n\n[Anthropic Chat Model (하위 노드)]\nCredential: Anthropic API\nModel: 목록에서 Sonnet 계열 선택\nOptions: Sampling Temperature · Top P · Top K 는 추가하지 않습니다 (Claude 5.5 모델은 400 오류)\n※ 노드 버전에 따라 Claude 5.5 와 맞지 않는 옵션이 있을 수 있으니, 오류가 나면 옵션을 비우고 다시 실행합니다.\n"
+    }
+   },
+   {
+    "title": "출력 형식: Structured Output Parser",
+    "body": [
+     "Output Parser 연결점에 Structured Output Parser 를 붙이고 Schema Type 을 <b>Generate From JSON Example</b> 로 둔 뒤 아래 예시를 넣습니다. 예시의 키는 모두 필수 필드가 됩니다. 결과는 <code>$json.output.category</code> 처럼 꺼내 씁니다."
+    ],
+    "code": {
+     "lang": "json",
+     "file": "labs/s07/03-output-example.json",
+     "src": "{\n  \"category\": \"장애·오류\",\n  \"urgency\": \"높음\",\n  \"summary\": \"월별 정산 보고서 화면 조회 시 ERR-5031 오류\",\n  \"faq_used\": \"FAQ-012\",\n  \"needs_human\": false,\n  \"reply_draft\": \"안녕하세요. 문의 주신 ERR-5031 오류는 ...\"\n}\n"
+    }
+   },
+   {
+    "title": "도구 붙이기: FAQ 시트 · MCP · 워크플로",
+    "body": [
+     "Tool 연결점에 Google Sheets Tool 을 붙여 FAQ 조회 도구로 씁니다. MCP 서버(세션 18)가 있다면 MCP Client Tool 로 조회 도구(get_batch_log, search_table_spec)만 노출합니다. 실행 후 AI Agent 노드의 로그에서 도구가 실제로 불렸는지 확인합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s07/04-tools.txt",
+     "src": "[Google Sheets Tool — 'faq_lookup']  (AI Agent 의 Tool 연결점에 붙이기)\nDescription (도구 설명 — 모델이 읽고 언제 쓸지 판단합니다):\n  고객지원 FAQ 시트에서 행을 읽습니다. 답장을 쓰기 전에 관련 FAQ 를 찾을 때 사용합니다.\nResource: Sheet Within Document / Operation: Get Row(s)\nDocument: '고객지원 FAQ' 스프레드시트\n  (열: faq_id | category | question | answer | updated_at)\nSheet: FAQ\n\n[(선택) MCP Client Tool — 'ops_mcp']   (세션 18 에서 만드는 운영 MCP 서버. 아직 없으면 건너뜁니다)\nEndpoint: http://host.docker.internal:8765/mcp\n  ↑ n8n 이 Docker 안에 있고 MCP 서버가 같은 PC 에서 돌 때의 주소.\n    Linux 는 docker run 에 --add-host=host.docker.internal:host-gateway 를 추가합니다.\nServer Transport: HTTP Streamable\nAuthentication: 서버 설정에 맞춤 (세션 18 실습 서버는 None, 사내 운영은 Bearer 등 — 토큰은 자격증명에)\nTools to Include: Selected → get_batch_log, search_table_spec   (조회 도구만)\n  ↑ request_rerun 같은 실행 도구는 여기서 노출하지 않습니다.\n    재처리 요청이 필요하면 승인 단계(⑤) 뒤의 일반 노드로 실행하거나,\n    Tools 패널의 Human review 아래에 붙여 사람 승인을 거칩니다.\n※ 노드 버전에 따라 화면 항목 이름이 다를 수 있으니 docs.n8n.io 의 MCP Client Tool 문서와 세션 18 을 함께 봅니다.\n\n[다른 워크플로를 도구로]\nCall n8n Workflow Tool — 예: '고객 계약 상태 조회' 워크플로를 도구로 붙이면\n에이전트가 필요할 때만 그 워크플로를 실행합니다 (조회 전용으로 만들 것).\n"
+    }
+   },
+   {
+    "title": "승인 → 발송 → 기록",
+    "body": [
+     "Gmail 의 Send and Wait 작업으로 담당자에게 승인 버튼이 있는 메일을 보내고 실행을 멈춥니다. 승인하면 원래 메일에 답장하고, 거절·시간 초과면 발송 없이 '수동 처리'로 기록합니다. 저장 후 <b>Publish</b> 해야 트리거가 계속 돕니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s07/05-approval-send-log.txt",
+     "src": "[④ Gmail — 'Approval']\nResource: Message / Operation: Send and Wait for Response (문서 표기: Send and Wait for Approval)\nTo: 승인 담당자 메일 (실습은 내 메일)\nSubject: [승인 요청] {{ $('Mail').item.json.subject }}  ({{ $json.output.category }}/{{ $json.output.urgency }})\nMessage:\n  보낸 사람: {{ $('Mail').item.json.from }}\n  요약: {{ $json.output.summary }}\n  사람 확인 필요: {{ $json.output.needs_human }}\n  참고 FAQ: {{ $json.output.faq_used }}\n  ---- 답장 초안 ----\n  {{ $json.output.reply_draft }}\nResponse Type: Approval\nType of Approval: Approve and Disapprove\n  Approve Button Label: 발송 승인 / Disapprove Button Label: 직접 처리\nOptions › Limit Wait Time: 켬, 4 Hours   (시간이 지나면 자동으로 다음 단계로)\n\n※ 승인 버튼은 n8n 주소로 돌아오는 링크입니다. localhost 실습에서는 같은 PC 브라우저에서 눌러야 합니다.\n\n[⑤ IF — 'Approved?']\nConditions: {{ $json.data.approved }}  is true   (Boolean)\n※ 승인 노드 출력 필드 이름은 실행 기록에서 한 번 확인하세요. 시간 초과로 넘어온 경우도 false 쪽으로 갑니다.\n\n[⑥ Gmail — 'Send Reply']   (IF true 쪽)\nResource: Message / Operation: Reply\nMessage ID: {{ $('Mail').item.json.messageId }}\nEmail Type: Text\nMessage: {{ $('Agent').item.json.output.reply_draft }}\nOptions › Reply to Sender Only: 켬 / Append n8n Attribution: 끔\n\n[⑦ Google Sheets — 'Log']   (⑥ 뒤 + IF false 쪽 둘 다 연결)\nOperation: Append Row / Mapping Column Mode: Map Each Column Manually\n  received_at = {{ $now.toISO() }}\n  from        = {{ $('Mail').item.json.from }}\n  subject     = {{ $('Mail').item.json.subject }}\n  category    = {{ $('Agent').item.json.output.category }}\n  urgency     = {{ $('Agent').item.json.output.urgency }}\n  result      = {{ $('Approved?').item.json.data?.approved ? '자동 발송' : '수동 처리' }}\n"
+    }
+   },
+   {
+    "title": "오류 워크플로와 재시도",
+    "body": [
+     "별도 워크플로를 Error Trigger 로 만들고, 본 워크플로의 Settings 에서 Error workflow 로 지정합니다. 외부 API 를 부르는 노드에는 Retry On Fail 을 켭니다. 마지막으로 다섯 가지 상황을 직접 일으켜 기대대로 동작하는지 확인합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s07/06-errors.txt",
+     "src": "[별도 워크플로 'Mail Agent Errors']\n① Error Trigger\n② Gmail — Send\n   To: 당직자 메일\n   Subject: [n8n 오류] {{ $json.workflow.name }}\n   Message:\n     실패 노드: {{ $json.execution.lastNodeExecuted }}\n     오류: {{ $json.execution.error.message }}\n     실행 기록: {{ $json.execution.url }}\n→ 저장 후, 본 워크플로의 Settings › Error workflow 에서 이 워크플로를 고릅니다.\n\n[노드별 재시도 — 본 워크플로]\n'Agent' 의 Anthropic Chat Model, 'Send Reply', 'Log' 노드:\n  노드 Settings 탭 › Retry On Fail 켬 (재시도 횟수·간격 지정)\n  → 일시적인 API 오류(429·5xx)·네트워크 끊김은 여기서 흡수\n'Agent' 노드 Settings › On Error:\n  'Continue (using error output)' 로 바꾸면 실패한 메일만 '수동 처리'로 기록하고\n  나머지 메일은 계속 처리할 수 있습니다.\n\n[테스트 체크]\n1) 정상 문의  2) FAQ 에 없는 문의  3) 승인 거절  4) 4시간 무응답\n5) Anthropic 자격증명을 일부러 틀리게 → 오류 메일이 오는지\n"
+    }
+   }
+  ],
+  "check": [
+   "승인 버튼을 누르기 전에는 답장이 절대 나가지 않고, 거절·4시간 무응답이면 시트에 '수동 처리'로 남는가",
+   "FAQ 에 있는 문의는 초안에 FAQ 내용이 반영되고 faq_used 에 ID 가 남는가 (Return Intermediate Steps 로 도구 호출 확인)",
+   "자격증명을 일부러 틀렸을 때 오류 워크플로가 실패 노드와 실행 링크를 담아 알림을 보내는가"
+  ]
+ },
+ "example": {
+  "title": "고객센터·운영팀 공용 메일함 처리",
+  "context": "SI 운영팀 공용 메일함에 하루 50~150통의 문의가 옵니다. 절반은 FAQ 로 답할 수 있는 계정·사용법 문의지만, 담당자가 하나씩 읽고 답하느라 장애 문의 응답이 늦어집니다. 에이전트가 <b>분류와 답장 초안까지</b> 만들고, 담당자는 승인 버튼만 누르거나 직접 처리로 넘깁니다.",
+  "diagram": {
+   "src": "diagrams/s07-example.svg",
+   "caption": "에이전트는 FAQ 도구로 근거를 찾아 초안을 만들고, 발송은 승인 뒤 일반 노드가 합니다."
+  },
+  "flow": [
+   "공용 메일함에 라벨 규칙을 걸어 문의 메일만 트리거로 받습니다 (내부 회신·자동 알림 제외)",
+   "에이전트가 FAQ 도구로 근거를 찾고 분류·긴급도·요약·답장 초안을 구조화 JSON 으로 냅니다",
+   "Code 노드 안전장치가 금액·일정 약속·개인정보 형태·긴급 장애를 찾으면 needs_human 을 켭니다",
+   "needs_human 이 false 인 건만 담당자에게 승인 요청을 보내고, true 인 건은 바로 담당자 큐로 넘깁니다",
+   "승인 시 원래 메일 스레드에 답장하고, 시트에 분류·승인자·처리 방식을 남깁니다",
+   "어느 노드든 실패하면 오류 워크플로가 실행 링크를 당직자에게 보내고, 주 1회 시트로 자동 처리율과 수정률을 봅니다"
+  ],
+  "code": {
+   "lang": "javascript",
+   "file": "labs/s07/guard-code-node.js",
+   "src": "// Code 노드 (Agent 와 Approval 사이, Run Once for Each Item)\n// 에이전트 출력에 대한 마지막 안전장치 — 규칙에 걸리면 needs_human 을 강제로 켭니다\nconst o = $json.output || {};\nconst draft = String(o.reply_draft || '');\nconst reasons = [];\n\n// 1) 약속·보상·가격처럼 담당자만 말할 수 있는 표현\nif (/(환불|보상|무상|할인|\\d+%|\\d+원)/.test(draft)) reasons.push('금액·보상 언급');\n// 2) 날짜 약속\nif (/(\\d{1,2}월\\s*\\d{1,2}일|까지\\s*(완료|조치))/.test(draft)) reasons.push('일정 약속');\n// 3) 개인정보 형태가 초안에 섞인 경우\nif (/01[016789]-?\\d{3,4}-?\\d{4}|\\d{6}-?[1-4]\\d{6}/.test(draft)) reasons.push('개인정보 형태');\n// 4) 장애 긴급 건은 항상 사람\nif (o.category === '장애·오류' && o.urgency === '높음') reasons.push('긴급 장애');\n// 5) 너무 짧거나 비어 있는 초안\nif (draft.length < 30) reasons.push('초안 부족');\n\nreturn {\n  json: {\n    output: {\n      ...o,\n      needs_human: Boolean(o.needs_human) || reasons.length > 0,\n      guard_reasons: reasons.join(', '),\n    },\n  },\n};\n"
+  },
+  "tips": [
+   "승인자가 초안을 고쳐 보낸 비율(수정률)을 매주 봅니다. 수정률이 10% 아래로 안정되는 카테고리부터 승인 단계를 가볍게 합니다",
+   "에이전트 도구는 조회 전용으로 시작합니다. 발송·수정은 승인 뒤 일반 노드가 하게 하면 권한 범위가 명확해집니다",
+   "사내 적용 시에는 메일 서버를 Email Trigger (IMAP) 로, 모델을 사내 승인 모델로 바꾸고 나머지 구조는 그대로 씁니다"
+  ],
+  "pitfalls": [
+   "무응답 시간 초과를 '승인'으로 처리해, 담당자 휴가 중에 초안이 그대로 발송되는 경우",
+   "Simple Memory 를 붙여 두어 앞 고객의 문의 내용이 다음 고객 답장에 섞이는 경우 — 건별 처리에는 메모리를 쓰지 않습니다",
+   "MCP Client Tool 에서 Tools to Include 를 All 로 두어 request_rerun 같은 실행 도구까지 승인 없이 에이전트에게 열리는 경우"
+  ]
+ },
+ "refs": [
+  {
+   "label": "n8n 문서 · AI Agent 노드 (Tools Agent)",
+   "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/root-nodes/n8n-nodes-langchain.agent/tools-agent"
+  },
+  {
+   "label": "n8n 문서 · Human-in-the-loop for AI tool calls",
+   "url": "https://docs.n8n.io/build/integrate-ai/ai-examples/human-in-the-loop-for-tools"
+  },
+  {
+   "label": "n8n 문서 · Gmail 메시지 작업 (Send and Wait for Approval · Reply)",
+   "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/message-operations/"
+  },
+  {
+   "label": "n8n 문서 · MCP Client Tool 노드",
+   "url": "https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.toolmcp/"
+  },
+  {
+   "label": "n8n 문서 · 오류 처리 (Error workflow)",
+   "url": "https://docs.n8n.io/build/flow-logic/handle-errors-gracefully"
+  }
+ ]
+}

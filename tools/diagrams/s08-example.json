@@ -1,0 +1,113 @@
+{
+ "title": "테이블 정의서·용어집을 '뜻'으로 찾는 검색",
+ "subtitle": "정보계 DW 예시 — 메타데이터를 문장으로 풀어 색인하고, 결과는 컬럼 단위로",
+ "cols": 5,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "src",
+   "col": 0,
+   "row": 0,
+   "label": "메타데이터",
+   "sub": "테이블 정의서 · 용어집",
+   "icon": "sheet",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "doc",
+   "col": 1,
+   "row": 0,
+   "label": "문장으로 풀기",
+   "sub": "물리명 + 한글명 + 설명",
+   "icon": "doc",
+   "color": "purple",
+   "badge": 2
+  },
+  {
+   "id": "emb",
+   "col": 2,
+   "row": 0,
+   "label": "임베딩",
+   "sub": "passage: 접두어",
+   "icon": "vector",
+   "color": "pink",
+   "badge": 3
+  },
+  {
+   "id": "db",
+   "col": 3,
+   "row": 0,
+   "label": "pgvector",
+   "sub": "HNSW · 코사인",
+   "icon": "db",
+   "color": "teal",
+   "badge": 4
+  },
+  {
+   "id": "q",
+   "col": 2,
+   "row": 1,
+   "label": "질문",
+   "sub": "'고객 등급 바뀐 이력?'",
+   "icon": "user",
+   "color": "orange",
+   "badge": 5
+  },
+  {
+   "id": "r",
+   "col": 4,
+   "row": 1,
+   "label": "후보 컬럼 5개",
+   "sub": "컬럼 · 설명 · 유사도",
+   "icon": "list",
+   "color": "green",
+   "badge": 6,
+   "emph": true
+  },
+  {
+   "id": "k",
+   "col": 3,
+   "row": 1,
+   "label": "키워드 보완",
+   "sub": "물리명 정확 일치 우선",
+   "icon": "search",
+   "color": "gray"
+  }
+ ],
+ "edges": [
+  {
+   "from": "src",
+   "to": "doc"
+  },
+  {
+   "from": "doc",
+   "to": "emb"
+  },
+  {
+   "from": "emb",
+   "to": "db"
+  },
+  {
+   "from": "q",
+   "to": "emb",
+   "label": "query: 접두어"
+  },
+  {
+   "from": "db",
+   "to": "r",
+   "route": "hv",
+   "label": "의미"
+  },
+  {
+   "from": "q",
+   "to": "k",
+   "label": "물리명"
+  },
+  {
+   "from": "k",
+   "to": "r",
+   "label": "합치기"
+  }
+ ]
+}

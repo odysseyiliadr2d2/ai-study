@@ -1,0 +1,64 @@
+# .github/workflows/web.yml — 기본 트랙: PR 은 테스트만, main 은 테스트 → Vercel 운영 배포
+# 저장소 Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID / 저장소 Variables: PROD_URL
+# (ORG_ID · PROJECT_ID 는 로컬에서 vercel link 후 .vercel/project.json 에 있음)
+# 앱 환경변수(ANTHROPIC_API_KEY 등)는 GitHub 이 아니라 Vercel 프로젝트 설정에 둡니다.
+name: web
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint --if-present
+      - run: npm test --if-present
+      - run: npm run build
+        env:   # 빌드 확인용 더미 값 (실제 값은 Vercel 이 주입)
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_dummy
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production     # GitHub 환경 보호 규칙(승인자 지정)을 걸 수 있음
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: npm install --global vercel@latest
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: 헬스체크 (실패하면 직전 운영 배포로 롤백)
+        # 운영 도메인으로 확인합니다. 배포마다 생기는 고유 URL 은 Deployment Protection 으로 막혀 있을 수 있습니다.
+        # 저장소 Variables 에 PROD_URL (예: https://ticket-desk-web.vercel.app) 등록
+        run: |
+          for i in $(seq 1 10); do
+            if curl -fsS "${{ vars.PROD_URL }}/api/health"; then exit 0; fi
+            sleep 6
+          done
+          echo "헬스체크 실패 — 롤백합니다" >&2
+          vercel rollback --token=${{ secrets.VERCEL_TOKEN }} || true
+          exit 1

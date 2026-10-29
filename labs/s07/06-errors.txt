@@ -1,0 +1,22 @@
+[별도 워크플로 'Mail Agent Errors']
+① Error Trigger
+② Gmail — Send
+   To: 당직자 메일
+   Subject: [n8n 오류] {{ $json.workflow.name }}
+   Message:
+     실패 노드: {{ $json.execution.lastNodeExecuted }}
+     오류: {{ $json.execution.error.message }}
+     실행 기록: {{ $json.execution.url }}
+→ 저장 후, 본 워크플로의 Settings › Error workflow 에서 이 워크플로를 고릅니다.
+
+[노드별 재시도 — 본 워크플로]
+'Agent' 의 Anthropic Chat Model, 'Send Reply', 'Log' 노드:
+  노드 Settings 탭 › Retry On Fail 켬 (재시도 횟수·간격 지정)
+  → 일시적인 API 오류(429·5xx)·네트워크 끊김은 여기서 흡수
+'Agent' 노드 Settings › On Error:
+  'Continue (using error output)' 로 바꾸면 실패한 메일만 '수동 처리'로 기록하고
+  나머지 메일은 계속 처리할 수 있습니다.
+
+[테스트 체크]
+1) 정상 문의  2) FAQ 에 없는 문의  3) 승인 거절  4) 4시간 무응답
+5) Anthropic 자격증명을 일부러 틀리게 → 오류 메일이 오는지

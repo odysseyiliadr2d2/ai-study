@@ -1,0 +1,93 @@
+{
+ "title": "PoC → 파일럿 → 확산, 단계마다 통과 기준이 다릅니다",
+ "subtitle": "앞 단계 기준을 넘어야 다음 예산이 열립니다",
+ "cols": 3,
+ "rows": 2,
+ "cell_h": 140,
+ "nodes": [
+  {
+   "id": "poc",
+   "col": 0,
+   "row": 0,
+   "label": "PoC · 4~6주",
+   "sub": "되는가? 평가셋 50건 · 소수 사용자",
+   "icon": "flask",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "pil",
+   "col": 1,
+   "row": 0,
+   "label": "파일럿 · 2~3개월",
+   "sub": "쓰는가? 실제 업무 1개 팀",
+   "icon": "users",
+   "color": "orange",
+   "badge": 2
+  },
+  {
+   "id": "sc",
+   "col": 2,
+   "row": 0,
+   "label": "확산",
+   "sub": "남는가? 전사·운영 체계",
+   "icon": "rocket",
+   "color": "green",
+   "badge": 3
+  },
+  {
+   "id": "k1",
+   "col": 0,
+   "row": 1,
+   "label": "통과 기준",
+   "sub": "정답률 · 형식 준수 · 보안 심의 통과",
+   "icon": "check",
+   "color": "gray"
+  },
+  {
+   "id": "k2",
+   "col": 1,
+   "row": 1,
+   "label": "통과 기준",
+   "sub": "주간 사용률 · 절감 시간 실측 · 오류 신고",
+   "icon": "chart",
+   "color": "gray"
+  },
+  {
+   "id": "k3",
+   "col": 2,
+   "row": 1,
+   "label": "통과 기준",
+   "sub": "ROI 회수 · 운영 담당 · 재평가 주기",
+   "icon": "money",
+   "color": "gray"
+  }
+ ],
+ "edges": [
+  {
+   "from": "poc",
+   "to": "pil",
+   "label": "통과"
+  },
+  {
+   "from": "pil",
+   "to": "sc",
+   "label": "통과"
+  },
+  {
+   "from": "poc",
+   "to": "k1",
+   "dashed": true
+  },
+  {
+   "from": "pil",
+   "to": "k2",
+   "dashed": true
+  },
+  {
+   "from": "sc",
+   "to": "k3",
+   "dashed": true
+  }
+ ]
+}

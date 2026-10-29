@@ -1,0 +1,124 @@
+{
+ "title": "임베딩은 뜻이 비슷한 문장을 가까운 점으로 바꿉니다",
+ "subtitle": "글자가 달라도 뜻이 같으면 벡터가 가깝고, 가까움은 코사인 유사도로 잽니다",
+ "cols": 4,
+ "rows": 3,
+ "cell_h": 116,
+ "groups": [
+  {
+   "label": "같은 임베딩 모델 · e5-small · 384차원",
+   "col": 1,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "purple"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "a",
+   "col": 0,
+   "row": 0,
+   "label": "고객번호",
+   "sub": "정의서 · CUST_NO",
+   "icon": "doc",
+   "color": "blue"
+  },
+  {
+   "id": "b",
+   "col": 0,
+   "row": 1,
+   "label": "손님을 구별하는 번호",
+   "sub": "현업의 질문",
+   "icon": "user",
+   "color": "blue"
+  },
+  {
+   "id": "c",
+   "col": 0,
+   "row": 2,
+   "label": "배치 실패 재처리",
+   "sub": "운영 매뉴얼",
+   "icon": "doc",
+   "color": "orange"
+  },
+  {
+   "id": "va",
+   "col": 1,
+   "row": 0,
+   "label": "벡터 A",
+   "sub": "[0.12, -0.08, …]",
+   "icon": "vector",
+   "color": "purple"
+  },
+  {
+   "id": "vb",
+   "col": 1,
+   "row": 1,
+   "label": "벡터 B",
+   "sub": "[0.11, -0.07, …]",
+   "icon": "vector",
+   "color": "purple"
+  },
+  {
+   "id": "vc",
+   "col": 1,
+   "row": 2,
+   "label": "벡터 C",
+   "sub": "[-0.31, 0.22, …]",
+   "icon": "vector",
+   "color": "purple"
+  },
+  {
+   "id": "s1",
+   "col": 2,
+   "row": 0,
+   "span": 2,
+   "label": "A · B 가까움 (코사인 유사도 높음)",
+   "sub": "같은 단어가 없어도 뜻이 같아 가까운 점",
+   "icon": "check",
+   "color": "green",
+   "emph": true
+  },
+  {
+   "id": "s2",
+   "col": 2,
+   "row": 2,
+   "span": 2,
+   "label": "A · C 멀다 (유사도 낮음)",
+   "sub": "주제가 달라 먼 점",
+   "icon": "warn",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "a",
+   "to": "va"
+  },
+  {
+   "from": "b",
+   "to": "vb"
+  },
+  {
+   "from": "c",
+   "to": "vc"
+  },
+  {
+   "from": "va",
+   "to": "s1"
+  },
+  {
+   "from": "vb",
+   "to": "s1",
+   "route": "hv"
+  },
+  {
+   "from": "vc",
+   "to": "s2"
+  }
+ ],
+ "notes": [
+  "키워드 검색(LIKE '%손님%')은 '고객번호'를 못 찾지만, 의미 검색은 찾습니다. 단, 비교는 같은 모델로 만든 벡터끼리만."
+ ]
+}

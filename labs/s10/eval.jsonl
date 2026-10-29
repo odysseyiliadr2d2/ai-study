@@ -1,0 +1,24 @@
+{"id": "k01", "type": "키워드", "question": "ORA-01652 나면 어떻게 해요?", "answer": "같은 시간대 대용량 SQL 을 확인하고 다른 작업이 끝난 뒤 해당 블록을 재실행, 반복되면 DBA 에게 TEMP 증설·SQL 점검 요청", "evidence": ["ora-error-guide.md#ORA-01652 TEMP 테이블스페이스 부족"], "category": "오류 대응", "answerable": true}
+{"id": "k02", "type": "키워드", "question": "ORA-00054 resource busy 뜨면 세션을 끊어도 되나요?", "answer": "임의로 끊지 않고 DBA 에게 잠금 세션을 확인받는다", "evidence": ["ora-error-guide.md#ORA-00054 resource busy"], "category": "오류 대응", "answerable": true}
+{"id": "k03", "type": "키워드", "question": "ORA-12541 은 무슨 오류이고 뭘 확인하나요?", "answer": "리스너가 없거나 주소가 틀려 연결이 안 되는 오류, tnsping 으로 확인 후 DBA 당직에 요청", "evidence": ["ora-error-guide.md#ORA-12541 리스너 없음"], "category": "오류 대응", "answerable": true}
+{"id": "k04", "type": "키워드", "question": "ORA-01555 재발 방지는 어떻게 하나요?", "answer": "갱신 작업과 시간이 겹치지 않게 스케줄 조정, 재발 시 UNDO 보존 시간 조정 상의", "evidence": ["ora-error-guide.md#ORA-01555 snapshot too old"], "category": "오류 대응", "answerable": true}
+{"id": "k05", "type": "키워드", "question": "STG_TRD_D 적재 방식은?", "answer": "기준일 단위 TRUNCATE 후 INSERT, trailer 건수와 비교", "evidence": ["table-load-guide.md#STG_TRD_D 적재 방식"], "category": "적재", "answerable": true}
+{"id": "k06", "type": "키워드", "question": "DW.TRD_DAY_F 는 MERGE 인가요 INSERT 인가요?", "answer": "STG_TRD_D 를 집계해 MERGE, 같은 기준일 재실행 시 덮어씀", "evidence": ["table-load-guide.md#DW.TRD_DAY_F 적재 방식"], "category": "적재", "answerable": true}
+{"id": "k07", "type": "키워드", "question": "WF_MART_TRD_D 는 몇 시까지 끝나야 해요?", "answer": "05:30", "evidence": ["table-load-guide.md#MART.TRD_CHNL_DAY_M 적재 방식", "batch-ops-manual-v3.md#배치 일정"], "category": "일정", "answerable": true}
+{"id": "k08", "type": "키워드", "question": "TSS 에서 BASE_DT 를 과거 일자로 지정하려면?", "answer": "실행 창에서 BASE_DT 를 YYYYMMDD 로 직접 입력", "evidence": ["tss-workflow-guide.md#기준일 변수 지정"], "category": "TSS", "answerable": true}
+{"id": "k09", "type": "키워드", "question": "TSS 스케줄 보류는 누가 해제하나요?", "answer": "보류한 사람이 복구 후 직접 해제", "evidence": ["tss-workflow-guide.md#스케줄 보류와 해제"], "category": "TSS", "answerable": true}
+{"id": "p01", "type": "의역", "question": "새벽 작업이 깨졌을 때 맨 먼저 누구한테 알려야 하죠?", "answer": "정보계 운영 당직자에게 메신저 장애 채널로", "evidence": ["batch-ops-manual-v3.md#실패 시 연락 체계"], "category": "연락 체계", "answerable": true}
+{"id": "p02", "type": "의역", "question": "반시간이 지나도 못 살리면 윗선 누구에게 전화해요?", "answer": "데이터팀 팀장", "evidence": ["batch-ops-manual-v3.md#실패 시 연락 체계"], "category": "연락 체계", "answerable": true}
+{"id": "p03", "type": "의역", "question": "외부에서 받는 원본 자료가 제시간에 안 오면 어떻게 하나요?", "answer": "30분 간격 3회 재확인, 원천 담당자 확인 요청, 도착 후 STG 적재부터 재시작", "evidence": ["batch-ops-manual-v3.md#원천 파일 지연"], "category": "재처리", "answerable": true}
+{"id": "p04", "type": "의역", "question": "정렬할 임시 공간이 모자라서 쿼리가 죽었어요", "answer": "ORA-01652 대응: 동시 대용량 작업 확인 후 재실행, 반복 시 DBA 요청", "evidence": ["ora-error-guide.md#ORA-01652 TEMP 테이블스페이스 부족"], "category": "오류 대응", "answerable": true}
+{"id": "p05", "type": "의역", "question": "다른 사람이 테이블을 붙잡고 있어서 비우기가 안 돼요", "answer": "ORA-00054: DBA 에게 잠금 세션 확인, 임의로 끊지 않음", "evidence": ["ora-error-guide.md#ORA-00054 resource busy"], "category": "오류 대응", "answerable": true}
+{"id": "p06", "type": "의역", "question": "DB 에 아예 붙지를 못하는데 뭘 점검하죠?", "answer": "ORA-12541: tnsping 확인 후 DBA 당직에 리스너 확인 요청", "evidence": ["ora-error-guide.md#ORA-12541 리스너 없음"], "category": "오류 대응", "answerable": true}
+{"id": "p07", "type": "의역", "question": "지난여름 보고서가 늦게 나갔던 사고는 왜 생겼어요?", "answer": "월말 정산 조회와 DW 집계가 겹쳐 임시 공간 부족(ORA-01652), 재실행도 같은 시간대", "evidence": ["incident-2026-08-temp.md#원인"], "category": "장애 이력", "answerable": true}
+{"id": "p08", "type": "의역", "question": "아침에 세 계층 숫자가 맞는지 어떻게 확인하나요?", "answer": "06:00 전 검증 SQL 로 STG·DW·마트 기준일 거래금액 합계 비교, 다르면 배포 중지", "evidence": ["table-load-guide.md#적재 건수 검증"], "category": "적재", "answerable": true}
+{"id": "r01", "type": "개정판", "question": "배치가 실패하면 처음부터 전부 다시 돌려야 하나요?", "answer": "아니요. Terrastream 콘솔에서 실패한 블록부터 재실행", "evidence": ["batch-ops-manual-v3.md#재처리 절차"], "category": "재처리", "answerable": true}
+{"id": "r02", "type": "개정판", "question": "복구가 늦어지면 몇 분 뒤에 보고하나요?", "answer": "30분 (구판의 1시간 아님)", "evidence": ["batch-ops-manual-v3.md#실패 시 연락 체계"], "category": "연락 체계", "answerable": true}
+{"id": "r03", "type": "개정판", "question": "테이블 데이터를 손으로 고쳐야 하면 누구 승인을 받나요?", "answer": "데이터 보정 요청서로 데이터팀 팀장 승인, 두 사람 검토 후 DBA 실행", "evidence": ["batch-ops-manual-v3.md#수작업 데이터 보정 승인"], "category": "재처리", "answerable": true}
+{"id": "n01", "type": "범위 밖", "question": "배치 서버 root 비밀번호가 뭐예요?", "answer": "", "evidence": [], "category": "범위 밖", "answerable": false}
+{"id": "n02", "type": "범위 밖", "question": "이번 달 장애 건수 합계는?", "answer": "", "evidence": [], "category": "범위 밖", "answerable": false}
+{"id": "n03", "type": "범위 밖", "question": "신규 입사자 연차는 며칠인가요?", "answer": "", "evidence": [], "category": "범위 밖", "answerable": false}
+{"id": "n04", "type": "범위 밖", "question": "ORA-04031 은 어떻게 대응하나요?", "answer": "", "evidence": [], "category": "범위 밖", "answerable": false}

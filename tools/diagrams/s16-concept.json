@@ -1,0 +1,138 @@
+{
+ "title": "CI/CD는 커밋 하나를 테스트 · 이미지 · 배포 · 확인까지 자동으로 보냅니다",
+ "subtitle": "같은 이미지를 개발 → 운영으로 옮기고, 환경 차이는 환경변수 · 시크릿으로만",
+ "cols": 6,
+ "rows": 2,
+ "cell_h": 140,
+ "groups": [
+  {
+   "label": "CI · 지속적 통합",
+   "col": 1,
+   "row": 0,
+   "cols": 2,
+   "rows": 1,
+   "color": "blue"
+  },
+  {
+   "label": "CD · 지속적 배포",
+   "col": 3,
+   "row": 0,
+   "cols": 3,
+   "rows": 1,
+   "color": "green"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "git",
+   "col": 0,
+   "row": 0,
+   "label": "main 에 병합",
+   "sub": "PR 리뷰 통과",
+   "icon": "git",
+   "color": "gray",
+   "badge": 1
+  },
+  {
+   "id": "test",
+   "col": 1,
+   "row": 0,
+   "label": "테스트",
+   "sub": "타입 · 단위 · 빌드",
+   "icon": "flask",
+   "color": "blue",
+   "badge": 2
+  },
+  {
+   "id": "img",
+   "col": 2,
+   "row": 0,
+   "label": "이미지 빌드",
+   "sub": "태그 = 커밋 SHA",
+   "icon": "layers",
+   "color": "blue",
+   "badge": 3
+  },
+  {
+   "id": "reg",
+   "col": 3,
+   "row": 0,
+   "label": "레지스트리",
+   "sub": "GHCR · 사내 Harbor",
+   "icon": "stack",
+   "color": "teal",
+   "badge": 4
+  },
+  {
+   "id": "dep",
+   "col": 4,
+   "row": 0,
+   "label": "배포",
+   "sub": "Vercel · Kubernetes",
+   "icon": "rocket",
+   "color": "green",
+   "badge": 5
+  },
+  {
+   "id": "hc",
+   "col": 5,
+   "row": 0,
+   "label": "헬스체크",
+   "sub": "준비되면 트래픽",
+   "icon": "check",
+   "color": "green",
+   "badge": 6
+  },
+  {
+   "id": "sec",
+   "col": 3,
+   "row": 1,
+   "span": 2,
+   "label": "환경변수 · 시크릿",
+   "sub": "DB 비밀번호 · API 키는 배포 환경이 주입 (이미지 안에 없음)",
+   "icon": "key",
+   "color": "yellow"
+  },
+  {
+   "id": "rb",
+   "col": 5,
+   "row": 1,
+   "label": "롤백",
+   "sub": "실패하면 이전 버전",
+   "icon": "cycle",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "git",
+   "to": "test"
+  },
+  {
+   "from": "test",
+   "to": "img"
+  },
+  {
+   "from": "img",
+   "to": "reg"
+  },
+  {
+   "from": "reg",
+   "to": "dep"
+  },
+  {
+   "from": "dep",
+   "to": "hc"
+  },
+  {
+   "from": "hc",
+   "to": "rb",
+   "label": "실패"
+  },
+  {
+   "from": "sec",
+   "to": "dep",
+   "dashed": true
+  }
+ ]
+}

@@ -1,0 +1,93 @@
+{
+ "title": "지식은 RAG로 넣고, 행동은 파인튜닝으로 바꿉니다",
+ "subtitle": "무엇이 부족한지에 따라 고치는 곳이 다릅니다",
+ "cols": 3,
+ "rows": 2,
+ "cell_h": 140,
+ "nodes": [
+  {
+   "id": "p",
+   "col": 0,
+   "row": 0,
+   "label": "프롬프트",
+   "sub": "지시·예시 몇 개로 먼저 시도",
+   "icon": "list",
+   "color": "yellow",
+   "badge": 1
+  },
+  {
+   "id": "r",
+   "col": 1,
+   "row": 0,
+   "label": "RAG",
+   "sub": "모르는 사실·최신 문서를 붙여 줌",
+   "icon": "search",
+   "color": "green",
+   "badge": 2
+  },
+  {
+   "id": "f",
+   "col": 2,
+   "row": 0,
+   "label": "파인튜닝 (LoRA)",
+   "sub": "형식·말투·분류 습관을 학습",
+   "icon": "brain",
+   "color": "purple",
+   "badge": 3
+  },
+  {
+   "id": "p2",
+   "col": 0,
+   "row": 1,
+   "label": "비용 가장 낮음",
+   "sub": "몇 시간 · 바로 수정",
+   "icon": "clock",
+   "color": "gray"
+  },
+  {
+   "id": "r2",
+   "col": 1,
+   "row": 1,
+   "label": "문서만 갱신",
+   "sub": "출처 표시 · 감사 추적",
+   "icon": "docs",
+   "color": "gray"
+  },
+  {
+   "id": "f2",
+   "col": 2,
+   "row": 1,
+   "label": "데이터·GPU 필요",
+   "sub": "수백~수천 건 · 재학습 관리",
+   "icon": "chip",
+   "color": "gray"
+  }
+ ],
+ "edges": [
+  {
+   "from": "p",
+   "to": "r",
+   "label": "사실이 부족하면"
+  },
+  {
+   "from": "r",
+   "to": "f",
+   "label": "형식이 안 맞으면"
+  },
+  {
+   "from": "p",
+   "to": "p2"
+  },
+  {
+   "from": "r",
+   "to": "r2"
+  },
+  {
+   "from": "f",
+   "to": "f2"
+  }
+ ],
+ "notes": [
+  "둘 다 필요한 경우가 많습니다: RAG 로 근거를 주고, 작은 LoRA 로 답하는 형식을 맞춥니다."
+ ]
+}

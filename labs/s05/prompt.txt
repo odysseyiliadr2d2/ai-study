@@ -1,0 +1,21 @@
+[Basic LLM Chain › Prompt (User Message) — Define below]
+
+아래는 {{ $json.date }} 아침까지 받은 메일 {{ $json.mailCount }}건과
+RSS 새 글 {{ $json.feedCount }}건입니다.
+
+다음 형식으로 한국어 브리핑을 작성하세요.
+1. 오늘 꼭 처리할 일 (최대 3개, 보낸 사람 표시)
+2. 참고만 할 메일 (한 줄씩)
+3. 기술 소식 (RSS, 제목과 한 줄 요약)
+- 원문에 없는 내용은 쓰지 않습니다.
+- 전체 15줄 이내.
+
+---
+{{ $json.digest }}
+
+
+[Anthropic Chat Model 하위 노드]
+Credential: Anthropic API (API 키는 자격증명에만 저장)
+Model: 목록에서 Sonnet 계열 선택 (요약은 Haiku 로도 충분한지 비교)
+Options: Sampling Temperature · Top P · Top K 는 추가하지 않습니다
+  (Claude 5.5 모델은 이 값들을 받으면 400 오류)

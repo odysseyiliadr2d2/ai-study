@@ -1,0 +1,101 @@
+{
+ "title": "GPU 메모리 = 가중치 + KV 캐시 + 여유분",
+ "subtitle": "8B 모델 예시 · 추정값 (정확한 값은 config.json 으로 계산)",
+ "cols": 4,
+ "rows": 2,
+ "cell_h": 140,
+ "nodes": [
+  {
+   "id": "f16",
+   "col": 0,
+   "row": 0,
+   "label": "FP16 가중치",
+   "sub": "8B × 2바이트 ≈ 16GB",
+   "icon": "layers",
+   "color": "purple"
+  },
+  {
+   "id": "i8",
+   "col": 1,
+   "row": 0,
+   "label": "INT8 가중치",
+   "sub": "8B × 1바이트 ≈ 8GB",
+   "icon": "layers",
+   "color": "blue"
+  },
+  {
+   "id": "i4",
+   "col": 2,
+   "row": 0,
+   "label": "INT4 가중치",
+   "sub": "8B × 0.5바이트 ≈ 4~5GB",
+   "icon": "layers",
+   "color": "teal"
+  },
+  {
+   "id": "q",
+   "col": 3,
+   "row": 0,
+   "label": "품질 확인",
+   "sub": "비트를 줄일수록 한국어 평가 다시",
+   "icon": "warn",
+   "color": "yellow"
+  },
+  {
+   "id": "kv",
+   "col": 0,
+   "row": 1,
+   "span": 2,
+   "label": "KV 캐시",
+   "sub": "2 × 층 × KV헤드 × 헤드차원 × 바이트 × 토큰 수 × 동시 요청",
+   "icon": "stack",
+   "color": "orange"
+  },
+  {
+   "id": "ov",
+   "col": 2,
+   "row": 1,
+   "label": "여유분",
+   "sub": "활성값·CUDA 등 10~20%",
+   "icon": "gear",
+   "color": "gray"
+  },
+  {
+   "id": "sum",
+   "col": 3,
+   "row": 1,
+   "label": "필요 VRAM",
+   "sub": "합계 ≤ GPU × 0.9",
+   "icon": "chip",
+   "color": "green",
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "f16",
+   "to": "i8",
+   "label": "절반"
+  },
+  {
+   "from": "i8",
+   "to": "i4",
+   "label": "절반"
+  },
+  {
+   "from": "i4",
+   "to": "q"
+  },
+  {
+   "from": "kv",
+   "to": "ov"
+  },
+  {
+   "from": "ov",
+   "to": "sum"
+  }
+ ],
+ "notes": [
+  "긴 문서·동시 사용자가 많으면 가중치보다 KV 캐시가 더 커질 수 있습니다."
+ ]
+}

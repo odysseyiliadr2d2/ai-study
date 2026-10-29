@@ -1,0 +1,134 @@
+{
+ "title": "로그인한 사용자만, 자기 권한만큼, AI가 정리한 요청을 저장합니다",
+ "subtitle": "업무 요청 등록 한 건이 지나가는 길 — 두 트랙 공통",
+ "cols": 6,
+ "rows": 2,
+ "cell_h": 140,
+ "groups": [
+  {
+   "label": "서버 안에서만 (비밀키 보관)",
+   "col": 2,
+   "row": 0,
+   "cols": 3,
+   "rows": 2,
+   "color": "navy"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "u",
+   "col": 0,
+   "row": 0,
+   "label": "사용자",
+   "sub": "요청 작성",
+   "icon": "user",
+   "color": "orange",
+   "badge": 1
+  },
+  {
+   "id": "login",
+   "col": 1,
+   "row": 0,
+   "label": "로그인",
+   "sub": "Supabase Auth · Spring Security",
+   "icon": "key",
+   "color": "yellow",
+   "badge": 2
+  },
+  {
+   "id": "api",
+   "col": 2,
+   "row": 0,
+   "label": "API",
+   "sub": "검증 · 권한 확인",
+   "icon": "plug",
+   "color": "navy",
+   "badge": 3
+  },
+  {
+   "id": "mask",
+   "col": 3,
+   "row": 0,
+   "label": "마스킹",
+   "sub": "주민·계좌·전화",
+   "icon": "eye",
+   "color": "gray",
+   "badge": 4
+  },
+  {
+   "id": "llm",
+   "col": 4,
+   "row": 0,
+   "label": "LLM",
+   "sub": "요약·분류 JSON",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 5
+  },
+  {
+   "id": "db",
+   "col": 4,
+   "row": 1,
+   "label": "DB 저장",
+   "sub": "RLS · JPA",
+   "icon": "db",
+   "color": "teal",
+   "badge": 6
+  },
+  {
+   "id": "n8n",
+   "col": 5,
+   "row": 1,
+   "label": "n8n 웹훅",
+   "sub": "담당자 알림",
+   "icon": "send",
+   "color": "purple",
+   "badge": 7
+  },
+  {
+   "id": "list",
+   "col": 2,
+   "row": 1,
+   "label": "목록·상세",
+   "sub": "본인 것 또는 담당자",
+   "icon": "list",
+   "color": "blue"
+  }
+ ],
+ "edges": [
+  {
+   "from": "u",
+   "to": "login"
+  },
+  {
+   "from": "login",
+   "to": "api"
+  },
+  {
+   "from": "api",
+   "to": "mask"
+  },
+  {
+   "from": "mask",
+   "to": "llm"
+  },
+  {
+   "from": "llm",
+   "to": "db",
+   "label": "결과"
+  },
+  {
+   "from": "db",
+   "to": "n8n"
+  },
+  {
+   "from": "db",
+   "to": "list",
+   "label": "권한만큼 조회",
+   "dashed": true
+  }
+ ],
+ "notes": [
+  "AI 분석이 실패해도 요청은 '분류 없음'으로 저장하고, 담당자가 직접 분류합니다."
+ ]
+}

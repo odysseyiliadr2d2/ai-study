@@ -1,0 +1,223 @@
+{
+ "1": [
+  "ai",
+  "machine-learning",
+  "deep-learning",
+  "generative-ai",
+  "inference",
+  "foundation-model",
+  "supervised-learning"
+ ],
+ "2": [
+  "llm",
+  "token",
+  "tokenizer",
+  "embedding",
+  "transformer",
+  "attention",
+  "context-window",
+  "hallucination"
+ ],
+ "3": [
+  "prompt-engineering",
+  "few-shot",
+  "zero-shot",
+  "chain-of-thought",
+  "role-prompting",
+  "xml-tags",
+  "prompt-template",
+  "prompt-library"
+ ],
+ "4": [
+  "open-weight-model",
+  "frontier-model",
+  "multimodal",
+  "reasoning-model",
+  "slm",
+  "token-cost",
+  "build-vs-buy",
+  "on-premise"
+ ],
+ "5": [
+  "api",
+  "prompt-template",
+  "token-cost",
+  "pii-masking",
+  "on-premise"
+ ],
+ "6": [
+  "api",
+  "system-prompt",
+  "temperature",
+  "structured-output",
+  "streaming-response",
+  "ttft",
+  "rate-limit",
+  "pii-masking"
+ ],
+ "7": [
+  "ai-agent",
+  "agent-loop",
+  "memory-agent",
+  "human-in-the-loop",
+  "tool-use",
+  "mcp-client",
+  "structured-output",
+  "retry-fallback"
+ ],
+ "8": [
+  "embedding-model",
+  "cosine-similarity",
+  "semantic-search",
+  "vector-db",
+  "hnsw",
+  "chunking",
+  "chunk-overlap",
+  "metadata-filtering"
+ ],
+ "9": [
+  "rag",
+  "retrieval",
+  "top-k-retrieval",
+  "grounding",
+  "groundedness",
+  "document-parsing",
+  "query-rewriting",
+  "knowledge-base"
+ ],
+ "10": [
+  "hybrid-search",
+  "bm25",
+  "reranking",
+  "contextual-retrieval",
+  "agentic-rag",
+  "eval",
+  "llm-as-judge",
+  "guardrail"
+ ],
+ "11": [
+  "text-to-sql",
+  "semantic-layer",
+  "metadata-management",
+  "data-catalog",
+  "golden-dataset",
+  "structured-data"
+ ],
+ "12": [
+  "metadata-management",
+  "data-catalog",
+  "semantic-layer",
+  "structured-data",
+  "pseudonymization",
+  "golden-dataset"
+ ],
+ "13": [
+  "coding-agent",
+  "vibe-coding",
+  "agents-md",
+  "copilot",
+  "regression-testing"
+ ],
+ "14": [
+  "api",
+  "agents-md",
+  "coding-agent",
+  "regression-testing"
+ ],
+ "15": [
+  "structured-output",
+  "pii-masking",
+  "retry-fallback",
+  "model-gateway",
+  "prompt-injection",
+  "system-prompt",
+  "latency"
+ ],
+ "16": [
+  "llmops",
+  "on-premise",
+  "air-gapped-deployment",
+  "observability",
+  "regression-testing"
+ ],
+ "17": [
+  "ai-agent",
+  "tool-use",
+  "function-calling",
+  "tool-schema",
+  "agent-loop",
+  "react",
+  "agentic-workflow",
+  "human-in-the-loop"
+ ],
+ "18": [
+  "mcp",
+  "mcp-server",
+  "mcp-client",
+  "connector",
+  "agent-permissions",
+  "indirect-prompt-injection",
+  "audit-trail",
+  "a2a"
+ ],
+ "19": [
+  "ai-agent",
+  "agent-loop",
+  "mcp",
+  "agent-permissions",
+  "memory-agent",
+  "autonomy-level",
+  "human-in-the-loop",
+  "indirect-prompt-injection"
+ ],
+ "20": [
+  "eval",
+  "golden-dataset",
+  "observability",
+  "guardrail",
+  "indirect-prompt-injection",
+  "red-teaming",
+  "audit-trail",
+  "regression-testing"
+ ],
+ "21": [
+  "on-premise",
+  "air-gapped-deployment",
+  "vllm",
+  "inference-serving",
+  "quantization",
+  "gguf",
+  "kv-cache",
+  "model-gateway"
+ ],
+ "22": [
+  "fine-tuning",
+  "lora",
+  "qlora",
+  "peft",
+  "sft",
+  "catastrophic-forgetting",
+  "distillation",
+  "long-context-vs-rag"
+ ],
+ "23": [
+  "ai-basic-act-korea",
+  "financial-ai-guidelines",
+  "network-separation-reform",
+  "high-impact-ai",
+  "prompt-injection",
+  "shadow-ai",
+  "ai-governance",
+  "red-teaming"
+ ],
+ "24": [
+  "ax",
+  "process-redesign",
+  "use-case",
+  "poc",
+  "roi",
+  "tco",
+  "ax-roadmap",
+  "scale-up"
+ ]
+}

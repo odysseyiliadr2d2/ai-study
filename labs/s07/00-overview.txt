@@ -1,0 +1,17 @@
+[워크플로 이름] 문의 메일 처리 에이전트
+(세션 5 의 n8n 을 그대로 씁니다. 노드 이름은 아래와 똑같이 바꿔 두면 표현식을 그대로 복사할 수 있습니다)
+
+① Gmail Trigger                     이름: 'New Mail'
+② Edit Fields (Set)                 이름: 'Mail'        — 필요한 필드만 남기기
+③ AI Agent                          이름: 'Agent'
+     ├ Chat Model : Anthropic Chat Model
+     ├ Memory     : (이번 실습은 연결하지 않음 — 메일마다 독립 처리)
+     ├ Tool       : Google Sheets Tool  'faq_lookup'
+     ├ Tool       : (선택) MCP Client Tool  'ops_mcp'   (세션 18 서버)
+     └ Output Parser : Structured Output Parser
+④ Gmail — Send and Wait for Approval  이름: 'Approval'
+⑤ IF                                 이름: 'Approved?'
+⑥ Gmail — Reply                      이름: 'Send Reply'      (⑤ true)
+⑦ Google Sheets — Append Row         이름: 'Log'             (⑥ 뒤와 ⑤ false 둘 다 연결)
+
++ 별도 워크플로: 'Mail Agent Errors'  (Error Trigger → Gmail Send)

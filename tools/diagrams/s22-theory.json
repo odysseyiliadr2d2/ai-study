@@ -1,0 +1,93 @@
+{
+ "title": "LoRA는 원래 가중치를 얼리고 작은 행렬 두 개만 학습합니다",
+ "subtitle": "출력 = W·x + B·A·x  ·  A 는 r × d, B 는 d × r (r 은 랭크)",
+ "cols": 4,
+ "rows": 2,
+ "groups": [
+  {
+   "label": "학습하는 부분 · 전체의 1% 미만",
+   "col": 1,
+   "row": 1,
+   "cols": 2,
+   "rows": 1,
+   "color": "purple"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "x",
+   "col": 0,
+   "row": 0,
+   "label": "입력 x",
+   "sub": "토큰 표현",
+   "icon": "token",
+   "color": "blue"
+  },
+  {
+   "id": "w",
+   "col": 1,
+   "row": 0,
+   "span": 2,
+   "label": "원래 가중치 W (얼림)",
+   "sub": "수십억 개 · 학습 안 함",
+   "icon": "lock",
+   "color": "gray"
+  },
+  {
+   "id": "a",
+   "col": 1,
+   "row": 1,
+   "label": "A (r × d)",
+   "sub": "r 차원으로 줄임",
+   "icon": "layers",
+   "color": "purple"
+  },
+  {
+   "id": "b",
+   "col": 2,
+   "row": 1,
+   "label": "B (d × r)",
+   "sub": "다시 늘림 · 0 으로 시작",
+   "icon": "layers",
+   "color": "purple"
+  },
+  {
+   "id": "y",
+   "col": 3,
+   "row": 0,
+   "label": "출력",
+   "sub": "W·x + B·A·x",
+   "icon": "check",
+   "color": "green",
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "x",
+   "to": "w"
+  },
+  {
+   "from": "x",
+   "to": "a",
+   "route": "vh"
+  },
+  {
+   "from": "a",
+   "to": "b"
+  },
+  {
+   "from": "w",
+   "to": "y"
+  },
+  {
+   "from": "b",
+   "to": "y",
+   "label": "더함",
+   "route": "hv"
+  }
+ ],
+ "notes": [
+  "QLoRA 는 얼린 W 를 4비트로 양자화해 올려 메모리를 더 줄입니다. 어댑터 파일은 수십 MB 수준입니다."
+ ]
+}

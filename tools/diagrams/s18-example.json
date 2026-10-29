@@ -1,0 +1,156 @@
+{
+ "title": "세 호스트가 서버에 직접 붙고, Inspector 는 옆에서 시험만 합니다",
+ "subtitle": "세션 18 실습 구성 — 구현은 셋 중 하나, 연결은 세 곳",
+ "cols": 4,
+ "rows": 3,
+ "cell_h": 124,
+ "groups": [
+  {
+   "label": "서버 구현 (택1)",
+   "col": 0,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "teal"
+  },
+  {
+   "label": "MCP 호스트",
+   "col": 3,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "pink"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "py",
+   "col": 0,
+   "row": 0,
+   "label": "Python 모의판",
+   "sub": "MCPServer",
+   "icon": "code",
+   "color": "teal"
+  },
+  {
+   "id": "or",
+   "col": 0,
+   "row": 1,
+   "label": "Oracle 판",
+   "sub": "읽기 전용 계정",
+   "icon": "db",
+   "color": "teal"
+  },
+  {
+   "id": "jv",
+   "col": 0,
+   "row": 2,
+   "label": "Java 트랙",
+   "sub": "Spring AI @McpTool",
+   "icon": "layers",
+   "color": "teal"
+  },
+  {
+   "id": "srv",
+   "col": 1,
+   "row": 1,
+   "label": "ops-dw 서버",
+   "sub": "조회 3·리소스·프롬프트",
+   "icon": "server",
+   "color": "navy",
+   "emph": true
+  },
+  {
+   "id": "ins",
+   "col": 1,
+   "row": 0,
+   "label": "MCP Inspector",
+   "sub": "먼저 목록·호출 시험",
+   "icon": "eye",
+   "color": "purple"
+  },
+  {
+   "id": "wr",
+   "col": 1,
+   "row": 2,
+   "label": "쓰기 도구",
+   "sub": "설정으로 켤 때만",
+   "icon": "lock",
+   "color": "yellow"
+  },
+  {
+   "id": "hub",
+   "col": 2,
+   "row": 1,
+   "label": "전송 선택",
+   "sub": "stdio · Streamable HTTP",
+   "icon": "plug",
+   "color": "gray"
+  },
+  {
+   "id": "cc",
+   "col": 3,
+   "row": 0,
+   "label": "Claude Code",
+   "sub": "stdio · claude mcp add",
+   "icon": "terminal",
+   "color": "pink"
+  },
+  {
+   "id": "cx",
+   "col": 3,
+   "row": 1,
+   "label": "Codex CLI",
+   "sub": "stdio · config.toml",
+   "icon": "code",
+   "color": "pink"
+  },
+  {
+   "id": "n8",
+   "col": 3,
+   "row": 2,
+   "label": "n8n",
+   "sub": "HTTP + 토큰",
+   "icon": "nodes",
+   "color": "pink"
+  }
+ ],
+ "edges": [
+  {
+   "from": "or",
+   "to": "srv"
+  },
+  {
+   "from": "ins",
+   "to": "srv",
+   "dashed": true,
+   "label": "시험"
+  },
+  {
+   "from": "srv",
+   "to": "wr",
+   "dashed": true
+  },
+  {
+   "from": "srv",
+   "to": "hub"
+  },
+  {
+   "from": "hub",
+   "to": "cc",
+   "route": "vh"
+  },
+  {
+   "from": "hub",
+   "to": "cx"
+  },
+  {
+   "from": "hub",
+   "to": "n8",
+   "route": "vh"
+  }
+ ],
+ "notes": [
+  "Python 모의판·Oracle 판·Java 트랙 중 하나를 띄웁니다. 도구 이름·설명이 같으므로 호스트 쪽 설정은 구현을 바꿔도 그대로입니다."
+ ]
+}

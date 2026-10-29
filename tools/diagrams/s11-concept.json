@@ -1,0 +1,147 @@
+{
+ "title": "Text-to-SQL은 메타데이터를 골라 붙이고, 만든 SQL을 검사한 뒤 읽기 전용으로 실행합니다",
+ "subtitle": "모델이 아는 것은 SQL 문법뿐 · 우리 DW 구조는 프롬프트로 알려 줍니다",
+ "cols": 6,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "q",
+   "col": 0,
+   "row": 0,
+   "label": "자연어 질문",
+   "sub": "기준일과 함께",
+   "icon": "user",
+   "color": "orange",
+   "badge": 1
+  },
+  {
+   "id": "link",
+   "col": 1,
+   "row": 0,
+   "label": "스키마 링킹",
+   "sub": "관련 테이블만",
+   "icon": "nodes",
+   "color": "purple",
+   "badge": 2
+  },
+  {
+   "id": "gen",
+   "col": 2,
+   "row": 0,
+   "label": "SQL 생성",
+   "sub": "LLM·바인드 변수",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 3
+  },
+  {
+   "id": "chk",
+   "col": 3,
+   "row": 0,
+   "label": "SQL 검증",
+   "sub": "조회문만·행 제한",
+   "icon": "shield",
+   "color": "red",
+   "badge": 4
+  },
+  {
+   "id": "run",
+   "col": 4,
+   "row": 0,
+   "label": "읽기 전용",
+   "sub": "전용 계정 실행",
+   "icon": "db",
+   "color": "teal",
+   "badge": 5
+  },
+  {
+   "id": "out",
+   "col": 5,
+   "row": 0,
+   "label": "결과 + 설명",
+   "sub": "SQL·가정 함께",
+   "icon": "check",
+   "color": "green",
+   "badge": 6,
+   "emph": true
+  },
+  {
+   "id": "cm",
+   "col": 1,
+   "row": 1,
+   "label": "코멘트",
+   "sub": "테이블·컬럼 설명",
+   "icon": "sheet",
+   "color": "blue"
+  },
+  {
+   "id": "gl",
+   "col": 2,
+   "row": 1,
+   "label": "용어·예시",
+   "sub": "업무 용어·검증 SQL",
+   "icon": "list",
+   "color": "blue"
+  },
+  {
+   "id": "rej",
+   "col": 3,
+   "row": 1,
+   "label": "거부",
+   "sub": "이유 붙여 재생성",
+   "icon": "warn",
+   "color": "red"
+  },
+  {
+   "id": "rv",
+   "col": 5,
+   "row": 1,
+   "label": "담당자 검토",
+   "sub": "승인 SQL은 예시로",
+   "icon": "eye",
+   "color": "navy"
+  }
+ ],
+ "edges": [
+  {
+   "from": "q",
+   "to": "link"
+  },
+  {
+   "from": "link",
+   "to": "gen"
+  },
+  {
+   "from": "gen",
+   "to": "chk"
+  },
+  {
+   "from": "chk",
+   "to": "run",
+   "label": "통과"
+  },
+  {
+   "from": "run",
+   "to": "out"
+  },
+  {
+   "from": "cm",
+   "to": "link"
+  },
+  {
+   "from": "gl",
+   "to": "gen"
+  },
+  {
+   "from": "chk",
+   "to": "rej"
+  },
+  {
+   "from": "out",
+   "to": "rv"
+  }
+ ],
+ "notes": [
+  "코멘트가 비어 있으면 모델은 컬럼 이름만 보고 추측합니다. 메타데이터 정비는 세션 12에서 다룹니다."
+ ]
+}

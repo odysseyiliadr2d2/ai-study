@@ -1,0 +1,142 @@
+{
+ "title": "폐쇄망 반입은 밖에서 묶고, 검증하고, 안에서 그대로 푼다",
+ "subtitle": "모델 파일 · 컨테이너 이미지 · 파이썬 휠을 한 꾸러미로",
+ "cols": 6,
+ "rows": 2,
+ "groups": [
+  {
+   "label": "인터넷 구간",
+   "col": 0,
+   "row": 0,
+   "cols": 2,
+   "rows": 2,
+   "color": "blue"
+  },
+  {
+   "label": "사내 폐쇄망",
+   "col": 3,
+   "row": 0,
+   "cols": 3,
+   "rows": 2,
+   "color": "green"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "m",
+   "col": 0,
+   "row": 0,
+   "label": "모델 파일",
+   "sub": "hf download",
+   "icon": "docs",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "c",
+   "col": 0,
+   "row": 1,
+   "label": "이미지·휠",
+   "sub": "docker save·pip",
+   "icon": "stack",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "h",
+   "col": 1,
+   "row": 0,
+   "label": "매니페스트",
+   "sub": "해시·라이선스",
+   "icon": "list",
+   "color": "purple",
+   "badge": 2
+  },
+  {
+   "id": "s",
+   "col": 2,
+   "row": 0,
+   "label": "보안 심의",
+   "sub": "백신·승인 매체",
+   "icon": "shield",
+   "color": "red",
+   "badge": 3
+  },
+  {
+   "id": "r",
+   "col": 3,
+   "row": 0,
+   "label": "사내 저장소",
+   "sub": "해시 재검증",
+   "icon": "db",
+   "color": "teal",
+   "badge": 4
+  },
+  {
+   "id": "g",
+   "col": 4,
+   "row": 0,
+   "label": "GPU 서버",
+   "sub": "vLLM 컨테이너",
+   "icon": "server",
+   "color": "navy",
+   "badge": 5
+  },
+  {
+   "id": "u",
+   "col": 5,
+   "row": 0,
+   "label": "업무 앱",
+   "sub": "문서 Q&A·요약",
+   "icon": "users",
+   "color": "orange"
+  },
+  {
+   "id": "p",
+   "col": 4,
+   "row": 1,
+   "label": "pip 미러",
+   "sub": "--no-index",
+   "icon": "code",
+   "color": "teal"
+  }
+ ],
+ "edges": [
+  {
+   "from": "m",
+   "to": "h"
+  },
+  {
+   "from": "c",
+   "to": "h",
+   "route": "hv"
+  },
+  {
+   "from": "h",
+   "to": "s"
+  },
+  {
+   "from": "s",
+   "to": "r",
+   "label": "반입"
+  },
+  {
+   "from": "r",
+   "to": "g"
+  },
+  {
+   "from": "g",
+   "to": "u"
+  },
+  {
+   "from": "r",
+   "to": "p",
+   "route": "vh"
+  },
+  {
+   "from": "p",
+   "to": "g",
+   "label": "설치"
+  }
+ ]
+}

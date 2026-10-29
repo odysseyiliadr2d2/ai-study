@@ -1,0 +1,22 @@
+# ~/.codex/config.toml (또는 신뢰한 프로젝트의 .codex/config.toml)
+[mcp_servers.ops-dw]
+command = "python"
+args = ["/home/me/ops-mcp/ops_server.py"]
+env = { OPS_MOCK_DIR = "/home/me/ops-mcp/mock" }
+
+# HTTP 로 띄운 서버라면 command 대신 url
+# [mcp_servers.ops-dw-http]
+# url = "http://127.0.0.1:8765/mcp"
+
+# Claude Code 프로젝트 공유 설정(.mcp.json) 예:
+# {
+#   "mcpServers": {
+#     "ops-dw": {
+#       "type": "stdio",
+#       "command": "python",
+#       "args": ["ops_server.py"],
+#       "env": {"OPS_MOCK_DIR": "./mock"}
+#     }
+#   }
+# }
+# 

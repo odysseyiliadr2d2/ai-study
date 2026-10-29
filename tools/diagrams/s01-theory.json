@@ -1,0 +1,122 @@
+{
+ "title": "학습은 한 번 무겁게, 추론은 요청마다 가볍게 일어납니다",
+ "subtitle": "학습(training)이 만든 가중치를 추론(inference)이 불러 씁니다",
+ "cols": 4,
+ "rows": 2,
+ "groups": [
+  {
+   "label": "학습 · 미리 한 번",
+   "col": 0,
+   "row": 0,
+   "cols": 3,
+   "rows": 1,
+   "color": "blue"
+  },
+  {
+   "label": "추론 · 요청마다",
+   "col": 1,
+   "row": 1,
+   "cols": 3,
+   "rows": 1,
+   "color": "orange"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "data",
+   "col": 0,
+   "row": 0,
+   "label": "정답 달린 데이터",
+   "sub": "티켓 문장 + 유형 라벨",
+   "icon": "sheet",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "train",
+   "col": 1,
+   "row": 0,
+   "label": "학습",
+   "sub": "오차를 줄이도록 가중치 조정",
+   "icon": "cycle",
+   "color": "purple",
+   "badge": 2
+  },
+  {
+   "id": "model",
+   "col": 2,
+   "row": 0,
+   "label": "모델 (가중치)",
+   "sub": "파일로 저장",
+   "icon": "chip",
+   "color": "teal",
+   "badge": 3
+  },
+  {
+   "id": "rule",
+   "col": 3,
+   "row": 0,
+   "label": "규칙 기반은?",
+   "sub": "사람이 규칙을 직접 작성 · 학습 단계 없음",
+   "icon": "list",
+   "color": "gray"
+  },
+  {
+   "id": "inp",
+   "col": 1,
+   "row": 1,
+   "label": "새 티켓",
+   "sub": "처음 보는 문장",
+   "icon": "inbox",
+   "color": "orange",
+   "badge": 4
+  },
+  {
+   "id": "inf",
+   "col": 2,
+   "row": 1,
+   "label": "추론",
+   "sub": "가중치로 계산만 함",
+   "icon": "bolt",
+   "color": "orange",
+   "badge": 5
+  },
+  {
+   "id": "out",
+   "col": 3,
+   "row": 1,
+   "label": "예측 결과",
+   "sub": "유형 + 확신도",
+   "icon": "check",
+   "color": "green",
+   "badge": 6,
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "data",
+   "to": "train"
+  },
+  {
+   "from": "train",
+   "to": "model"
+  },
+  {
+   "from": "model",
+   "to": "inf",
+   "label": "불러오기"
+  },
+  {
+   "from": "inp",
+   "to": "inf"
+  },
+  {
+   "from": "inf",
+   "to": "out"
+  }
+ ],
+ "notes": [
+  "LLM API를 부르는 것은 '추론'만 하는 것입니다. 학습은 모델 회사가 이미 끝내 두었습니다."
+ ]
+}

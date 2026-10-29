@@ -1,0 +1,20 @@
+spring:
+  ai:
+    mcp:
+      server:
+        name: ops-dw
+        version: 1.0.0
+        protocol: STREAMABLE        # 기본값. 엔드포인트는 POST /mcp
+        type: SYNC
+        annotation-scanner:
+          enabled: true             # @McpTool 자동 등록 (기본 true)
+  datasource:
+    url: jdbc:oracle:thin:@//${ORA_HOST}:1521/${ORA_SERVICE}
+    username: ${ORA_USER}           # SELECT 권한만 있는 전용 계정
+    password: ${ORA_PASSWORD}
+    hikari:
+      read-only: true
+      maximum-pool-size: 4
+server:
+  address: 127.0.0.1                # 외부에 열 때는 인증(Spring Security) 먼저
+  port: 8765

@@ -1,0 +1,108 @@
+{
+ "title": "사람 승인은 워크플로 단계와 도구 호출 단계, 두 곳에 둘 수 있습니다",
+ "subtitle": "되돌릴 수 없는 행동(발송·수정·결제) 바로 앞에 둡니다",
+ "cols": 2,
+ "rows": 3,
+ "cell_h": 124,
+ "groups": [
+  {
+   "label": "A. 워크플로 단계 승인",
+   "col": 0,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "blue"
+  },
+  {
+   "label": "B. 도구 호출 승인 (Human review)",
+   "col": 1,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "purple"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "a1",
+   "col": 0,
+   "row": 0,
+   "label": "에이전트가 초안 생성",
+   "sub": "결과를 다음 노드로 넘김",
+   "icon": "bot",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "a2",
+   "col": 0,
+   "row": 1,
+   "label": "Send and Wait",
+   "sub": "Gmail·Slack 승인 버튼 · 실행 일시정지",
+   "icon": "clock",
+   "color": "yellow",
+   "badge": 2
+  },
+  {
+   "id": "a3",
+   "col": 0,
+   "row": 2,
+   "label": "IF 승인 → 발송",
+   "sub": "거절이면 기록만 · 대기 시간 제한",
+   "icon": "send",
+   "color": "green",
+   "badge": 3
+  },
+  {
+   "id": "b1",
+   "col": 1,
+   "row": 0,
+   "label": "에이전트가 도구 호출 결정",
+   "sub": "예: send_reply(to, body)",
+   "icon": "bot",
+   "color": "purple",
+   "badge": 1
+  },
+  {
+   "id": "b2",
+   "col": 1,
+   "row": 1,
+   "label": "Human review",
+   "sub": "도구 실행 전 승인 요청",
+   "icon": "shield",
+   "color": "yellow",
+   "badge": 2
+  },
+  {
+   "id": "b3",
+   "col": 1,
+   "row": 2,
+   "label": "승인 시 실행 · 거절 시 통보",
+   "sub": "거절 사실을 모델이 알고 다른 길 선택",
+   "icon": "cycle",
+   "color": "green",
+   "badge": 3
+  }
+ ],
+ "edges": [
+  {
+   "from": "a1",
+   "to": "a2"
+  },
+  {
+   "from": "a2",
+   "to": "a3"
+  },
+  {
+   "from": "b1",
+   "to": "b2"
+  },
+  {
+   "from": "b2",
+   "to": "b3"
+  }
+ ],
+ "notes": [
+  "A 는 흐름이 단순하고 감사 기록이 명확합니다. B 는 에이전트가 여러 도구를 쓰는 중 일부만 막을 때 씁니다."
+ ]
+}

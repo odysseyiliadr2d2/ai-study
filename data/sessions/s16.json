@@ -1,0 +1,280 @@
+{
+ "id": 16,
+ "part": 4,
+ "title": "배포와 CI/CD",
+ "summary": "Docker, GitHub Actions, 환경변수·비밀키 분리로 자동 배포하기",
+ "level": "중급",
+ "tags": [
+  "DevOps"
+ ],
+ "duration": "120분 (설명 40 · 실습 60 · 토론 20)",
+ "goals": [
+  "Next.js(standalone)와 Spring Boot(계층형 jar)를 Docker 이미지로 만든다",
+  "GitHub Actions 로 테스트 → 빌드 → 배포 파이프라인을 만들고, 실패 시 자동 롤백까지 넣는다",
+  "환경변수와 시크릿을 빌드 시점 · 실행 시점으로 나눠 이미지 밖에서 주입한다",
+  "헬스체크 · 로그 · 롤백 명령으로 배포 후 상태를 확인하고 되돌릴 수 있다",
+  "폐쇄망에서 사내 레지스트리 · 의존성 미러로 같은 파이프라인을 구성하는 방법을 설명한다"
+ ],
+ "output": "업무 요청 서비스의 Dockerfile 2종, GitHub Actions 워크플로 2종, Kubernetes 매니페스트, 폐쇄망용 사내 CI 설정",
+ "concept": {
+  "lead": "CI/CD 는 <b>main 에 병합된 커밋을 사람 손 없이 테스트 · 빌드 · 배포 · 확인까지</b> 보내는 자동화입니다. 배포가 쉬워지면 작게 자주 배포할 수 있고, 문제가 생기면 커밋 단위로 되돌릴 수 있습니다.",
+  "body": [
+   "CI(지속적 통합)는 모든 변경에 대해 테스트와 빌드를 자동으로 돌려 '깨진 코드가 main 에 들어가지 않게' 합니다. CD(지속적 배포)는 통과한 결과물을 배포하고, 헬스체크로 확인하고, 실패하면 이전 버전으로 되돌립니다. 정보계의 '배치 → 검증 → 재처리' 흐름을 애플리케이션 배포에 옮겨 온 것으로 보면 됩니다.",
+   "핵심 원칙은 <b>이미지는 하나, 설정은 환경마다</b>입니다. 커밋 SHA 로 태그를 단 이미지 하나를 개발 · 운영에 그대로 쓰고, DB 주소 · API 키 같은 차이는 실행할 때 환경변수와 시크릿으로 넣습니다. 그래야 '개발에서는 됐는데 운영에서 안 된다'가 줄고, 운영에 무엇이 떠 있는지 정확히 압니다.",
+   "두 트랙은 배포 대상이 다릅니다. 기본 트랙은 Vercel 에 올립니다. 빌드 · CDN · HTTPS · 롤백을 Vercel 이 맡아 설정이 거의 없습니다. Java 트랙은 컨테이너 이미지를 레지스트리에 올리고 Kubernetes 에 배포합니다. 손이 더 가지만 사내 서버 · 폐쇄망 · 사내 Oracle 과 같은 망에 둘 수 있어 금융권 운영 환경에 맞습니다."
+  ],
+  "diagram": {
+   "src": "diagrams/s16-concept.svg",
+   "caption": "CI 는 테스트와 이미지를, CD 는 배포 · 헬스체크 · 롤백을 맡습니다. 비밀값은 배포 환경이 주입합니다."
+  },
+  "terms": [
+   {
+    "term": "CI / CD",
+    "desc": "지속적 통합 / 지속적 배포. 변경마다 자동으로 테스트 · 빌드하고, 통과한 결과물을 자동 또는 승인 후 배포하는 흐름."
+   },
+   {
+    "term": "컨테이너 이미지",
+    "desc": "앱과 실행 환경(JRE · Node.js)을 묶은 배포 단위. Dockerfile 로 만들고 레지스트리(GHCR · Harbor)에 올립니다."
+   },
+   {
+    "term": "시크릿 (Secret)",
+    "desc": "비밀번호 · API 키처럼 노출되면 안 되는 설정값. GitHub Secrets · Vercel 환경변수 · Kubernetes Secret 에 두고 실행 시 주입합니다."
+   },
+   {
+    "term": "헬스체크 (Probe)",
+    "desc": "앱이 살아 있는지(liveness), 요청을 받을 준비가 됐는지(readiness) 확인하는 주소. Spring Boot 는 <code>/actuator/health/liveness</code> · <code>/readiness</code>."
+   },
+   {
+    "term": "롤백",
+    "desc": "문제가 생긴 배포를 이전 버전으로 되돌리는 것. <code>kubectl rollout undo</code>, <code>vercel rollback</code>."
+   },
+   {
+    "term": "롤링 업데이트",
+    "desc": "Pod 를 하나씩 새 버전으로 바꾸는 Kubernetes 기본 배포 방식. 새 Pod 가 준비(readiness)돼야 옛 Pod 를 내립니다."
+   }
+  ]
+ },
+ "theory": {
+  "lead": "배포 대상은 달라도 순서는 같습니다. <b>테스트 → 빌드 → 배포 → 확인 → (실패 시) 롤백</b>. 차이는 결과물의 모양과 비밀값을 두는 곳입니다.",
+  "diagram": {
+   "src": "diagrams/s16-theory.svg",
+   "caption": "가로 한 줄이 같은 역할입니다. 기본 트랙은 Vercel 이, Java 트랙은 Kubernetes 가 그 역할을 맡습니다."
+  },
+  "sections": [
+   {
+    "title": "1. Dockerfile: 작게, 비밀 없이, root 아닌 사용자로",
+    "body": [
+     "Next.js 는 <code>output: \"standalone\"</code> 을 켜면 <code>.next/standalone</code> 에 <code>server.js</code> 와 필요한 패키지만 모입니다. 다만 <code>.next/static</code> 과 <code>public</code> 은 빠져 있어 따로 복사해야 합니다. Vercel 에만 배포한다면 Docker 는 필요 없지만, 사내 서버에 올릴 일을 대비해 함께 만들어 둡니다.",
+     "주의할 점: <code>NEXT_PUBLIC_</code> 변수는 <b>빌드할 때</b> JS 번들에 박힙니다. 그래서 build-arg 로 넘기고, 공개돼도 되는 값만 둡니다. <code>ANTHROPIC_API_KEY</code> 같은 서버 비밀은 실행할 때 주입합니다."
+    ],
+    "code": {
+     "lang": "dockerfile",
+     "file": "labs/s16/web/Dockerfile",
+     "src": "# Dockerfile — ticket-desk-web (Next.js standalone). 사내 서버에 올릴 때 사용합니다.\n# docker build --build-arg NEXT_PUBLIC_SUPABASE_URL=... --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=... -t ticket-desk-web .\n# 폐쇄망: 기본 이미지는 사내 레지스트리 경로로 바꾸고(BASE_IMAGE), npm 은 .npmrc 로 사내 미러를 봅니다.\nARG BASE_IMAGE=node:24-bookworm-slim\n\nFROM ${BASE_IMAGE} AS deps\nWORKDIR /app\nCOPY package.json package-lock.json .npmrc* ./\nRUN npm ci\n\nFROM ${BASE_IMAGE} AS build\nWORKDIR /app\nCOPY --from=deps /app/node_modules ./node_modules\nCOPY . .\n# NEXT_PUBLIC_ 값은 빌드할 때 JS 번들에 박힙니다 → build-arg 로 넘깁니다 (공개돼도 되는 값만)\nARG NEXT_PUBLIC_SUPABASE_URL\nARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY\nENV NEXT_TELEMETRY_DISABLED=1\nRUN npm run build\n\nFROM ${BASE_IMAGE} AS runtime\nWORKDIR /app\nENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1\n# standalone 출력에는 static · public 이 빠져 있어 따로 복사합니다\nCOPY --from=build --chown=node:node /app/.next/standalone ./\nCOPY --from=build --chown=node:node /app/.next/static ./.next/static\nCOPY --from=build --chown=node:node /app/public ./public\nUSER node\nEXPOSE 3000\n# 비밀값(ANTHROPIC_API_KEY 등)은 이미지에 넣지 않고 실행할 때 -e 또는 Kubernetes Secret 으로\nCMD [\"node\", \"server.js\"]\n"
+    }
+   },
+   {
+    "title": "2. Spring Boot 이미지: 계층형 jar 또는 Buildpacks",
+    "body": [
+     "Spring Boot 공식 문서의 방식대로 <code>java -Djarmode=tools -jar application.jar extract --layers</code> 로 jar 를 의존성 · 로더 · 스냅샷 · 애플리케이션 네 계층으로 풉니다. 코드만 바뀐 배포는 맨 위 계층(수백 KB)만 새로 올라갑니다(실습 5단계 Dockerfile).",
+     "다른 방법으로 <code>./mvnw spring-boot:build-image</code>(Cloud Native Buildpacks)는 Dockerfile 없이 이미지를 만듭니다. 편하지만 빌더 이미지와 JRE 를 인터넷에서 받으므로, 폐쇄망에서는 빌더 이미지를 사내 레지스트리에 반입해 두거나 Dockerfile 방식을 씁니다."
+    ],
+    "bullets": [
+     "기본 이미지는 JDK 가 아닌 JRE (공격 면적 · 크기 축소)",
+     "<code>USER app</code> 로 root 가 아닌 사용자 실행",
+     "<code>-XX:MaxRAMPercentage=75</code> 로 컨테이너 메모리 한도에 맞춰 힙 설정",
+     "이미지 태그는 <code>latest</code> 대신 커밋 SHA"
+    ]
+   },
+   {
+    "title": "3. GitHub Actions: PR 은 테스트, main 은 배포",
+    "body": [
+     "워크플로는 잡(job) 단위로 나눕니다. <code>test</code> 는 모든 PR 과 push 에서, <code>deploy</code> 는 main 에 push 됐을 때만 <code>needs: test</code> 로 이어서 돕니다. <code>environment: production</code> 을 걸면 GitHub 환경 보호 규칙으로 승인자를 지정할 수 있습니다. 기본 트랙은 Vercel CLI 로 <code>vercel pull → vercel build --prod → vercel deploy --prebuilt --prod</code> 를 실행하고(Vercel 공식 가이드), 운영 도메인의 <code>/api/health</code> 를 확인한 뒤 실패하면 롤백합니다.",
+     "Java 트랙 워크플로(실습 6단계)는 테스트 잡에 Oracle Free 서비스 컨테이너를 띄워 실제 Oracle 로 테스트하고, jar 를 아티팩트로 넘겨 이미지를 만들어 GHCR 에 올린 뒤 Kubernetes 에 배포합니다."
+    ],
+    "bullets": [
+     "액션 버전은 메이저 태그(<code>@v5</code>) 대신 커밋 SHA 로 고정하면 공급망 공격을 막을 수 있습니다",
+     "<code>permissions:</code> 로 GITHUB_TOKEN 권한을 최소로 (이미지 푸시 잡만 <code>packages: write</code>)",
+     "테스트에서는 실제 LLM 을 부르지 않습니다. 키는 더미 값, AI 분석은 실패해도 저장되는 구조(세션 15)라 테스트가 깨지지 않습니다"
+    ],
+    "code": {
+     "lang": "yaml",
+     "file": "labs/s16/web/.github/workflows/web.yml",
+     "src": "# .github/workflows/web.yml — 기본 트랙: PR 은 테스트만, main 은 테스트 → Vercel 운영 배포\n# 저장소 Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID / 저장소 Variables: PROD_URL\n# (ORG_ID · PROJECT_ID 는 로컬에서 vercel link 후 .vercel/project.json 에 있음)\n# 앱 환경변수(ANTHROPIC_API_KEY 등)는 GitHub 이 아니라 Vercel 프로젝트 설정에 둡니다.\nname: web\n\non:\n  pull_request:\n  push:\n    branches: [main]\n\npermissions:\n  contents: read\n\nconcurrency:\n  group: web-${{ github.ref }}\n  cancel-in-progress: true\n\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v5\n      - uses: actions/setup-node@v6\n        with:\n          node-version: 24\n          cache: npm\n      - run: npm ci\n      - run: npx tsc --noEmit\n      - run: npm run lint --if-present\n      - run: npm test --if-present\n      - run: npm run build\n        env:   # 빌드 확인용 더미 값 (실제 값은 Vercel 이 주입)\n          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co\n          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_dummy\n\n  deploy:\n    needs: test\n    if: github.event_name == 'push' && github.ref == 'refs/heads/main'\n    runs-on: ubuntu-latest\n    environment: production     # GitHub 환경 보호 규칙(승인자 지정)을 걸 수 있음\n    env:\n      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}\n      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}\n    steps:\n      - uses: actions/checkout@v5\n      - uses: actions/setup-node@v6\n        with:\n          node-version: 24\n      - run: npm install --global vercel@latest\n      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}\n      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}\n      - run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}\n      - name: 헬스체크 (실패하면 직전 운영 배포로 롤백)\n        # 운영 도메인으로 확인합니다. 배포마다 생기는 고유 URL 은 Deployment Protection 으로 막혀 있을 수 있습니다.\n        # 저장소 Variables 에 PROD_URL (예: https://ticket-desk-web.vercel.app) 등록\n        run: |\n          for i in $(seq 1 10); do\n            if curl -fsS \"${{ vars.PROD_URL }}/api/health\"; then exit 0; fi\n            sleep 6\n          done\n          echo \"헬스체크 실패 — 롤백합니다\" >&2\n          vercel rollback --token=${{ secrets.VERCEL_TOKEN }} || true\n          exit 1\n"
+    }
+   },
+   {
+    "title": "4. 환경변수와 시크릿: 어디에 무엇을",
+    "body": [
+     "값의 성격에 따라 둘 곳이 다릅니다. 같은 이름의 변수를 환경마다 다른 값으로 넣는 것이 원칙입니다."
+    ],
+    "bullets": [
+     "<b>빌드 시점 · 공개 가능</b>: <code>NEXT_PUBLIC_SUPABASE_URL</code>, publishable 키 → Vercel 환경변수 또는 docker build-arg",
+     "<b>실행 시점 · 비밀</b>: <code>ANTHROPIC_API_KEY</code>, <code>DB_PASSWORD</code>, <code>N8N_WEBHOOK_SECRET</code> → Vercel 환경변수(Production/Preview 분리), Kubernetes Secret",
+     "<b>실행 시점 · 비밀 아님</b>: DB 주소, 모델 이름, 게이트웨이 주소 → Kubernetes ConfigMap",
+     "<b>파이프라인 자체의 비밀</b>: <code>VERCEL_TOKEN</code>, kubeconfig, 레지스트리 비밀번호 → GitHub Secrets / GitLab 변수(Masked · Protected)",
+     "Kubernetes Secret 은 기본이 base64 인코딩일 뿐 암호화가 아닙니다. etcd 암호화 · 접근 권한(RBAC) · 외부 금고(Vault 등) 연동을 사내 기준에 맞춥니다"
+    ]
+   },
+   {
+    "title": "5. 헬스체크 · 로그 · 롤백",
+    "body": [
+     "Spring Boot Actuator 는 Kubernetes 에서 liveness · readiness 상태를 <code>/actuator/health/liveness</code> · <code>/actuator/health/readiness</code> 로 내줍니다(쿠버네티스 밖에서는 <code>management.endpoint.health.probes.enabled=true</code> 로 켬). 세션 15의 보안 설정에서 <code>/actuator/health/**</code> 를 열어 둔 이유입니다. readiness 가 실패하는 새 Pod 에는 트래픽이 가지 않고, 롤링 업데이트가 멈춰 옛 Pod 가 계속 서비스합니다. 이때 파이프라인이 <code>rollout undo</code> 로 정리합니다.",
+     "로그는 표준 출력으로 내보내고 수집기(사내 ELK · Loki 등)가 모읍니다. 세션 14의 traceId 로 장애 문의와 서버 로그를 바로 연결할 수 있습니다. 아래는 배포 후 자주 쓰는 명령입니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s16/ops.sh",
+     "src": "# 운영 명령 모음 — 배포 확인 · 로그 · 롤백 (두 트랙)\n\n# ── Java 트랙 (Kubernetes)\nkubectl -n ticketdesk rollout status deployment/ticket-desk-api      # 배포 진행 확인\nkubectl -n ticketdesk rollout history deployment/ticket-desk-api     # change-cause 에 커밋 SHA\nkubectl -n ticketdesk get pods -l app=ticket-desk-api -o wide\nkubectl -n ticketdesk logs -l app=ticket-desk-api --tail=200          # 최근 로그\nkubectl -n ticketdesk logs deploy/ticket-desk-api | grep \"traceId=8f2c\"   # 세션 14의 traceId 로 추적\nkubectl -n ticketdesk rollout undo deployment/ticket-desk-api        # 직전 버전으로 롤백\nkubectl -n ticketdesk rollout undo deployment/ticket-desk-api --to-revision=3\n\n# 헬스체크 직접 확인 (클러스터 안에서)\nkubectl -n ticketdesk run curl --rm -it --image=curlimages/curl --restart=Never -- \\\n  curl -s http://ticket-desk-api/actuator/health/readiness\n\n# ── 기본 트랙 (Vercel)\nvercel rollback                    # 직전 운영 배포로 (Hobby 플랜은 직전 하나만)\nvercel rollback status\nvercel promote <deployment-url>    # 롤백 취소 · 특정 배포를 운영으로\ncurl -s https://ticket-desk-web.vercel.app/api/health\n\n# ── 로컬에서 운영과 같은 이미지로 확인\ndocker build -t ticket-desk-api:local . && \\\ndocker run --rm -p 8080:8080 --env-file .env.local ticket-desk-api:local\n"
+    }
+   }
+  ]
+ },
+ "lab": {
+  "title": "업무 요청 서비스를 자동 배포하기",
+  "lead": "세션 15까지 만든 서비스를 기본 트랙은 GitHub → Vercel, Java 트랙은 GitHub → GHCR → Kubernetes 로 자동 배포합니다. 쿠버네티스 클러스터가 없으면 Docker Desktop 의 Kubernetes 나 kind 로 실습합니다. 보조 파일(웹 Dockerfile, 웹 워크플로, 운영 명령)은 이론 1 · 3 · 5절에 있습니다.",
+  "env": [
+   "GitHub 저장소 (Actions 사용)",
+   "기본 트랙: Vercel 계정 + Vercel CLI(<code>npm i -g vercel</code>)",
+   "Java 트랙: Docker, kubectl, 로컬 Kubernetes(kind 또는 Docker Desktop) 또는 사내 클러스터",
+   "세션 15의 환경변수 값들"
+  ],
+  "steps": [
+   {
+    "title": "기본 트랙 ① standalone 출력 켜기",
+    "body": [
+     "Vercel 배포에는 영향이 없고, 같은 코드를 Docker 로도 띄울 수 있게 됩니다. <code>npm run build</code> 후 <code>.next/standalone/server.js</code> 가 생기는지 확인합니다."
+    ],
+    "code": {
+     "lang": "typescript",
+     "file": "labs/s16/web/next.config.ts",
+     "src": "// next.config.ts — Docker 로도 배포할 수 있게 standalone 출력을 켭니다 (Vercel 배포에는 영향 없음)\nimport type { NextConfig } from \"next\";\n\nconst nextConfig: NextConfig = {\n  output: \"standalone\",   // .next/standalone 에 server.js 와 필요한 node_modules 만 모음\n};\n\nexport default nextConfig;\n"
+    }
+   },
+   {
+    "title": "기본 트랙 ② 헬스체크 API",
+    "body": [
+     "배포 직후 파이프라인이 부를 주소입니다. DB 나 LLM 까지 부르면 외부 서비스 장애 때 배포가 계속 실패하므로, 앱이 떠 있고 필수 설정이 있는지만 봅니다. 빠진 변수 이름은 응답이 아니라 로그에만 남깁니다. <code>proxy.ts</code> 의 matcher 는 <code>/api</code> 를 로그인 예외로 두었으므로(세션 15) 로그인 없이 호출됩니다."
+    ],
+    "code": {
+     "lang": "typescript",
+     "file": "labs/s16/web/app/api/health/route.ts",
+     "src": "// app/api/health/route.ts — 헬스체크: 앱이 떠 있고 필수 설정이 있는지만 확인 (DB · LLM 은 부르지 않음)\nexport const dynamic = \"force-dynamic\";\n\nconst REQUIRED = [\"NEXT_PUBLIC_SUPABASE_URL\", \"NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY\", \"ANTHROPIC_API_KEY\"];\n\nexport function GET() {\n  const missing = REQUIRED.filter((name) => !process.env[name]);\n  // 어떤 변수가 빠졌는지는 로그에만, 응답에는 상태만\n  if (missing.length > 0) {\n    console.error(\"필수 환경변수 누락:\", missing.join(\", \"));\n    return Response.json({ status: \"DOWN\" }, { status: 503 });\n  }\n  return Response.json({ status: \"UP\", version: process.env.APP_VERSION ?? \"dev\" });\n}\n"
+    }
+   },
+   {
+    "title": "기본 트랙 ③ Vercel 연결과 GitHub Secrets",
+    "body": [
+     "로컬에서 Vercel 프로젝트를 연결하고, 앱 환경변수는 Vercel 에, 파이프라인 토큰은 GitHub 에 넣습니다. 그다음 이론 3절의 <code>.github/workflows/web.yml</code> 을 커밋하고 PR → main 병합으로 배포가 도는지 확인합니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s16/web/setup-vercel.sh",
+     "src": "npm i -g vercel\nvercel login\nvercel link                        # .vercel/project.json 생성 (orgId, projectId) — 이 폴더는 커밋하지 않음\n\n# 앱 환경변수: 운영(Production)과 미리보기(Preview)에 각각 (값은 프롬프트로 입력)\nvercel env add NEXT_PUBLIC_SUPABASE_URL production\nvercel env add NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY production\nvercel env add ANTHROPIC_API_KEY production\nvercel env add N8N_WEBHOOK_URL production\nvercel env add N8N_WEBHOOK_SECRET production\nvercel env add APP_BASE_URL production\n\n# 파이프라인 비밀: GitHub 저장소 Secrets (gh CLI)\ngh secret set VERCEL_TOKEN                      # vercel.com 계정 설정의 Tokens 에서 발급\ngh secret set VERCEL_ORG_ID     --body \"$(jq -r .orgId .vercel/project.json)\"\ngh secret set VERCEL_PROJECT_ID --body \"$(jq -r .projectId .vercel/project.json)\"\ngh variable set PROD_URL --body \"https://ticket-desk-web.vercel.app\"   # 실제 운영 도메인으로\n"
+    }
+   },
+   {
+    "title": "Java 트랙 ① 계층형 Dockerfile",
+    "body": [
+     "jar 를 계층으로 풀어 복사합니다. 로컬에서 <code>./mvnw -B package -DskipTests && docker build -t ticket-desk-api .</code> 로 만들고, 세션 15의 환경변수를 <code>--env-file</code> 로 넣어 <code>docker run</code> 으로 확인합니다. 폐쇄망에서는 <code>--build-arg BASE_IMAGE=사내레지스트리/eclipse-temurin:21-jre</code> 로 기본 이미지를 바꿉니다."
+    ],
+    "code": {
+     "lang": "dockerfile",
+     "file": "labs/s16/api/Dockerfile",
+     "src": "# Dockerfile — ticket-desk-api (Spring Boot 계층형 jar, Java 21)\n# 빌드: ./mvnw -B package -DskipTests && docker build -t ticket-desk-api .\n# 계층으로 나누면 코드만 바뀐 배포에서 의존성 계층(수십 MB)을 다시 받지 않습니다.\nARG BASE_IMAGE=eclipse-temurin:21-jre\n\nFROM ${BASE_IMAGE} AS builder\nWORKDIR /builder\nARG JAR_FILE=target/*.jar\nCOPY ${JAR_FILE} application.jar\n# Spring Boot 공식 방식: jarmode=tools 로 계층 추출\nRUN java -Djarmode=tools -jar application.jar extract --layers --destination extracted\n\nFROM ${BASE_IMAGE}\nWORKDIR /application\nRUN groupadd --system app && useradd --system --gid app app\n# 자주 안 바뀌는 계층부터 복사 (docker 캐시 · 레지스트리 전송량 절약)\nCOPY --from=builder /builder/extracted/dependencies/ ./\nCOPY --from=builder /builder/extracted/spring-boot-loader/ ./\nCOPY --from=builder /builder/extracted/snapshot-dependencies/ ./\nCOPY --from=builder /builder/extracted/application/ ./\nUSER app\nEXPOSE 8080\n# 컨테이너 메모리 한도의 75% 를 힙으로\nENTRYPOINT [\"java\", \"-XX:MaxRAMPercentage=75\", \"-jar\", \"application.jar\"]\n"
+    }
+   },
+   {
+    "title": "Java 트랙 ② GitHub Actions 워크플로",
+    "body": [
+     "세 잡으로 나눕니다. <code>test</code> 는 Oracle Free 서비스 컨테이너에 세션 15의 DDL 을 적용한 뒤 <code>./mvnw verify</code>, <code>image</code> 는 jar 를 받아 GHCR 에 커밋 SHA 태그로 푸시, <code>deploy</code> 는 이미지를 교체하고 <code>rollout status</code> 가 5분 안에 끝나지 않으면 <code>rollout undo</code> 합니다. 사내 클러스터는 외부에서 접근할 수 없으므로 deploy 잡을 사내 self-hosted runner 에서 돌립니다."
+    ],
+    "code": {
+     "lang": "yaml",
+     "file": "labs/s16/api/.github/workflows/api.yml",
+     "src": "# .github/workflows/api.yml — Java 트랙: 테스트 → 이미지 빌드 · GHCR 푸시 → Kubernetes 배포\n# 저장소 Secrets: KUBECONFIG_B64 (배포용 서비스 계정의 kubeconfig 를 base64 로)\n# 사내 클러스터라면 deploy 잡은 사내망 안의 self-hosted runner 에서 돌립니다.\nname: api\n\non:\n  pull_request:\n  push:\n    branches: [main]\n\npermissions:\n  contents: read\n\nenv:\n  IMAGE: ghcr.io/${{ github.repository_owner }}/ticket-desk-api\n\njobs:\n  test:\n    runs-on: ubuntu-latest\n    services:\n      oracle:   # 통합 테스트용 Oracle Database Free\n        image: gvenzl/oracle-free:23-slim\n        env:\n          ORACLE_PASSWORD: ci_sys_pw\n          APP_USER: ticketdesk\n          APP_USER_PASSWORD: ci_app_pw\n        ports: [\"1521:1521\"]\n        options: >-\n          --health-cmd healthcheck.sh\n          --health-interval 10s --health-timeout 5s --health-retries 20\n    env:\n      DB_URL: jdbc:oracle:thin:@localhost:1521/FREEPDB1\n      DB_USER: ticketdesk\n      DB_PASSWORD: ci_app_pw\n      ANTHROPIC_API_KEY: ci-dummy     # 테스트는 실제 LLM 을 부르지 않습니다\n      DEMO_PASSWORD: ci-demo\n    steps:\n      - uses: actions/checkout@v5\n      - uses: actions/setup-java@v4\n        with:\n          distribution: temurin\n          java-version: \"21\"\n          cache: maven\n      - name: 테스트 DB 에 테이블 만들기 (세션 15의 DDL)\n        run: docker exec -i ${{ job.services.oracle.id }} sqlplus -s ticketdesk/ci_app_pw@localhost/FREEPDB1 < db/V1__work_request.sql\n      - run: ./mvnw -B verify\n      - uses: actions/upload-artifact@v4\n        if: github.event_name == 'push'\n        with:\n          name: app-jar\n          path: target/*.jar\n          retention-days: 3\n\n  image:\n    needs: test\n    if: github.event_name == 'push' && github.ref == 'refs/heads/main'\n    runs-on: ubuntu-latest\n    permissions:\n      contents: read\n      packages: write\n    steps:\n      - uses: actions/checkout@v5\n      - uses: actions/download-artifact@v4\n        with:\n          name: app-jar\n          path: target\n      - uses: docker/login-action@v3\n        with:\n          registry: ghcr.io\n          username: ${{ github.actor }}\n          password: ${{ secrets.GITHUB_TOKEN }}\n      - uses: docker/setup-buildx-action@v3\n      - uses: docker/build-push-action@v6\n        with:\n          context: .\n          push: true\n          tags: ${{ env.IMAGE }}:${{ github.sha }}   # latest 대신 커밋 SHA — 무엇이 떠 있는지 정확히 앎\n\n  deploy:\n    needs: image\n    runs-on: ubuntu-latest      # 사내 클러스터: runs-on: [self-hosted, intranet]\n    environment: production\n    steps:\n      - name: kubeconfig 준비\n        run: |\n          mkdir -p ~/.kube\n          echo \"${{ secrets.KUBECONFIG_B64 }}\" | base64 -d > ~/.kube/config\n          chmod 600 ~/.kube/config\n      - name: 이미지 교체와 롤아웃 확인 (실패하면 자동 롤백)\n        run: |\n          kubectl -n ticketdesk set image deployment/ticket-desk-api app=${{ env.IMAGE }}:${{ github.sha }}\n          kubectl -n ticketdesk annotate deployment/ticket-desk-api \\\n            kubernetes.io/change-cause=\"${{ github.sha }} by ${{ github.actor }}\" --overwrite\n          if ! kubectl -n ticketdesk rollout status deployment/ticket-desk-api --timeout=300s; then\n            echo \"롤아웃 실패 — 이전 버전으로 되돌립니다\" >&2\n            kubectl -n ticketdesk rollout undo deployment/ticket-desk-api\n            exit 1\n          fi\n"
+    }
+   },
+   {
+    "title": "Java 트랙 ③ Kubernetes Deployment · Service",
+    "body": [
+     "비밀이 아닌 설정은 ConfigMap, 비밀은 Secret 으로 나눠 <code>envFrom</code> 으로 넣습니다. 환경변수 이름 <code>DB_URL</code> 등은 세션 15의 <code>application.yml</code> 이 그대로 읽습니다. 세 가지 프로브(startup · liveness · readiness)와 <code>maxUnavailable: 0</code> 으로 무중단 롤링 업데이트를 만듭니다. Secret 을 먼저 만든 뒤 <code>kubectl apply -f k8s/</code> 로 적용합니다."
+    ],
+    "code": {
+     "lang": "yaml",
+     "file": "labs/s16/api/k8s/ticket-desk-api.yaml",
+     "src": "# k8s/ticket-desk-api.yaml — 네임스페이스 ticketdesk 에 적용: kubectl apply -f k8s/\n# 비밀값은 이 파일에 쓰지 않습니다. Secret 은 따로 만듭니다 (아래 주석 참고).\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: ticket-desk-api-config\n  namespace: ticketdesk\ndata:\n  DB_URL: jdbc:oracle:thin:@//oracle-scan.example.internal:1521/TICKETDESK_SVC\n  DB_USER: ticketdesk_app\n  CLAUDE_MODEL: claude-sonnet-5-5\n  SPRING_AI_ANTHROPIC_BASE_URL: https://ai-gateway.example.internal   # 사내 AI 게이트웨이\n  N8N_WEBHOOK_URL: http://n8n.automation.svc.cluster.local:5678/webhook/ticket-created\n  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: \"true\"\n---\n# Secret 생성 (값은 배포 담당자가 직접, 또는 Vault · External Secrets 연동)\n# kubectl -n ticketdesk create secret generic ticket-desk-api-secret \\\n#   --from-literal=DB_PASSWORD=... --from-literal=ANTHROPIC_API_KEY=... \\\n#   --from-literal=N8N_WEBHOOK_SECRET=... --from-literal=DEMO_PASSWORD=...\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: ticket-desk-api\n  namespace: ticketdesk\n  labels: { app: ticket-desk-api }\nspec:\n  replicas: 2\n  revisionHistoryLimit: 5          # rollout undo 로 돌아갈 수 있는 이전 버전 수\n  selector:\n    matchLabels: { app: ticket-desk-api }\n  strategy:\n    type: RollingUpdate\n    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }   # 새 Pod 가 준비돼야 옛 Pod 를 내림\n  template:\n    metadata:\n      labels: { app: ticket-desk-api }\n    spec:\n      securityContext:\n        runAsNonRoot: true\n      containers:\n        - name: app\n          image: ghcr.io/example/ticket-desk-api:REPLACED_BY_CI\n          ports:\n            - containerPort: 8080\n          envFrom:\n            - configMapRef: { name: ticket-desk-api-config }\n            - secretRef: { name: ticket-desk-api-secret }\n          resources:\n            requests: { cpu: 250m, memory: 512Mi }\n            limits: { memory: 1Gi }\n          startupProbe:            # 기동이 느려도 최대 150초 기다림\n            httpGet: { path: /actuator/health/liveness, port: 8080 }\n            periodSeconds: 5\n            failureThreshold: 30\n          livenessProbe:           # 멈췄으면 재시작\n            httpGet: { path: /actuator/health/liveness, port: 8080 }\n            periodSeconds: 10\n            failureThreshold: 3\n          readinessProbe:          # 준비 안 됐으면 트래픽 제외\n            httpGet: { path: /actuator/health/readiness, port: 8080 }\n            periodSeconds: 5\n            failureThreshold: 3\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: ticket-desk-api\n  namespace: ticketdesk\nspec:\n  selector: { app: ticket-desk-api }\n  ports:\n    - port: 80\n      targetPort: 8080\n"
+    }
+   },
+   {
+    "title": "(폐쇄망) 사내 Maven 미러 설정",
+    "body": [
+     "실무 예제의 사내 GitLab CI 가 쓰는 Maven 설정입니다. 모든 의존성 요청을 사내 Nexus 로 보내고, 인증 정보는 CI 변수에서 읽습니다. npm 은 저장소 루트 <code>.npmrc</code> 에 <code>registry=</code> 한 줄을 둡니다."
+    ],
+    "code": {
+     "lang": "xml",
+     "file": "labs/s16/intranet/ci/settings.xml",
+     "src": "<!-- ci/settings.xml — 모든 Maven 요청을 사내 Nexus 로 (외부 Maven Central 직접 접근 없음) -->\n<settings xmlns=\"http://maven.apache.org/SETTINGS/1.2.0\">\n  <mirrors>\n    <mirror>\n      <id>nexus</id>\n      <mirrorOf>*</mirrorOf>\n      <url>https://nexus.example.internal/repository/maven-public/</url>\n    </mirror>\n  </mirrors>\n  <servers>\n    <server>\n      <id>nexus</id>\n      <username>${env.NEXUS_USER}</username>\n      <password>${env.NEXUS_PASSWORD}</password>\n    </server>\n  </servers>\n</settings>\n<!-- npm 은 저장소 루트 .npmrc 한 줄:  registry=https://nexus.example.internal/repository/npm-group/ -->\n"
+    }
+   }
+  ],
+  "check": [
+   "main 병합 한 번으로 테스트 → 배포가 끝나고, 배포된 주소의 헬스체크(<code>/api/health</code> 또는 <code>/actuator/health/readiness</code>)가 UP 인가",
+   "readiness 가 실패하도록 일부러 깨뜨린 버전(예: 필수 환경변수 누락)을 배포했을 때 기존 버전이 계속 서비스되고 파이프라인이 롤백하는가",
+   "저장소 · 이미지(<code>docker history</code>) · 워크플로 로그 어디에도 API 키와 DB 비밀번호가 보이지 않는가"
+  ]
+ },
+ "example": {
+  "title": "폐쇄망 사내 서버 배포 파이프라인",
+  "context": "증권사 사내망은 외부 인터넷이 막혀 있어 GitHub · Docker Hub · Maven Central · npm 에 직접 접근할 수 없습니다. 같은 파이프라인을 <b>사내 GitLab · Nexus(의존성 미러) · Harbor(이미지 레지스트리) · Kubernetes</b> 로 옮기고, 외부 의존성은 승인된 반입 경로 하나로만 들어오게 합니다.",
+  "diagram": {
+   "src": "diagrams/s16-example.svg",
+   "caption": "외부 패키지 · 이미지는 반입 · 검사를 거쳐 Nexus · Harbor 에 쌓이고, 빌드와 배포는 모두 사내에서 일어납니다."
+  },
+  "flow": [
+   "Nexus 에 Maven · npm 프록시(또는 반입 전용) 저장소를 만들고, 승인된 아웃바운드 프록시나 주기적 반입으로 외부 패키지를 채웁니다",
+   "기본 이미지(eclipse-temurin JRE, Node.js)는 외부에서 받아 취약점 스캔 후 Harbor 의 <code>base</code> 프로젝트에 올립니다",
+   "빌드 설정을 사내 저장소만 보게 바꿉니다: Maven <code>settings.xml</code> 미러, npm <code>.npmrc</code>, Dockerfile 의 <code>BASE_IMAGE</code>",
+   "사내 GitLab CI 가 테스트 → 이미지 빌드 → Harbor 푸시를 하고, 운영 배포는 변경 승인 후 담당자가 수동 버튼으로 실행합니다",
+   "앱의 LLM 호출 주소는 사내 AI 게이트웨이(ConfigMap 의 <code>SPRING_AI_ANTHROPIC_BASE_URL</code>)로만 둡니다",
+   "배포 이력(커밋 SHA · 실행자)은 change-cause 와 GitLab 환경 기록으로 남겨 변경 관리 증적으로 씁니다"
+  ],
+  "code": {
+   "lang": "yaml",
+   "file": "labs/s16/intranet/.gitlab-ci.yml",
+   "src": "# .gitlab-ci.yml — 폐쇄망 사내 GitLab CI (ticket-desk-api)\n# 전제: 러너는 사내망 shell executor(docker · kubectl 설치), 모든 이미지 · 의존성은 사내 저장소에서\n# CI/CD 변수(Masked · Protected): NEXUS_USER, NEXUS_PASSWORD, HARBOR_USER, HARBOR_PASSWORD, KUBECONFIG_PROD(File 타입)\nstages: [test, build, deploy]\n\nvariables:\n  HARBOR: harbor.example.internal\n  IMAGE: $HARBOR/ticketdesk/ticket-desk-api\n  BASE_JRE: $HARBOR/base/eclipse-temurin:21-jre       # 반입 · 스캔된 기본 이미지\n  MAVEN_OPTS: \"-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository\"\n\ndefault:\n  tags: [intranet-shell]\n\ntest:\n  stage: test\n  cache:\n    key: maven\n    paths: [.m2/repository]\n  script:\n    - ./mvnw -B -s ci/settings.xml verify      # 사내 Nexus 만 사용\n  artifacts:\n    paths: [target/*.jar]\n    expire_in: 3 days\n    reports:\n      junit: target/surefire-reports/TEST-*.xml\n\nbuild-image:\n  stage: build\n  rules:\n    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH\n  script:\n    - echo \"$HARBOR_PASSWORD\" | docker login $HARBOR -u \"$HARBOR_USER\" --password-stdin\n    - docker build --build-arg BASE_IMAGE=$BASE_JRE -t $IMAGE:$CI_COMMIT_SHORT_SHA .\n    - docker push $IMAGE:$CI_COMMIT_SHORT_SHA\n    # Harbor 의 취약점 스캔 결과가 기준 미달이면 이미지 pull 을 막도록 프로젝트 정책 설정\n\ndeploy-prod:\n  stage: deploy\n  rules:\n    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH\n      when: manual                              # 운영 반영은 변경 승인 후 담당자가 버튼으로\n  environment:\n    name: production\n  script:\n    - export KUBECONFIG=$KUBECONFIG_PROD\n    - kubectl -n ticketdesk set image deployment/ticket-desk-api app=$IMAGE:$CI_COMMIT_SHORT_SHA\n    - kubectl -n ticketdesk annotate deployment/ticket-desk-api kubernetes.io/change-cause=\"$CI_COMMIT_SHORT_SHA $GITLAB_USER_LOGIN\" --overwrite\n    - |\n      if ! kubectl -n ticketdesk rollout status deployment/ticket-desk-api --timeout=300s; then\n        kubectl -n ticketdesk rollout undo deployment/ticket-desk-api\n        echo \"롤아웃 실패 — 이전 버전으로 되돌렸습니다\" >&2\n        exit 1\n      fi\n"
+  },
+  "tips": [
+   "Maven 미러 설정(<code>ci/settings.xml</code>, 실습 마지막 단계)은 <code>mirrorOf *</code> 하나로 모든 요청을 Nexus 로 보냅니다. 개발자 PC 의 <code>~/.m2/settings.xml</code> 도 같게 맞추면 '내 PC 에서는 되는데 CI 에서 안 됨'이 줄어듭니다",
+   "의존성 반입 요청이 몰리지 않게, 새 라이브러리 추가는 PR 에 '반입 필요' 라벨을 붙여 미리 신청하는 규칙을 둡니다",
+   "Harbor 의 취약점 스캔 · 서명 정책을 켜 두면 '검사 안 된 이미지는 운영에 못 올라감'을 레지스트리가 강제합니다"
+  ],
+  "pitfalls": [
+   "Buildpacks(<code>spring-boot:build-image</code>)나 Dockerfile 의 기본 이미지가 외부 주소를 가리켜 사내 CI 에서만 빌드가 실패하는 경우",
+   "<code>package-lock.json</code> 의 <code>resolved</code> 주소가 공개 npm 으로 박혀 있어 사내 미러를 우회하려다 실패하는 경우 (사내 레지스트리로 lock 파일 재생성)",
+   "kubeconfig 를 개인 계정 권한 그대로 CI 변수에 넣어, 파이프라인이 클러스터 전체 권한을 갖게 되는 경우 (네임스페이스 한정 서비스 계정 사용)"
+  ]
+ },
+ "refs": [
+  {
+   "label": "Spring Boot 문서 · Dockerfiles (계층형 jar 추출)",
+   "url": "https://docs.spring.io/spring-boot/reference/packaging/container-images/dockerfiles.html"
+  },
+  {
+   "label": "Vercel 가이드 · GitHub Actions 로 배포하기",
+   "url": "https://vercel.com/kb/guide/how-can-i-use-github-actions-with-vercel"
+  },
+  {
+   "label": "Vercel CLI · vercel rollback",
+   "url": "https://vercel.com/docs/cli/rollback"
+  },
+  {
+   "label": "Next.js 문서 · Deploying (Docker · standalone 출력)",
+   "url": "https://nextjs.org/docs/app/getting-started/deploying"
+  },
+  {
+   "label": "Spring Blog · Liveness and Readiness Probes with Spring Boot",
+   "url": "https://spring.io/blog/2020/03/25/liveness-and-readiness-probes-with-spring-boot/"
+  }
+ ]
+}

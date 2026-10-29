@@ -1,0 +1,100 @@
+{
+ "title": "품질은 평가셋으로 재고, 실패 유형을 보고 고칩니다",
+ "subtitle": "한 번 만든 평가셋을 바꿀 때마다 다시 돌리는 루프",
+ "cols": 4,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "set",
+   "col": 0,
+   "row": 0,
+   "label": "평가셋",
+   "sub": "질문·정답·근거 문서 50~200문항",
+   "icon": "list",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "run",
+   "col": 1,
+   "row": 0,
+   "label": "파이프라인 실행",
+   "sub": "설정 하나만 바꿔서",
+   "icon": "cycle",
+   "color": "navy",
+   "badge": 2
+  },
+  {
+   "id": "ret",
+   "col": 2,
+   "row": 0,
+   "label": "검색 지표",
+   "sub": "recall@k · MRR",
+   "icon": "search",
+   "color": "green",
+   "badge": 3
+  },
+  {
+   "id": "gen",
+   "col": 3,
+   "row": 0,
+   "label": "답변 채점",
+   "sub": "LLM 판정 + 사람 검수",
+   "icon": "check",
+   "color": "pink",
+   "badge": 4
+  },
+  {
+   "id": "fail",
+   "col": 3,
+   "row": 1,
+   "label": "실패 분류",
+   "sub": "검색 · 생성 · 거절 실패",
+   "icon": "warn",
+   "color": "red",
+   "badge": 5
+  },
+  {
+   "id": "fix",
+   "col": 1,
+   "row": 1,
+   "span": 2,
+   "label": "가장 많은 실패부터 개선",
+   "sub": "청킹·용어사전·리랭커·프롬프트·문서 보강",
+   "icon": "gear",
+   "color": "orange",
+   "badge": 6
+  }
+ ],
+ "edges": [
+  {
+   "from": "set",
+   "to": "run"
+  },
+  {
+   "from": "run",
+   "to": "ret"
+  },
+  {
+   "from": "ret",
+   "to": "gen"
+  },
+  {
+   "from": "gen",
+   "to": "fail"
+  },
+  {
+   "from": "fail",
+   "to": "fix"
+  },
+  {
+   "from": "fix",
+   "to": "run",
+   "label": "다시 측정",
+   "dashed": true
+  }
+ ],
+ "notes": [
+  "설정을 바꾸기 전과 후의 숫자를 같은 평가셋으로 비교해야 개선인지 알 수 있습니다."
+ ]
+}

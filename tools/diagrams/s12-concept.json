@@ -1,0 +1,144 @@
+{
+ "title": "AI가 DW를 잘 쓰려면 데이터 옆에 네 가지 설명서가 있어야 합니다",
+ "subtitle": "컬럼 코멘트 · 업무 용어 · 코드값 · 계보 — 그리고 품질 지표",
+ "cols": 5,
+ "rows": 3,
+ "groups": [
+  {
+   "label": "메타데이터 · 사람이 정비",
+   "col": 0,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "blue"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "cm",
+   "col": 0,
+   "row": 0,
+   "label": "컬럼 코멘트",
+   "sub": "뜻·단위·형식",
+   "icon": "sheet",
+   "color": "blue"
+  },
+  {
+   "id": "gl",
+   "col": 0,
+   "row": 1,
+   "label": "업무 용어 사전",
+   "sub": "표준용어·동의어",
+   "icon": "list",
+   "color": "blue"
+  },
+  {
+   "id": "cd",
+   "col": 0,
+   "row": 2,
+   "label": "코드값 사전",
+   "sub": "01=영업점, 02=HTS",
+   "icon": "key",
+   "color": "blue"
+  },
+  {
+   "id": "cat",
+   "col": 1,
+   "row": 1,
+   "label": "메타데이터 카탈로그",
+   "sub": "AI가 읽는 한 곳",
+   "icon": "layers",
+   "color": "navy"
+  },
+  {
+   "id": "ln",
+   "col": 2,
+   "row": 0,
+   "label": "데이터 계보",
+   "sub": "ODS→STG→DW→Mart",
+   "icon": "nodes",
+   "color": "purple"
+  },
+  {
+   "id": "dw",
+   "col": 2,
+   "row": 1,
+   "label": "DW 테이블",
+   "sub": "데이터 자체",
+   "icon": "db",
+   "color": "teal",
+   "emph": true
+  },
+  {
+   "id": "dq",
+   "col": 2,
+   "row": 2,
+   "label": "품질 지표",
+   "sub": "완전·유효·일관·적시",
+   "icon": "chart",
+   "color": "green"
+  },
+  {
+   "id": "ai",
+   "col": 3,
+   "row": 1,
+   "label": "AI 도구",
+   "sub": "RAG·Text-to-SQL",
+   "icon": "bot",
+   "color": "pink"
+  },
+  {
+   "id": "u",
+   "col": 4,
+   "row": 1,
+   "label": "정확한 답",
+   "sub": "어떤 기준으로 셌는지까지",
+   "icon": "check",
+   "color": "green"
+  }
+ ],
+ "edges": [
+  {
+   "from": "cm",
+   "to": "cat",
+   "route": "hv"
+  },
+  {
+   "from": "gl",
+   "to": "cat"
+  },
+  {
+   "from": "cd",
+   "to": "cat",
+   "route": "hv"
+  },
+  {
+   "from": "cat",
+   "to": "dw",
+   "label": "설명"
+  },
+  {
+   "from": "ln",
+   "to": "dw",
+   "label": "출처"
+  },
+  {
+   "from": "dw",
+   "to": "ai"
+  },
+  {
+   "from": "ai",
+   "to": "u"
+  },
+  {
+   "from": "dq",
+   "to": "ai",
+   "dashed": true,
+   "label": "믿어도 되나",
+   "route": "hv"
+  }
+ ],
+ "notes": [
+  "메타데이터가 없으면 AI는 컬럼 이름만 보고 추측합니다. 신입에게 말로 설명하던 내용을 데이터 옆에 적어 두는 일입니다."
+ ]
+}

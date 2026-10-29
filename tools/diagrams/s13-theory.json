@@ -1,0 +1,122 @@
+{
+ "title": "작은 단위로 맡기고, 매번 diff · 테스트 · 리뷰를 거쳐 커밋합니다",
+ "subtitle": "한 바퀴가 30분을 넘으면 작업을 더 쪼갭니다",
+ "cols": 5,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "plan",
+   "col": 0,
+   "row": 0,
+   "label": "계획 받기",
+   "sub": "plan 모드 · 코드 수정 금지",
+   "icon": "list",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "task",
+   "col": 1,
+   "row": 0,
+   "label": "작은 지시",
+   "sub": "파일 1~3개 · 완료 조건 명시",
+   "icon": "target",
+   "color": "orange",
+   "badge": 2
+  },
+  {
+   "id": "diff",
+   "col": 2,
+   "row": 0,
+   "label": "diff 검토",
+   "sub": "사람이 한 줄씩 읽기",
+   "icon": "eye",
+   "color": "purple",
+   "badge": 3
+  },
+  {
+   "id": "test",
+   "col": 3,
+   "row": 0,
+   "label": "테스트",
+   "sub": "훅이 자동 실행",
+   "icon": "flask",
+   "color": "green",
+   "badge": 4
+  },
+  {
+   "id": "commit",
+   "col": 4,
+   "row": 0,
+   "label": "커밋",
+   "sub": "한 커밋 = 한 의도",
+   "icon": "git",
+   "color": "teal",
+   "badge": 5
+  },
+  {
+   "id": "fail",
+   "col": 3,
+   "row": 1,
+   "label": "실패하면",
+   "sub": "되돌리고 지시를 더 작게",
+   "icon": "warn",
+   "color": "red"
+  },
+  {
+   "id": "review",
+   "col": 4,
+   "row": 1,
+   "label": "교차 리뷰",
+   "sub": "다른 에이전트가 PR 검토",
+   "icon": "users",
+   "color": "pink",
+   "badge": 6
+  },
+  {
+   "id": "next",
+   "col": 1,
+   "row": 1,
+   "label": "다음 단위",
+   "sub": "계획의 다음 항목",
+   "icon": "cycle",
+   "color": "gray"
+  }
+ ],
+ "edges": [
+  {
+   "from": "plan",
+   "to": "task"
+  },
+  {
+   "from": "task",
+   "to": "diff"
+  },
+  {
+   "from": "diff",
+   "to": "test"
+  },
+  {
+   "from": "test",
+   "to": "commit"
+  },
+  {
+   "from": "test",
+   "to": "fail",
+   "label": "실패"
+  },
+  {
+   "from": "commit",
+   "to": "review"
+  },
+  {
+   "from": "fail",
+   "to": "next",
+   "label": "재지시"
+  },
+  {
+   "from": "next",
+   "to": "task"
+  }
+ ]
+}

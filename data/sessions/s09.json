@@ -1,0 +1,232 @@
+{
+ "id": 9,
+ "part": 3,
+ "title": "RAG 기초",
+ "summary": "색인·검색·생성 파이프라인을 직접 구현하고 근거를 함께 답하기",
+ "level": "중급",
+ "tags": [
+  "Python",
+  "RAG"
+ ],
+ "duration": "120분 (설명 40 · 실습 60 · 토론 20)",
+ "goals": [
+  "RAG가 필요한 이유를 '학습'과 '검색'의 차이로 설명할 수 있다",
+  "청킹 → 임베딩 → 검색 → 프롬프트 조립 → 생성 다섯 단계를 직접 구현한다",
+  "답변마다 출처를 붙이고, 근거가 없으면 모른다고 답하게 만든다"
+ ],
+ "output": "사내 문서 Q&A 미니 RAG (출처 표시 포함) — 팀별로 실제 매뉴얼 1~2개를 넣어 시연",
+ "concept": {
+  "lead": "RAG(검색 증강 생성)는 <b>질문과 관련된 문서를 먼저 찾아서</b> 그 내용을 프롬프트에 붙인 뒤 LLM에게 답하게 하는 방식입니다. 모델을 다시 학습시키지 않고도 사내 문서로 답하게 만들 수 있습니다.",
+  "body": [
+   "LLM은 학습할 때 본 공개 데이터만 알고, 우리 회사의 운영 매뉴얼이나 ETL 설계서는 모릅니다. 그렇다고 문서 전체를 매번 프롬프트에 넣기에는 컨텍스트 윈도우와 비용이 부족합니다.",
+   "그래서 문서를 작은 조각(청크)으로 미리 나눠 두고, 질문이 들어오면 <b>의미가 가까운 조각 몇 개만</b> 골라 붙입니다. 사람이 시험 볼 때 오픈북으로 관련 페이지를 펴 놓고 답하는 것과 같습니다.",
+   "핵심 장점은 세 가지입니다. 문서가 바뀌면 색인만 다시 하면 되고, 답변에 출처를 달 수 있으며, 학습 비용이 들지 않습니다. 금융권처럼 근거와 감사 추적이 중요한 환경에 특히 맞습니다."
+  ],
+  "diagram": {
+   "src": "diagrams/s09-concept.svg",
+   "caption": "색인 단계는 문서가 바뀔 때만, 질의 단계는 질문마다 실행합니다."
+  },
+  "terms": [
+   {
+    "term": "청크 (Chunk)",
+    "desc": "검색 단위로 잘라 둔 문서 조각. 보통 300~800자 정도로 자릅니다."
+   },
+   {
+    "term": "임베딩 (Embedding)",
+    "desc": "문장의 의미를 숫자 벡터로 바꾼 것. 의미가 비슷하면 벡터도 가깝습니다."
+   },
+   {
+    "term": "벡터 저장소",
+    "desc": "임베딩과 원문·출처를 함께 저장하고 가까운 벡터를 빠르게 찾아 주는 저장소. pgvector, Chroma 등."
+   },
+   {
+    "term": "Top-k",
+    "desc": "검색 결과 중 유사도가 높은 상위 k개. k가 작으면 근거를 놓치고, 크면 잡음이 섞입니다."
+   },
+   {
+    "term": "그라운딩 (Grounding)",
+    "desc": "답변을 제공된 근거 안에 묶어 두는 것. 환각을 줄이는 핵심 장치입니다."
+   }
+  ]
+ },
+ "theory": {
+  "lead": "RAG 품질은 모델보다 <b>청킹 · 검색 · 프롬프트</b> 세 단계의 설정에서 더 크게 갈립니다.",
+  "diagram": {
+   "src": "diagrams/s09-theory.svg",
+   "caption": "단계마다 정하는 값과, 잘못 정했을 때 생기는 실패 유형"
+  },
+  "sections": [
+   {
+    "title": "1. 청킹: 얼마나, 어떻게 자를까",
+    "body": [
+     "청크가 너무 크면 관련 없는 내용이 섞여 검색 점수가 흐려지고, 너무 작으면 문맥이 끊깁니다. 업무 문서는 <b>제목(섹션) 단위로 먼저 나누고</b>, 긴 섹션만 글자 수로 다시 자르는 방식이 무난합니다."
+    ],
+    "bullets": [
+     "크기 300~800자, 앞 청크와 10~20% 겹치기",
+     "청크 앞에 <code>[문서명 > 섹션명]</code>을 붙이면 검색 정확도가 올라갑니다",
+     "표는 행 단위로 '컬럼명: 값' 문장으로 풀어 쓰면 검색이 잘 됩니다"
+    ]
+   },
+   {
+    "title": "2. 검색: 의미가 가까운 조각 찾기",
+    "body": [
+     "질문도 같은 임베딩 모델로 벡터로 바꾼 뒤, 저장된 청크 벡터와 <b>코사인 유사도</b>를 계산해 상위 k개를 고릅니다. 벡터를 길이 1로 정규화해 두면 내적만으로 코사인 유사도가 됩니다."
+    ],
+    "bullets": [
+     "k는 3~8에서 시작해 평가셋으로 조정",
+     "유사도 하한선을 두면 '근거 없음'을 판단할 수 있습니다",
+     "용어·코드명 검색이 약하면 다음 세션의 하이브리드 검색으로 보완"
+    ]
+   },
+   {
+    "title": "3. 프롬프트 조립: 근거 안에서만 답하게",
+    "body": [
+     "찾은 청크에 번호를 붙여 <code><근거></code> 블록으로 넣고, 시스템 프롬프트에서 '근거 안에서만 답할 것, 번호로 출처를 달 것, 없으면 모른다고 할 것'을 분명히 지시합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "src": "[시스템]\n근거 안의 내용만으로 답하고, 문장 끝에 [번호]를 붙이세요.\n근거로 답할 수 없으면 \"문서에서 찾지 못했습니다\"라고만 답하세요.\n\n[사용자]\n<근거>\n[1] (야간배치매뉴얼 · 실패 시 연락 체계) 1차로 운영 당직자에게 …\n[2] (야간배치매뉴얼 · 재처리 절차) 실패한 작업은 …\n</근거>\n질문: 야간 배치가 실패하면 누구에게 연락하나요?"
+    }
+   },
+   {
+    "title": "4. RAG가 맞지 않는 경우",
+    "body": [
+     "문서 전체를 요약하거나 집계해야 하는 질문(예: '올해 장애 건수 합계')은 몇 조각만 보는 RAG로는 답하기 어렵습니다. 이런 질문은 Text-to-SQL(세션 11)이나 사전 집계 테이블이 맞습니다. 말투나 출력 형식을 바꾸고 싶다면 파인튜닝(세션 22)을 검토합니다."
+    ]
+   }
+  ]
+ },
+ "lab": {
+  "title": "사내 문서 Q&A 미니 RAG 만들기",
+  "lead": "마크다운 문서 폴더 하나로 RAG 전체 흐름을 직접 만듭니다. 벡터DB 없이 NumPy로 시작하고, 실무형 저장소(pgvector)는 세션 8의 코드를 그대로 붙이면 됩니다.",
+  "env": [
+   "Python 3.11+",
+   "anthropic",
+   "sentence-transformers",
+   "numpy",
+   "ANTHROPIC_API_KEY"
+  ],
+  "steps": [
+   {
+    "title": "환경 준비와 샘플 문서",
+    "body": [
+     "가상환경을 만들고 패키지를 설치합니다. 임베딩 모델은 처음 실행할 때 내려받으며, 폐쇄망에서는 외부에서 받은 모델 폴더를 사내 서버로 옮겨 경로로 지정하면 됩니다. <code>docs/</code> 폴더에 실습용 문서를 넣습니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s09/setup.sh",
+     "src": "python -m venv .venv && source .venv/bin/activate\npip install -r requirements.txt\nexport ANTHROPIC_API_KEY=sk-ant-...   # 실습용 키\nmkdir -p docs && cp sample/*.md docs/"
+    }
+   },
+   {
+    "title": "패키지 목록",
+    "body": [
+     "실습에 필요한 패키지는 세 개입니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s09/requirements.txt",
+     "src": "anthropic>=2.3\nsentence-transformers>=3.0\nnumpy>=1.26\n"
+    }
+   },
+   {
+    "title": "샘플 문서",
+    "body": [
+     "팀의 실제 매뉴얼로 바꿔 넣어도 됩니다. 개인정보나 계좌번호가 들어 있는 문서는 넣지 않습니다."
+    ],
+    "code": {
+     "lang": "markdown",
+     "file": "labs/s09/sample/batch-manual.md",
+     "src": "# 야간 배치 운영 매뉴얼\n\n## 실패 시 연락 체계\n야간 배치(02:00~05:00)가 실패하면 1차로 정보계 운영 당직자에게 메신저로 알립니다.\n30분 안에 복구되지 않으면 데이터팀 팀장에게 전화합니다.\n\n## 재처리 절차\n실패한 작업은 Terrastream 콘솔에서 해당 블록부터 재실행합니다.\n원천 파일이 늦게 도착한 경우 수신 확인 후 STG 적재부터 다시 시작합니다.\n"
+    }
+   },
+   {
+    "title": "청크로 자르기",
+    "body": [
+     "제목 단위로 먼저 나누고, 긴 섹션만 600자로 다시 자릅니다. 청크 앞에 문서명과 섹션명을 붙이는 부분이 검색 품질에 큰 영향을 줍니다. <code>python chunk.py docs &gt; chunks.jsonl</code>로 실행합니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s09/chunk.py",
+     "src": "\"\"\"1단계: 문서를 청크로 자르기 — python chunk.py docs/ > chunks.jsonl\"\"\"\nimport json\nimport re\nimport sys\nfrom pathlib import Path\n\nMAX_CHARS = 600   # 청크 최대 길이\nOVERLAP = 100     # 앞 청크와 겹치는 글자 수\n\n\ndef split_sections(text: str):\n    \"\"\"마크다운 제목(#) 기준으로 큰 덩어리를 나눕니다.\"\"\"\n    parts = re.split(r\"(?m)^(#{1,3} .+)$\", text)\n    title, buf = \"\", \"\"\n    for p in parts:\n        if re.match(r\"^#{1,3} \", p):\n            if buf.strip():\n                yield title, buf.strip()\n            title, buf = p.lstrip(\"# \").strip(), \"\"\n        else:\n            buf += p\n    if buf.strip():\n        yield title, buf.strip()\n\n\ndef chunk(text: str):\n    \"\"\"긴 덩어리는 MAX_CHARS 단위로 자르되 OVERLAP 만큼 겹칩니다.\"\"\"\n    start = 0\n    while start < len(text):\n        end = min(start + MAX_CHARS, len(text))\n        yield text[start:end]\n        if end == len(text):\n            break\n        start = end - OVERLAP\n\n\ndef main(folder: str):\n    for path in sorted(Path(folder).glob(\"**/*.md\")):\n        text = path.read_text(encoding=\"utf-8\")\n        for title, body in split_sections(text):\n            for i, piece in enumerate(chunk(body)):\n                rec = {\n                    \"doc\": path.name,\n                    \"section\": title,\n                    \"part\": i,\n                    # 제목을 본문 앞에 붙이면 검색이 훨씬 잘 됩니다\n                    \"text\": f\"[{path.stem} > {title}] {piece}\",\n                }\n                print(json.dumps(rec, ensure_ascii=False))\n\n\nif __name__ == \"__main__\":\n    main(sys.argv[1] if len(sys.argv) > 1 else \"docs\")\n"
+    }
+   },
+   {
+    "title": "임베딩해서 색인하기",
+    "body": [
+     "청크를 벡터로 바꿔 <code>index.npy</code>에, 원문과 출처는 <code>index.json</code>에 저장합니다. e5 계열 모델은 문서에 <code>passage:</code>, 질문에 <code>query:</code> 접두어를 붙이는 규칙이 있습니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s09/index.py",
+     "src": "\"\"\"2단계: 청크를 임베딩해 저장 — python index.py chunks.jsonl\"\"\"\nimport json\nimport sys\n\nimport numpy as np\nfrom sentence_transformers import SentenceTransformer\n\n# 한국어가 되는 작은 다국어 임베딩 모델 (CPU로도 동작, 사내 서버에 내려받아 쓸 수 있음)\nMODEL = \"intfloat/multilingual-e5-small\"\n\n\ndef main(path: str):\n    records = [json.loads(line) for line in open(path, encoding=\"utf-8\")]\n    model = SentenceTransformer(MODEL)\n    # e5 계열은 문서 쪽에 \"passage: \" 를 붙이는 것이 규칙입니다\n    vecs = model.encode([f\"passage: {r['text']}\" for r in records],\n                        normalize_embeddings=True, batch_size=32, show_progress_bar=True)\n    np.save(\"index.npy\", vecs.astype(\"float32\"))\n    with open(\"index.json\", \"w\", encoding=\"utf-8\") as f:\n        json.dump(records, f, ensure_ascii=False)\n    print(f\"{len(records)}개 청크 색인 완료 → index.npy, index.json\")\n\n\nif __name__ == \"__main__\":\n    main(sys.argv[1] if len(sys.argv) > 1 else \"chunks.jsonl\")\n"
+    }
+   },
+   {
+    "title": "검색하고 근거와 함께 답하기",
+    "body": [
+     "질문을 벡터로 바꿔 상위 4개 청크를 찾고, 번호를 붙여 프롬프트에 넣습니다. 출력 끝에 출처와 유사도를 함께 보여 줘서 사람이 바로 검증할 수 있게 합니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s09/ask.py",
+     "src": "\"\"\"3·4단계: 검색하고 근거와 함께 답하기 — python ask.py \"질문\" \"\"\"\nimport json\nimport os\nimport sys\n\nimport numpy as np\nfrom anthropic import Anthropic\nfrom sentence_transformers import SentenceTransformer\n\nEMB_MODEL = \"intfloat/multilingual-e5-small\"\nLLM_MODEL = os.getenv(\"CLAUDE_MODEL\", \"claude-sonnet-5-5\")\nTOP_K = 4\n\nvecs = np.load(\"index.npy\")\nrecords = json.load(open(\"index.json\", encoding=\"utf-8\"))\nembedder = SentenceTransformer(EMB_MODEL)\nclient = Anthropic()  # ANTHROPIC_API_KEY 환경변수 사용\n\n\ndef search(question: str, k: int = TOP_K):\n    q = embedder.encode([f\"query: {question}\"], normalize_embeddings=True)[0]\n    scores = vecs @ q                      # 정규화했으므로 내적 = 코사인 유사도\n    top = np.argsort(-scores)[:k]\n    return [(float(scores[i]), records[i]) for i in top]\n\n\nSYSTEM = \"\"\"당신은 사내 문서 Q&A 도우미입니다.\n- 반드시 <근거> 안의 내용만으로 답합니다.\n- 문장 끝에 사용한 근거 번호를 [1]처럼 붙입니다.\n- 근거로 답할 수 없으면 \"문서에서 찾지 못했습니다\"라고만 답합니다.\"\"\"\n\n\ndef answer(question: str):\n    hits = search(question)\n    context = \"\\n\\n\".join(\n        f\"[{n}] ({r['doc']} · {r['section']})\\n{r['text']}\" for n, (_, r) in enumerate(hits, 1)\n    )\n    msg = client.messages.create(\n        model=LLM_MODEL,\n        max_tokens=800,\n        system=SYSTEM,\n        messages=[{\"role\": \"user\", \"content\": f\"<근거>\\n{context}\\n</근거>\\n\\n질문: {question}\"}],\n    )\n    print(\"\".join(b.text for b in msg.content if b.type == \"text\"))   # thinking 블록이 앞에 올 수 있어 type 으로 고름\n    print(\"\\n— 출처\")\n    for n, (score, r) in enumerate(hits, 1):\n        print(f\"[{n}] {r['doc']} › {r['section']} (유사도 {score:.2f})\")\n\n\nif __name__ == \"__main__\":\n    answer(\" \".join(sys.argv[1:]) or \"야간 배치가 실패하면 누구에게 연락하나요?\")\n"
+    }
+   }
+  ],
+  "check": [
+   "문서에 있는 질문은 [번호] 출처와 함께 답하는가",
+   "문서에 없는 질문(예: '점심 메뉴 추천')에는 '찾지 못했습니다'라고 답하는가",
+   "청크 크기를 300자와 1,000자로 바꿔 보고 답변 차이를 팀원과 비교했는가"
+  ]
+ },
+ "example": {
+  "title": "정보계 운영 매뉴얼 Q&A 봇",
+  "context": "야간 배치 장애 대응 문서, ETL 설계서, 테이블 정의서가 여러 곳에 흩어져 있어 신규 담당자가 같은 질문을 반복합니다. RAG 봇을 메신저에 붙여 <b>문서 링크와 함께</b> 답하게 하고, 근거가 약하면 당직자에게 넘깁니다.",
+  "diagram": {
+   "src": "diagrams/s09-example.svg",
+   "caption": "문서 색인은 야간 배치로, 질문 응답은 실시간 API로 분리합니다."
+  },
+  "flow": [
+   "문서 범위를 정합니다: 운영 매뉴얼, ETL 설계서, 장애 회고록 (개인정보 포함 문서 제외)",
+   "야간 배치로 바뀐 문서만 다시 청킹·임베딩하고, 문서명·섹션·개정일을 메타데이터로 함께 저장합니다",
+   "질문이 오면 상위 6개를 찾고 유사도 하한선(예: 0.78) 미만은 버립니다",
+   "같은 문서의 옛 개정판은 빼고 최신본만 근거로 넘깁니다",
+   "답변 끝에 문서 링크를 붙이고, 근거가 없으면 당직자 연락처를 안내합니다",
+   "매주 '찾지 못함' 질문을 모아 문서 보강 목록으로 씁니다"
+  ],
+  "code": {
+   "lang": "python",
+   "file": "labs/s09/policy.py",
+   "src": "\"\"\"실무형 개선: 근거가 약하면 답하지 않고, 최신 개정판만 근거로 씁니다.\nask.py 와 같은 폴더에서 실행: python policy.py \"질문\"\n\"\"\"\nimport sys\nfrom dataclasses import dataclass\n\nfrom ask import LLM_MODEL, SYSTEM, client, search\n\nMIN_SCORE = 0.78   # 이 값보다 낮으면 근거가 약하다고 봅니다 (평가셋으로 조정)\n\n\n@dataclass\nclass Answer:\n    text: str\n    sources: list[dict]\n    grounded: bool\n\n\ndef generate(question: str, picked) -> str:\n    context = \"\\n\\n\".join(\n        f\"[{n}] ({r['doc']} · {r['section']})\\n{r['text']}\" for n, (_, r) in enumerate(picked, 1)\n    )\n    msg = client.messages.create(\n        model=LLM_MODEL, max_tokens=800, system=SYSTEM,\n        messages=[{\"role\": \"user\", \"content\": f\"<근거>\\n{context}\\n</근거>\\n\\n질문: {question}\"}],\n    )\n    return \"\".join(b.text for b in msg.content if b.type == \"text\")\n\n\ndef answer_with_policy(question: str) -> Answer:\n    hits = search(question, k=6)\n    strong = [(s, r) for s, r in hits if s >= MIN_SCORE]\n    if not strong:\n        return Answer(\n            text=\"문서에서 확실한 근거를 찾지 못했습니다. 운영 당직자(내선 1234)에게 문의해 주세요.\",\n            sources=[], grounded=False,\n        )\n    # 같은 문서(doc_id)의 옛 개정판은 빼고 최신 개정판 청크만 남깁니다\n    # (색인할 때 doc_id·rev_date 를 메타데이터로 함께 저장해 둔 경우)\n    newest = {}\n    for _, r in strong:\n        key = r.get(\"doc_id\", r[\"doc\"])\n        newest[key] = max(newest.get(key, \"\"), r.get(\"rev_date\", \"\"))\n    picked = [(s, r) for s, r in strong\n              if r.get(\"rev_date\", \"\") == newest[r.get(\"doc_id\", r[\"doc\"])]][:4]\n    text = generate(question, picked)\n    return Answer(text=text, grounded=True,\n                  sources=[{\"doc\": r[\"doc\"], \"section\": r[\"section\"], \"score\": round(s, 2)} for s, r in picked])\n\n\nif __name__ == \"__main__\":\n    result = answer_with_policy(\" \".join(sys.argv[1:]) or \"재처리는 어디서부터 하나요?\")\n    print(result.text)\n    for src in result.sources:\n        print(\"-\", src)\n"
+  },
+  "tips": [
+   "문서 담당자와 개정일을 메타데이터로 저장하면 '누가 언제 쓴 내용인지'까지 답할 수 있습니다",
+   "'찾지 못함' 로그는 문서 보강 우선순위를 정하는 가장 좋은 자료입니다",
+   "처음에는 사람이 검증하는 내부 도구로 시작하고, 정답률을 잰 뒤 범위를 넓힙니다"
+  ],
+  "pitfalls": [
+   "스캔 PDF·이미지 표를 텍스트 추출 없이 넣어 빈 청크가 색인되는 경우",
+   "옛 개정판과 최신본이 함께 검색돼 서로 다른 절차를 섞어 답하는 경우",
+   "유사도 하한선 없이 항상 상위 k개를 넣어, 관련 없는 근거로 그럴듯한 답을 만드는 경우"
+  ]
+ },
+ "refs": [
+  {
+   "label": "Anthropic 문서 · 임베딩 안내",
+   "url": "https://docs.claude.com/en/docs/build-with-claude/embeddings"
+  },
+  {
+   "label": "multilingual-e5-small 모델 카드 (Hugging Face)",
+   "url": "https://huggingface.co/intfloat/multilingual-e5-small"
+  },
+  {
+   "label": "Sentence Transformers 문서",
+   "url": "https://www.sbert.net/"
+  },
+  {
+   "label": "pgvector (PostgreSQL 벡터 확장)",
+   "url": "https://github.com/pgvector/pgvector"
+  }
+ ]
+}

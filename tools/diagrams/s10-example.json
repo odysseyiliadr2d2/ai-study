@@ -1,0 +1,121 @@
+{
+ "title": "실패 유형마다 고칠 곳이 다르므로, 유형별 건수로 우선순위를 정합니다",
+ "subtitle": "운영 매뉴얼 봇 평가셋 120문항 채점 결과를 나누는 예",
+ "cols": 4,
+ "rows": 3,
+ "nodes": [
+  {
+   "id": "r",
+   "col": 0,
+   "row": 1,
+   "label": "채점 결과",
+   "sub": "정답 / 오답 / 거절",
+   "icon": "chart",
+   "color": "navy"
+  },
+  {
+   "id": "f1",
+   "col": 1,
+   "row": 0,
+   "label": "검색 실패",
+   "sub": "정답 근거가 상위 k에 없음",
+   "icon": "search",
+   "color": "red"
+  },
+  {
+   "id": "f2",
+   "col": 1,
+   "row": 1,
+   "label": "생성 실패",
+   "sub": "근거는 찾았는데 틀린 답",
+   "icon": "spark",
+   "color": "yellow"
+  },
+  {
+   "id": "f3",
+   "col": 1,
+   "row": 2,
+   "label": "거절 실패",
+   "sub": "문서에 없는데 지어냄",
+   "icon": "warn",
+   "color": "red"
+  },
+  {
+   "id": "a1",
+   "col": 2,
+   "row": 0,
+   "label": "검색 보강",
+   "sub": "용어사전·BM25·청크 제목",
+   "icon": "gear",
+   "color": "green"
+  },
+  {
+   "id": "a2",
+   "col": 2,
+   "row": 1,
+   "label": "프롬프트·리랭커",
+   "sub": "근거 순서·지시 보강",
+   "icon": "list",
+   "color": "green"
+  },
+  {
+   "id": "a3",
+   "col": 2,
+   "row": 2,
+   "label": "가드레일",
+   "sub": "점수 하한선·거절 문구",
+   "icon": "shield",
+   "color": "green"
+  },
+  {
+   "id": "p",
+   "col": 3,
+   "row": 1,
+   "label": "개선 백로그",
+   "sub": "건수 × 업무 영향으로 정렬",
+   "icon": "target",
+   "color": "orange",
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "r",
+   "to": "f1",
+   "route": "vh"
+  },
+  {
+   "from": "r",
+   "to": "f2"
+  },
+  {
+   "from": "r",
+   "to": "f3",
+   "route": "vh"
+  },
+  {
+   "from": "f1",
+   "to": "a1"
+  },
+  {
+   "from": "f2",
+   "to": "a2"
+  },
+  {
+   "from": "f3",
+   "to": "a3"
+  },
+  {
+   "from": "a1",
+   "to": "p"
+  },
+  {
+   "from": "a2",
+   "to": "p"
+  },
+  {
+   "from": "a3",
+   "to": "p"
+  }
+ ]
+}

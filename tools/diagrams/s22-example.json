@@ -1,0 +1,95 @@
+{
+ "title": "보고서 문체 요약: 프롬프트 → RAG 예시 → LoRA 순서로 올라갑니다",
+ "subtitle": "각 단계에서 같은 평가셋으로 재고, 기준을 넘으면 거기서 멈춥니다",
+ "cols": 5,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "e",
+   "col": 0,
+   "row": 0,
+   "label": "평가셋 50건",
+   "sub": "원문 + 모범 요약",
+   "icon": "sheet",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "p",
+   "col": 1,
+   "row": 0,
+   "label": "프롬프트",
+   "sub": "문체 규칙·예시 3개",
+   "icon": "list",
+   "color": "yellow",
+   "badge": 2
+  },
+  {
+   "id": "r",
+   "col": 2,
+   "row": 0,
+   "label": "예시 검색",
+   "sub": "비슷한 옛 보고서 붙임",
+   "icon": "search",
+   "color": "green",
+   "badge": 3
+  },
+  {
+   "id": "l",
+   "col": 3,
+   "row": 0,
+   "label": "LoRA",
+   "sub": "검수된 800건 학습",
+   "icon": "brain",
+   "color": "purple",
+   "badge": 4
+  },
+  {
+   "id": "d",
+   "col": 4,
+   "row": 0,
+   "label": "배포",
+   "sub": "사내 vLLM + 어댑터",
+   "icon": "rocket",
+   "color": "navy",
+   "badge": 5
+  },
+  {
+   "id": "g",
+   "col": 1,
+   "row": 1,
+   "span": 3,
+   "label": "합격 기준",
+   "sub": "형식 준수 95% · 사실 오류 0건 · 검토자 선호 70%",
+   "icon": "target",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "e",
+   "to": "p"
+  },
+  {
+   "from": "p",
+   "to": "r",
+   "label": "미달"
+  },
+  {
+   "from": "r",
+   "to": "l",
+   "label": "미달"
+  },
+  {
+   "from": "l",
+   "to": "d"
+  },
+  {
+   "from": "e",
+   "to": "g",
+   "dashed": true,
+   "route": "vh",
+   "label": "채점"
+  }
+ ]
+}

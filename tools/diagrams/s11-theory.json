@@ -1,0 +1,143 @@
+{
+ "title": "생성 SQL은 다섯 겹으로 막고, 마지막 벽은 DB 권한입니다",
+ "subtitle": "앞 단계가 뚫려도 뒤 단계가 막도록 겹쳐 둡니다",
+ "cols": 5,
+ "rows": 2,
+ "cell_h": 140,
+ "nodes": [
+  {
+   "id": "p",
+   "col": 0,
+   "row": 0,
+   "label": "파싱",
+   "sub": "sqlglot Oracle 방언 · 문장 1개",
+   "icon": "code",
+   "color": "purple",
+   "badge": 1
+  },
+  {
+   "id": "s",
+   "col": 1,
+   "row": 0,
+   "label": "SELECT만",
+   "sub": "DML·DDL·FOR UPDATE·INTO 거부",
+   "icon": "lock",
+   "color": "red",
+   "badge": 2
+  },
+  {
+   "id": "t",
+   "col": 2,
+   "row": 0,
+   "label": "허용 목록",
+   "sub": "테이블·함수 · DB 링크 금지",
+   "icon": "list",
+   "color": "orange",
+   "badge": 3
+  },
+  {
+   "id": "l",
+   "col": 3,
+   "row": 0,
+   "label": "비용·행 제한",
+   "sub": "실행 계획 · FETCH FIRST",
+   "icon": "chart",
+   "color": "yellow",
+   "badge": 4
+  },
+  {
+   "id": "a",
+   "col": 4,
+   "row": 0,
+   "label": "읽기 전용 계정",
+   "sub": "READ 권한만 · 호출 시간 제한",
+   "icon": "shield",
+   "color": "navy",
+   "badge": 5,
+   "emph": true
+  },
+  {
+   "id": "p2",
+   "col": 0,
+   "row": 1,
+   "label": "막는 것",
+   "sub": "문법 오류·여러 문장",
+   "icon": "warn",
+   "color": "gray"
+  },
+  {
+   "id": "s2",
+   "col": 1,
+   "row": 1,
+   "label": "막는 것",
+   "sub": "데이터 변경·잠금",
+   "icon": "warn",
+   "color": "gray"
+  },
+  {
+   "id": "t2",
+   "col": 2,
+   "row": 1,
+   "label": "막는 것",
+   "sub": "고객 원장·외부 호출",
+   "icon": "warn",
+   "color": "gray"
+  },
+  {
+   "id": "l2",
+   "col": 3,
+   "row": 1,
+   "label": "막는 것",
+   "sub": "풀 스캔·대량 조회",
+   "icon": "warn",
+   "color": "gray"
+  },
+  {
+   "id": "a2",
+   "col": 4,
+   "row": 1,
+   "label": "막는 것",
+   "sub": "위 단계를 우회한 모든 쓰기",
+   "icon": "warn",
+   "color": "gray"
+  }
+ ],
+ "edges": [
+  {
+   "from": "p",
+   "to": "s"
+  },
+  {
+   "from": "s",
+   "to": "t"
+  },
+  {
+   "from": "t",
+   "to": "l"
+  },
+  {
+   "from": "l",
+   "to": "a"
+  },
+  {
+   "from": "p",
+   "to": "p2"
+  },
+  {
+   "from": "s",
+   "to": "s2"
+  },
+  {
+   "from": "t",
+   "to": "t2"
+  },
+  {
+   "from": "l",
+   "to": "l2"
+  },
+  {
+   "from": "a",
+   "to": "a2"
+  }
+ ]
+}

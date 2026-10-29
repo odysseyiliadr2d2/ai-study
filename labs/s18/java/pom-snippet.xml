@@ -1,0 +1,35 @@
+<!-- Spring Boot 4.x 프로젝트(start.spring.io, Java 21)에 추가. 버전은 start.spring.io 에서 현재 값을 확인하세요.
+     2026-10 기준 Spring AI 최신 안정판은 2.0.2 (2.1.0 은 RC). -->
+<properties>
+  <java.version>21</java.version>
+  <spring-ai.version>2.0.2</spring-ai.version>
+</properties>
+
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-bom</artifactId>
+      <version>${spring-ai.version}</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+
+<dependencies>
+  <!-- Streamable HTTP MCP 서버 (Spring MVC). stdio 서버만 필요하면 spring-ai-starter-mcp-server -->
+  <dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jdbc</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>com.oracle.database.jdbc</groupId>
+    <artifactId>ojdbc11</artifactId>
+    <scope>runtime</scope>
+  </dependency>
+</dependencies>

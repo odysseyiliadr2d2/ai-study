@@ -1,0 +1,138 @@
+{
+ "title": "아침 운영 브리핑은 격리된 VM 의 OpenClaw 가 읽기 전용 MCP 로만 만듭니다",
+ "subtitle": "개인 실습용 구성 — 사내 시스템이 아니라 모의 데이터 서버에 연결",
+ "cols": 5,
+ "rows": 2,
+ "cell_h": 128,
+ "groups": [
+  {
+   "label": "격리 VM · 별도 OS 계정 · 샌드박스",
+   "col": 0,
+   "row": 0,
+   "cols": 4,
+   "rows": 2,
+   "color": "gray"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "cr",
+   "col": 0,
+   "row": 0,
+   "label": "정기 작업",
+   "sub": "평일 07:30 cron",
+   "icon": "clock",
+   "color": "purple",
+   "badge": 1
+  },
+  {
+   "id": "gw",
+   "col": 1,
+   "row": 0,
+   "label": "게이트웨이",
+   "sub": "AGENTS.md · 스킬",
+   "icon": "bot",
+   "color": "orange",
+   "badge": 2,
+   "emph": true
+  },
+  {
+   "id": "mcp",
+   "col": 2,
+   "row": 0,
+   "label": "ops MCP 서버",
+   "sub": "읽기 도구 3개만",
+   "icon": "server",
+   "color": "teal",
+   "badge": 3
+  },
+  {
+   "id": "ch",
+   "col": 3,
+   "row": 0,
+   "label": "메신저 채널",
+   "sub": "Telegram · Slack",
+   "icon": "chat",
+   "color": "blue",
+   "badge": 4
+  },
+  {
+   "id": "me",
+   "col": 4,
+   "row": 0,
+   "label": "운영 담당자",
+   "sub": "5줄 브리핑 확인",
+   "icon": "user",
+   "color": "orange",
+   "badge": 5
+  },
+  {
+   "id": "sb",
+   "col": 0,
+   "row": 1,
+   "label": "도구 정책",
+   "sub": "셸·쓰기·브라우저 차단",
+   "icon": "lock",
+   "color": "red"
+  },
+  {
+   "id": "mem",
+   "col": 2,
+   "row": 1,
+   "label": "파일 메모리",
+   "sub": "memory/날짜.md",
+   "icon": "doc",
+   "color": "green"
+  },
+  {
+   "id": "llm",
+   "col": 1,
+   "row": 1,
+   "label": "LLM API",
+   "sub": "모델 선택형 · 전용 키",
+   "icon": "spark",
+   "color": "pink"
+  }
+ ],
+ "edges": [
+  {
+   "from": "cr",
+   "to": "gw"
+  },
+  {
+   "from": "gw",
+   "to": "mcp",
+   "both": true
+  },
+  {
+   "from": "mcp",
+   "to": "ch",
+   "label": "요약"
+  },
+  {
+   "from": "ch",
+   "to": "me"
+  },
+  {
+   "from": "mcp",
+   "to": "mem",
+   "dashed": true,
+   "label": "결과 메모"
+  },
+  {
+   "from": "sb",
+   "to": "cr",
+   "dashed": true,
+   "label": "적용"
+  },
+  {
+   "from": "gw",
+   "to": "llm",
+   "both": true,
+   "label": "추론"
+  }
+ ],
+ "notes": [
+  "도구 정책(샌드박스·차단 목록)은 모든 실행에 적용됩니다. MCP 서버는 읽기판만 연결해 쓰기 도구를 아예 노출하지 않습니다."
+ ]
+}

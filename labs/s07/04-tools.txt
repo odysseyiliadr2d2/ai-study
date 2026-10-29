@@ -1,0 +1,23 @@
+[Google Sheets Tool — 'faq_lookup']  (AI Agent 의 Tool 연결점에 붙이기)
+Description (도구 설명 — 모델이 읽고 언제 쓸지 판단합니다):
+  고객지원 FAQ 시트에서 행을 읽습니다. 답장을 쓰기 전에 관련 FAQ 를 찾을 때 사용합니다.
+Resource: Sheet Within Document / Operation: Get Row(s)
+Document: '고객지원 FAQ' 스프레드시트
+  (열: faq_id | category | question | answer | updated_at)
+Sheet: FAQ
+
+[(선택) MCP Client Tool — 'ops_mcp']   (세션 18 에서 만드는 운영 MCP 서버. 아직 없으면 건너뜁니다)
+Endpoint: http://host.docker.internal:8765/mcp
+  ↑ n8n 이 Docker 안에 있고 MCP 서버가 같은 PC 에서 돌 때의 주소.
+    Linux 는 docker run 에 --add-host=host.docker.internal:host-gateway 를 추가합니다.
+Server Transport: HTTP Streamable
+Authentication: 서버 설정에 맞춤 (세션 18 실습 서버는 None, 사내 운영은 Bearer 등 — 토큰은 자격증명에)
+Tools to Include: Selected → get_batch_log, search_table_spec   (조회 도구만)
+  ↑ request_rerun 같은 실행 도구는 여기서 노출하지 않습니다.
+    재처리 요청이 필요하면 승인 단계(⑤) 뒤의 일반 노드로 실행하거나,
+    Tools 패널의 Human review 아래에 붙여 사람 승인을 거칩니다.
+※ 노드 버전에 따라 화면 항목 이름이 다를 수 있으니 docs.n8n.io 의 MCP Client Tool 문서와 세션 18 을 함께 봅니다.
+
+[다른 워크플로를 도구로]
+Call n8n Workflow Tool — 예: '고객 계약 상태 조회' 워크플로를 도구로 붙이면
+에이전트가 필요할 때만 그 워크플로를 실행합니다 (조회 전용으로 만들 것).

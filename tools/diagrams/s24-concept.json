@@ -1,0 +1,82 @@
+{
+ "title": "유스케이스는 효과와 실행 난이도 2×2로 고릅니다",
+ "subtitle": "업무를 단계로 쪼갠 뒤 단계마다 점을 찍습니다",
+ "cols": 3,
+ "rows": 2,
+ "cell_h": 140,
+ "groups": [
+  {
+   "label": "효과 큼",
+   "col": 1,
+   "row": 0,
+   "cols": 2,
+   "rows": 1,
+   "color": "green"
+  },
+  {
+   "label": "효과 작음",
+   "col": 1,
+   "row": 1,
+   "cols": 2,
+   "rows": 1,
+   "color": "gray"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "p",
+   "col": 0,
+   "row": 0,
+   "label": "업무 프로세스 분해",
+   "sub": "입력 → 처리 → 검토 → 산출 단계별 시간·빈도",
+   "icon": "list",
+   "color": "blue"
+  },
+  {
+   "id": "q1",
+   "col": 1,
+   "row": 0,
+   "label": "먼저 할 것",
+   "sub": "효과 큼 · 쉬움 — 문서 요약, 매뉴얼 Q&A",
+   "icon": "rocket",
+   "color": "green",
+   "emph": true
+  },
+  {
+   "id": "q2",
+   "col": 2,
+   "row": 0,
+   "label": "전략 과제",
+   "sub": "효과 큼 · 어려움 — 고객 대상 상담",
+   "icon": "target",
+   "color": "purple"
+  },
+  {
+   "id": "q3",
+   "col": 1,
+   "row": 1,
+   "label": "빠른 개선",
+   "sub": "효과 작음 · 쉬움 — 개인 생산성 도구",
+   "icon": "bolt",
+   "color": "yellow"
+  },
+  {
+   "id": "q4",
+   "col": 2,
+   "row": 1,
+   "label": "보류",
+   "sub": "효과 작음 · 어려움",
+   "icon": "warn",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "p",
+   "to": "q1"
+  }
+ ],
+ "notes": [
+  "가로축은 실행 난이도(데이터 준비·규제·연동), 세로 묶음은 효과(절감 시간·품질·위험 감소)입니다."
+ ]
+}

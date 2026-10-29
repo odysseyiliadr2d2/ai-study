@@ -1,0 +1,113 @@
+{
+ "title": "구조화 출력은 '형식 강제'와 '내용 검증' 두 겹으로 지킵니다",
+ "subtitle": "API 는 JSON 모양을 보장하고, pydantic 은 업무 규칙을 확인합니다",
+ "cols": 5,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "m",
+   "col": 0,
+   "row": 0,
+   "label": "pydantic 모델",
+   "sub": "필드 · 타입 · enum",
+   "icon": "code",
+   "color": "purple",
+   "badge": 1
+  },
+  {
+   "id": "s",
+   "col": 1,
+   "row": 0,
+   "label": "JSON Schema",
+   "sub": "output_config",
+   "icon": "list",
+   "color": "blue",
+   "badge": 2
+  },
+  {
+   "id": "l",
+   "col": 2,
+   "row": 0,
+   "label": "LLM 생성",
+   "sub": "스키마에 맞춰 디코딩",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 3
+  },
+  {
+   "id": "v",
+   "col": 3,
+   "row": 0,
+   "label": "검증",
+   "sub": "타입 + 업무 규칙",
+   "icon": "shield",
+   "color": "teal",
+   "badge": 4
+  },
+  {
+   "id": "ok",
+   "col": 4,
+   "row": 0,
+   "label": "typed 객체",
+   "sub": "DB·API 로 바로",
+   "icon": "check",
+   "color": "green",
+   "badge": 5,
+   "emph": true
+  },
+  {
+   "id": "r",
+   "col": 3,
+   "row": 1,
+   "label": "재시도",
+   "sub": "오류를 붙여 다시",
+   "icon": "cycle",
+   "color": "yellow"
+  },
+  {
+   "id": "f",
+   "col": 4,
+   "row": 1,
+   "label": "사람 검토 큐",
+   "sub": "2회 실패 시",
+   "icon": "warn",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "m",
+   "to": "s"
+  },
+  {
+   "from": "s",
+   "to": "l"
+  },
+  {
+   "from": "l",
+   "to": "v"
+  },
+  {
+   "from": "v",
+   "to": "ok",
+   "label": "통과"
+  },
+  {
+   "from": "v",
+   "to": "r",
+   "label": "실패"
+  },
+  {
+   "from": "r",
+   "to": "l",
+   "dashed": true,
+   "route": "hv",
+   "label": "다시 호출"
+  },
+  {
+   "from": "r",
+   "to": "f",
+   "label": "한도 초과"
+  }
+ ]
+}

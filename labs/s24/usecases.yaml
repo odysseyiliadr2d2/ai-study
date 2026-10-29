@@ -1,0 +1,36 @@
+# AX 유스케이스 목록 — 숫자는 모두 '예시'입니다. 팀이 실측·견적한 값으로 바꾸세요.
+assumptions:
+  hourly_cost_krw: 60000        # 1인 시간당 인건비(예시, 사내 기준 단가로 교체)
+  work_days_per_year: 240
+  adoption_rate: 0.7            # 대상자 중 실제로 쓰는 비율(파일럿 실측으로 갱신)
+  quality_review_ratio: 0.2     # 절감 시간 중 AI 결과 검토에 다시 쓰는 비율
+
+usecases:
+  - name: 장애 보고서 초안 자동 작성
+    users: 25
+    minutes_saved_per_user_per_day: 20
+    one_time_cost_krw: 30000000    # 구축(인건비·연동)
+    annual_run_cost_krw: 12000000  # 운영(GPU 감가·유지보수 배분)
+    effect: 4                      # 1~5 (품질·위험 감소 포함)
+    difficulty: 2                  # 1~5 (데이터·규제·연동)
+  - name: ETL 설계서·테이블 정의서 Q&A
+    users: 40
+    minutes_saved_per_user_per_day: 15
+    one_time_cost_krw: 45000000
+    annual_run_cost_krw: 15000000
+    effect: 4
+    difficulty: 3
+  - name: SQL 코드 리뷰 보조
+    users: 15
+    minutes_saved_per_user_per_day: 25
+    one_time_cost_krw: 25000000
+    annual_run_cost_krw: 8000000
+    effect: 3
+    difficulty: 2
+  - name: 고객 문의 답변 초안
+    users: 60
+    minutes_saved_per_user_per_day: 30
+    one_time_cost_krw: 150000000
+    annual_run_cost_krw: 40000000
+    effect: 5
+    difficulty: 5

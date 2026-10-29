@@ -1,0 +1,126 @@
+{
+ "title": "요금은 입력 · 캐시 읽기 · 출력 토큰에 서로 다른 단가를 곱한 합입니다",
+ "subtitle": "요청 1건 예시 — Claude Sonnet 5.5 공식 단가(2026-10-29 확인) 기준",
+ "cols": 3,
+ "rows": 3,
+ "cell_h": 112,
+ "nodes": [
+  {
+   "id": "i",
+   "col": 0,
+   "row": 0,
+   "label": "일반 입력",
+   "sub": "질문·로그 500토큰",
+   "icon": "inbox",
+   "color": "blue"
+  },
+  {
+   "id": "ip",
+   "col": 1,
+   "row": 0,
+   "label": "입력 단가",
+   "sub": "$2 / 100만 토큰",
+   "icon": "money",
+   "color": "blue"
+  },
+  {
+   "id": "ic",
+   "col": 2,
+   "row": 0,
+   "label": "$0.0010",
+   "sub": "500 × 2 ÷ 1,000,000",
+   "icon": "chart",
+   "color": "gray"
+  },
+  {
+   "id": "c",
+   "col": 0,
+   "row": 1,
+   "label": "캐시 읽기",
+   "sub": "고정 정의서 8,000토큰",
+   "icon": "layers",
+   "color": "green"
+  },
+  {
+   "id": "cp",
+   "col": 1,
+   "row": 1,
+   "label": "캐시 읽기 단가",
+   "sub": "$0.10 · 입력가의 5%",
+   "icon": "money",
+   "color": "green"
+  },
+  {
+   "id": "cc",
+   "col": 2,
+   "row": 1,
+   "label": "$0.0008",
+   "sub": "캐시 없으면 $0.0160",
+   "icon": "chart",
+   "color": "gray"
+  },
+  {
+   "id": "o",
+   "col": 0,
+   "row": 2,
+   "label": "출력",
+   "sub": "답변 1,000토큰",
+   "icon": "send",
+   "color": "orange"
+  },
+  {
+   "id": "op",
+   "col": 1,
+   "row": 2,
+   "label": "출력 단가",
+   "sub": "$10 · 입력가의 5배",
+   "icon": "money",
+   "color": "orange"
+  },
+  {
+   "id": "oc",
+   "col": 2,
+   "row": 2,
+   "label": "$0.0100",
+   "sub": "비용의 대부분",
+   "icon": "warn",
+   "color": "red",
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "i",
+   "to": "ip",
+   "label": "×"
+  },
+  {
+   "from": "ip",
+   "to": "ic",
+   "label": "="
+  },
+  {
+   "from": "c",
+   "to": "cp",
+   "label": "×"
+  },
+  {
+   "from": "cp",
+   "to": "cc",
+   "label": "="
+  },
+  {
+   "from": "o",
+   "to": "op",
+   "label": "×"
+  },
+  {
+   "from": "op",
+   "to": "oc",
+   "label": "="
+  }
+ ],
+ "notes": [
+  "합계 약 $0.0118. 캐시는 처음 한 번 쓰기 비용(입력가의 1.25배)이 들고, 5분 안에 다시 쓰면 읽기 단가가 적용됩니다."
+ ]
+}

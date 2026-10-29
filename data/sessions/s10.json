@@ -1,0 +1,281 @@
+{
+ "id": 10,
+ "part": 3,
+ "title": "고급 RAG와 평가",
+ "summary": "하이브리드 검색·리랭킹·평가셋·가드레일로 답변 품질 끌어올리기",
+ "level": "중급",
+ "tags": [
+  "Python",
+  "RAG",
+  "평가"
+ ],
+ "duration": "120분 (설명 40 · 실습 60 · 토론 20)",
+ "goals": [
+  "BM25와 벡터 검색을 RRF로 합치고, 리랭커로 후보를 다시 고를 수 있다",
+  "질문·정답·근거 문서로 이루어진 평가셋을 만들고 recall@k와 MRR을 계산한다",
+  "LLM 판정 기준표와 사람 검수를 섞어 답변 정답률을 잰다",
+  "근거 없음 처리와 개인정보 마스킹 같은 가드레일을 파이프라인에 넣는다",
+  "실패 유형별 건수로 개선 우선순위를 정한다"
+ ],
+ "output": "평가셋(JSONL) + 검색·답변 평가 스크립트 + 개선 전후 지표 비교표 — 팀별로 세션 9 봇의 정답률을 숫자로 발표",
+ "concept": {
+  "lead": "고급 RAG는 검색을 <b>넓게 찾고(하이브리드) 좁게 고르는(리랭킹)</b> 두 단계로 나누고, 그 효과를 <b>평가셋의 숫자</b>로 확인하는 방식입니다. 감으로 프롬프트를 고치는 단계에서 벗어나는 것이 이 세션의 목표입니다.",
+  "body": [
+   "세션 9의 벡터 검색은 '의미가 비슷한 문장'은 잘 찾지만 <code>STG_TRD_D</code> 같은 테이블명, 에러 코드, 'TSS' 같은 사내 약어에는 약합니다. 반대로 BM25(키워드 검색)는 글자가 정확히 일치하는 것을 잘 찾습니다. 둘을 함께 돌려 순위를 합치는 것이 하이브리드 검색입니다.",
+   "합친 후보 20~50개 중에서 진짜 근거를 고르는 일은 리랭커가 합니다. 리랭커는 질문과 청크를 <b>한 쌍으로 같이 읽고</b> 관련도를 다시 매기므로 임베딩 비교보다 정확하지만 느립니다. 그래서 후보를 먼저 넓게 뽑고, 소수만 리랭커에 넣습니다.",
+   "이렇게 부품이 늘면 '무엇이 좋아졌는지'를 말하기 어려워집니다. 그래서 질문·정답·근거 문서를 묶은 평가셋을 먼저 만들고, 설정을 바꿀 때마다 같은 평가셋으로 검색 지표(recall@k, MRR)와 답변 정답률을 잽니다. 마지막으로 근거가 약하면 답하지 않고, 개인정보는 가리는 가드레일을 둡니다."
+  ],
+  "diagram": {
+   "src": "diagrams/s10-concept.svg",
+   "caption": "두 검색기의 결과를 RRF로 합치고, 리랭커가 상위 몇 개만 골라 LLM에 넘깁니다."
+  },
+  "terms": [
+   {
+    "term": "BM25",
+    "desc": "단어가 얼마나 자주, 얼마나 드물게 나오는지로 점수를 매기는 전통 키워드 검색. 테이블명·코드값처럼 정확한 일치에 강합니다."
+   },
+   {
+    "term": "RRF (Reciprocal Rank Fusion)",
+    "desc": "여러 검색 결과를 점수 대신 순위로 합치는 방법. 문서마다 1/(k + 순위)를 더하며 보통 k = 60을 씁니다."
+   },
+   {
+    "term": "리랭커 (Cross-encoder)",
+    "desc": "질문과 문서를 한 번에 모델에 넣어 관련도를 매기는 모델. 정확하지만 후보마다 계산하므로 20~50개 정도에만 씁니다."
+   },
+   {
+    "term": "recall@k",
+    "desc": "정답 근거 문서 중 상위 k개 안에 들어온 비율. 검색이 근거를 놓치는지 봅니다."
+   },
+   {
+    "term": "MRR (Mean Reciprocal Rank)",
+    "desc": "첫 정답 근거 순위의 역수(1위 1.0, 2위 0.5)를 문항별로 평균한 값. 정답이 얼마나 위에 오는지 봅니다."
+   },
+   {
+    "term": "LLM-as-judge",
+    "desc": "기준표를 준 LLM에게 답변을 채점하게 하는 방법. 빠르지만 틀릴 수 있어 사람 검수 표본과 함께 씁니다."
+   }
+  ]
+ },
+ "theory": {
+  "lead": "개선은 항상 <b>측정 → 실패 분류 → 한 가지 수정 → 재측정</b> 순서로 합니다. 아래 다섯 가지 기법은 각각 고치는 실패 유형이 다릅니다.",
+  "diagram": {
+   "src": "diagrams/s10-theory.svg",
+   "caption": "같은 평가셋으로 바꾸기 전과 후를 비교하는 개선 루프"
+  },
+  "sections": [
+   {
+    "title": "1. 하이브리드 검색과 RRF",
+    "body": [
+     "BM25 점수는 0~수십, 코사인 유사도는 0~1처럼 척도가 다르기 때문에 점수를 그냥 더하면 한쪽이 묻힙니다. RRF는 <b>순위만</b> 쓰므로 척도 맞추기가 필요 없고, 두 검색기 모두에서 상위에 오른 문서가 자연스럽게 1위가 됩니다."
+    ],
+    "bullets": [
+     "각 검색기에서 후보 30~50개를 뽑아 합칩니다",
+     "한국어 BM25는 토큰화가 중요합니다. 실습은 한글 2글자 단위로 자르고, 운영에서는 형태소 분석기를 검토합니다",
+     "Elasticsearch·OpenSearch 같은 검색엔진은 하이브리드와 RRF를 기능으로 제공하므로 직접 구현은 구조 이해용입니다"
+    ],
+    "code": {
+     "lang": "text",
+     "src": "질문: \"TSS 재처리 블록\"\n\nBM25 순위   : A(1) C(2) B(3)\n벡터 순위   : B(1) A(2) D(3)\n\nRRF 점수 (k = 60)\nA = 1/(60+1) + 1/(60+2) = 0.0325   ← 두 검색기 모두 상위 → 1위\nB = 1/(60+3) + 1/(60+1) = 0.0323\nC = 1/(60+2)            = 0.0161\nD = 1/(60+3)            = 0.0159"
+    }
+   },
+   {
+    "title": "2. 리랭킹: 넓게 찾고 좁게 고르기",
+    "body": [
+     "임베딩 검색(bi-encoder)은 질문과 문서를 따로 벡터로 바꿔 비교하므로 빠르지만 세밀하지 않습니다. 리랭커(cross-encoder)는 두 문장을 함께 읽어 '이 문단이 이 질문의 답을 담고 있는가'를 직접 판단합니다. 실습은 한국어를 포함한 다국어 리랭커 <code>BAAI/bge-reranker-v2-m3</code>(Apache-2.0)를 씁니다."
+    ],
+    "bullets": [
+     "후보 20개 → 리랭커 → 상위 3~5개를 LLM에 넘깁니다",
+     "출력이 하나인 리랭커는 시그모이드를 거쳐 0~1 점수가 나오므로 '근거 없음' 하한선으로 쓰기 좋습니다",
+     "CPU에서는 후보 수에 비례해 느려집니다. 지연 시간을 평가 지표와 함께 기록합니다"
+    ]
+   },
+   {
+    "title": "3. 질의 재작성과 메타데이터 필터",
+    "body": [
+     "사용자는 'TSS 재처리'라고 묻는데 문서에는 'Terrastream 콘솔에서 재실행'이라고 적혀 있으면 검색이 빗나갑니다. 업무 용어사전으로 약어를 먼저 풀고, LLM에게 문서에 나올 법한 표현으로 검색어 2~3개를 만들게 한 뒤 결과를 다시 RRF로 합칩니다.",
+     "메타데이터 필터는 검색 전에 후보를 좁힙니다. 문서 종류(매뉴얼·설계서), 부서, 개정일, 보안 등급을 청크와 함께 저장해 두면 '운영 매뉴얼에서만', '최신 개정판만'처럼 조건을 걸 수 있습니다. 권한이 없는 문서가 근거로 들어가지 않게 하는 것도 이 단계의 일입니다."
+    ],
+    "bullets": [
+     "재작성은 LLM 호출이 한 번 늘어나므로 지연·비용을 함께 봅니다",
+     "용어사전은 세션 12에서 정비하는 업무 용어 사전을 그대로 씁니다"
+    ]
+   },
+   {
+    "title": "4. 평가셋과 검색 지표",
+    "body": [
+     "평가셋은 <b>질문 · 정답 요지 · 근거 문서(섹션) · 업무 분류 · 답할 수 있는지 여부</b>를 한 줄씩 적은 JSONL 파일입니다. 운영 담당자에게 실제로 받은 질문에서 50~200문항을 고르고, 문서에 없는 질문도 10~20% 섞어 거절을 잘 하는지 봅니다."
+    ],
+    "bullets": [
+     "recall@k가 낮으면 검색 문제, recall은 높은데 정답률이 낮으면 생성 문제입니다",
+     "MRR이 낮으면 근거가 아래쪽에 묻혀 있다는 뜻이라 리랭커 효과가 큽니다",
+     "평가셋은 문서가 바뀔 때 함께 고칩니다. 근거 섹션 이름이 바뀌면 지표가 거짓으로 떨어집니다"
+    ],
+    "code": {
+     "lang": "text",
+     "src": "평가셋 한 줄 (JSONL)\n{\"id\": \"q003\", \"question\": \"TSS에서 실패한 작업은 어디서부터 다시 돌리나요?\",\n \"answer\": \"Terrastream 콘솔에서 실패한 블록부터 재실행\",\n \"evidence\": [\"batch-manual.md#재처리 절차\"], \"category\": \"재처리\", \"answerable\": true}\n\n검색 결과 상위 4개: [연락 체계, 재처리 절차, 일정, …]\nrecall@4 = 정답 근거 1개 중 1개 포함 = 1.00\nRR       = 정답이 2위 → 1/2 = 0.50   (MRR = 문항별 RR 의 평균)"
+    }
+   },
+   {
+    "title": "5. 답변 평가와 가드레일",
+    "body": [
+     "답변은 LLM 판정(LLM-as-judge)으로 1차 채점합니다. 판정 모델에는 <b>정답 요지와 기준표</b>(정확성 0~2, 근거 충실성 0~2, 출처 표기 0~1)를 주고 JSON으로만 답하게 합니다. 판정도 틀릴 수 있으므로 낮은 점수 전부와 나머지의 20% 정도를 사람이 다시 보고, 사람과 LLM 판정이 얼마나 일치하는지도 기록합니다.",
+     "가드레일은 두 가지부터 시작합니다. 첫째, 리랭커 최고 점수가 하한선보다 낮으면 LLM을 부르지 않고 '근거를 찾지 못했다'고 답합니다. 둘째, 주민등록번호·전화번호·이메일·계좌번호 형태는 LLM에 보내기 전과 답변을 내보내기 전에 정규식으로 가립니다. 정규식은 형식만 잡으므로 사내 표준 마스킹 모듈이 있으면 그것을 씁니다."
+    ],
+    "bullets": [
+     "판정 모델은 가능하면 답변 모델과 다른 모델이나 더 큰 모델을 씁니다",
+     "판정 프롬프트를 바꾸면 이전 점수와 비교할 수 없으니 버전을 함께 기록합니다",
+     "Claude 5.5 계열은 <code>temperature</code>를 지정할 수 없습니다(400 오류). 판정의 흔들림은 기준표를 구체적으로 쓰고, 같은 문항을 2~3번 채점해 다르게 나온 것만 사람이 보는 방식으로 줄입니다"
+    ]
+   }
+  ]
+ },
+ "lab": {
+  "title": "세션 9 봇에 하이브리드 검색·리랭커·평가 붙이기",
+  "lead": "세션 9의 <code>chunk.py</code>·<code>index.py</code>·<code>ask.py</code>를 그대로 쓰고, 문서 6개(22개 섹션)짜리 샘플 문서와 24문항 평가셋으로 바꿔 검색 설정 세 가지를 숫자로 비교합니다. 샘플 문서는 키워드 질문·의역 질문·구판과 개정판이 섞이도록 일부러 만들었습니다.",
+  "env": [
+   "Python 3.11+",
+   "세션 9 실습 파일(chunk.py, index.py, ask.py)",
+   "rank_bm25",
+   "sentence-transformers 3.0+",
+   "BAAI/bge-reranker-v2-m3 (약 2GB, 처음 실행 시 내려받음)",
+   "ANTHROPIC_API_KEY"
+  ],
+  "steps": [
+   {
+    "title": "준비: 패키지 · 샘플 문서 · 색인",
+    "body": [
+     "새 폴더에 세션 9의 <code>chunk.py</code>, <code>index.py</code>, <code>ask.py</code>와 이 세션의 파일을 함께 둡니다. 패키지는 <code>pip install \"anthropic&gt;=2.3\" \"sentence-transformers&gt;=3.0\" numpy \"rank_bm25&gt;=0.2.2\"</code>로 설치합니다. 리랭커 모델(약 2GB)은 처음 실행할 때 내려받고, 폐쇄망에서는 외부에서 받은 모델 폴더를 옮겨 <code>RERANK_MODEL=/models/bge-reranker-v2-m3</code>처럼 경로를 지정합니다.",
+     "<code>python make_corpus.py</code>를 실행하면 <code>sample/</code>에 운영 매뉴얼 개정 3판과 구판, ORA 오류 가이드, TSS 워크플로 가이드, 적재 테이블 안내, 장애 회고 6개 문서(22개 섹션)가 생깁니다. 이어서 세션 9 스크립트로 색인합니다: <code>python chunk.py sample &gt; chunks.jsonl</code> → <code>python index.py chunks.jsonl</code>.",
+     "테이블명·ORA 코드·워크플로명, 'TSS'와 'Terrastream'이 섞인 표기, 같은 제목인데 내용이 다른 구판·개정판 섹션, 서로 겹치는 장애 회고와 오류 가이드가 일부러 들어 있습니다. 팀 실습에서는 이 폴더를 실제 매뉴얼로 바꿉니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s10/make_corpus.py",
+     "src": "\"\"\"세션 10 실습용 샘플 문서 만들기 — python make_corpus.py  →  sample/*.md 6개 (22개 섹션)\n가상의 정보계 운영 문서입니다. 일부러 넣어 둔 것:\n  - 테이블명·ORA 오류 코드·워크플로명 (키워드 검색이 유리한 질문용)\n  - 'TSS' 약어와 'Terrastream' 정식 명칭이 문서마다 섞여 있음\n  - 구판(v2)과 개정판(v3)의 같은 제목 섹션 (내용이 서로 다름)\n  - 장애 회고와 오류 가이드처럼 내용이 겹치는 섹션\n\"\"\"\nfrom pathlib import Path\n\nDOCS = {\n\"batch-ops-manual-v3.md\": \"\"\"# 야간 배치 운영 매뉴얼 (개정 3판)\n개정 3판 · 2026-09-01 시행 · 정보계 운영팀. 2025-03 구판(v2)을 대체합니다.\n\n## 배치 일정\n정보계 야간 배치는 매 영업일 02:00에 시작해 05:00까지 끝나는 것이 목표입니다.\nODS 수신 → STG 정제 → DW 통합 → 마트 집계 순서로 돌고, 마트 집계 워크플로 WF_MART_TRD_D 는 05:30까지 끝나야 합니다.\n휴장일에는 원천 수신만 하고 DW 이후 단계는 건너뜁니다.\n\n## 실패 시 연락 체계\n배치가 실패하면 1차로 정보계 운영 당직자에게 메신저 장애 채널로 알립니다.\n30분 안에 복구되지 않으면 데이터팀 팀장에게 전화하고, 05:30까지 마트 적재가 끝나지 않을 것 같으면 영업지원팀에 지연 공지를 보냅니다.\n\n## 재처리 절차\n실패한 작업은 처음부터 다시 돌리지 않습니다. Terrastream 콘솔에서 실패한 블록을 선택해 그 블록부터 재실행합니다.\n앞 블록의 결과가 남아 있으므로 같은 기준일로 다시 돌려도 중복 적재되지 않습니다.\n\n## 원천 파일 지연\n원천 시스템 파일이 02:00까지 도착하지 않으면 수신 감시 블록이 30분 간격으로 3번 다시 확인합니다.\n그래도 없으면 원천 시스템 담당자에게 확인을 요청하고, 파일이 들어오면 STG 적재부터 다시 시작합니다.\n\n## 수작업 데이터 보정 승인\n재처리로 해결되지 않아 테이블 데이터를 직접 수정해야 하면 데이터 보정 요청서를 작성해 데이터팀 팀장 승인을 받습니다.\n보정 SQL 은 두 사람이 검토한 뒤 운영 DBA 가 실행하고, 실행 전후 건수를 요청서에 남깁니다.\n\"\"\",\n\n\"batch-ops-manual-v2.md\": \"\"\"# 야간 배치 운영 매뉴얼 (구판 v2)\n구판 · 2025-03-01 시행 · 2026-09-01 개정 3판으로 대체됨. 참고용으로만 보관합니다.\n\n## 실패 시 연락 체계\n배치가 실패하면 운영 당직자에게 전화로 알립니다.\n1시간 안에 복구되지 않으면 정보계 파트장에게 보고합니다.\n\n## 재처리 절차\n실패한 배치는 해당 기준일 데이터를 모두 지운 뒤 첫 워크플로부터 전체를 다시 실행합니다.\n재실행은 TSS 스케줄러에서 기준일을 지정해 수동으로 시작합니다.\n\"\"\",\n\n\"ora-error-guide.md\": \"\"\"# 배치에서 자주 보는 ORA 오류 대응 가이드\n정보계 운영팀 · 2026-07 갱신\n\n## ORA-01652 TEMP 테이블스페이스 부족\n정렬·해시 조인이 큰 SQL 에서 임시 공간을 다 써서 나는 오류입니다.\n먼저 같은 시간대에 돌던 대용량 SQL 이 있었는지 확인하고, 해당 블록을 다른 작업이 끝난 뒤 재실행합니다.\n반복되면 DBA 에게 TEMP 증설이나 SQL 의 조인 순서 점검을 요청합니다.\n\n## ORA-01555 snapshot too old\n오래 걸리는 조회 중에 읽던 데이터가 다른 작업에 의해 바뀌고 UNDO 가 덮어써져 나는 오류입니다.\n대상 테이블을 갱신하는 작업과 시간이 겹치지 않게 스케줄을 조정하고, 재발하면 UNDO 보존 시간 조정을 DBA 와 상의합니다.\n\n## ORA-00054 resource busy\n다른 세션이 테이블을 잠그고 있어 TRUNCATE 나 DDL 을 할 수 없을 때 납니다.\n잠금을 잡은 세션을 DBA 에게 확인받고, 운영자가 임의로 세션을 끊지 않습니다.\n\n## ORA-12541 리스너 없음\nDB 서버의 리스너가 떠 있지 않거나 접속 주소가 틀려 연결 자체가 안 될 때 납니다.\nETL 서버에서 tnsping 으로 접속을 확인하고, 안 되면 DBA 당직에게 리스너 상태 확인을 요청합니다.\n\"\"\",\n\n\"tss-workflow-guide.md\": \"\"\"# TSS 워크플로 운영 가이드\nTerrastream(TSS) 5 기준 · 정보계 운영팀\n\n## 워크플로 이름 규칙\n워크플로 이름은 WF_계층_주제_주기 형식입니다. 계층은 ODS, STG, DW, MART 중 하나이고 주기는 D(일), M(월)입니다.\n예: WF_STG_TRD_D 는 거래 STG 일배치, WF_MART_TRD_D 는 거래 마트 일배치입니다.\n\n## 블록 단위 재실행\nTSS 콘솔의 워크플로 상세 화면에서 실패한 블록을 우클릭해 '이 블록부터 실행'을 고릅니다.\n선행 블록의 산출물이 지워졌다면 그 블록부터 다시 실행해야 합니다.\n\n## 기준일 변수 지정\n워크플로 변수 BASE_DT 는 기본값이 전영업일입니다. 과거 일자를 다시 돌릴 때는 실행 창에서 BASE_DT 를 YYYYMMDD 로 직접 입력합니다.\n\n## 스케줄 보류와 해제\n원천 장애 등으로 자동 실행을 멈춰야 하면 스케줄 화면에서 해당 워크플로를 '보류'로 바꿉니다.\n보류한 사람은 장애 채널에 사유를 남기고, 복구 후 직접 '해제'합니다.\n\"\"\",\n\n\"table-load-guide.md\": \"\"\"# 거래 데이터 적재 테이블 안내\n정보계 데이터팀 · ODS → STG → DW → 마트\n\n## STG_TRD_D 적재 방식\nSTG_TRD_D 는 기준일 단위로 TRUNCATE 후 INSERT 합니다. 원천 파일 한 개가 기준일 하루치 전체입니다.\n적재 후 원천 파일의 trailer 건수와 STG 건수를 비교합니다.\n\n## DW.TRD_DAY_F 적재 방식\nDW.TRD_DAY_F 는 STG_TRD_D 를 영업일·지점·상품·채널 단위로 집계해 MERGE 합니다.\n휴장일 기준일은 적재하지 않으며, 같은 기준일을 다시 돌리면 기존 행을 덮어씁니다.\n\n## MART.TRD_CHNL_DAY_M 적재 방식\n채널별 거래 마트는 WF_MART_TRD_D 가 DW.TRD_DAY_F 를 채널 단위로 다시 집계해 만듭니다.\n영업지원팀 보고서가 06:00 에 이 마트를 읽으므로 05:30 까지 적재가 끝나야 합니다.\n\n## 적재 건수 검증\n매일 아침 06:00 전에 검증 SQL 로 STG, DW, 마트의 기준일 거래금액 합계가 같은지 확인합니다.\n합계가 다르면 마트 보고서 배포를 멈추고 장애 채널에 알립니다.\n\"\"\",\n\n\"incident-2026-08-temp.md\": \"\"\"# 장애 회고 · 2026-08-12 마트 적재 지연\n정보계 운영팀 · 회고 작성 2026-08-14\n\n## 장애 개요\n8월 12일 새벽 거래 마트 적재가 07:10 에 끝나 영업지원팀 보고서 배포가 1시간 40분 늦어졌습니다.\n\n## 원인\n월말 정산 조회와 DW 집계가 같은 시간대에 돌면서 임시 공간이 부족해 ORA-01652 가 발생했습니다.\n첫 재실행도 같은 시간대에 해서 다시 실패했습니다.\n\n## 재발 방지\n월말 정산 조회를 04:00 이후로 옮기고, TEMP 사용량이 80% 를 넘으면 경보를 보내도록 했습니다.\n재실행 전에 동시 실행 중인 대용량 작업을 확인하는 항목을 운영 매뉴얼 점검표에 추가했습니다.\n\"\"\",\n}\n\n\ndef main(folder: str = \"sample\"):\n    out = Path(folder)\n    out.mkdir(exist_ok=True)\n    for name, text in DOCS.items():\n        (out / name).write_text(text, encoding=\"utf-8\")\n    sections = sum(t.count(\"\\n## \") for t in DOCS.values())\n    print(f\"{len(DOCS)}개 문서, {sections}개 섹션 → {out}/\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+    }
+   },
+   {
+    "title": "하이브리드 검색 (BM25 + 벡터 + RRF)",
+    "body": [
+     "세션 9 색인을 그대로 읽고 BM25 색인을 메모리에 하나 더 만듭니다. <code>python hybrid.py \"ORA-00054\"</code>와 <code>python hybrid.py \"다른 사람이 테이블을 잡고 있어요\"</code>를 각각 실행해 벡터만 쓴 결과와 하이브리드 결과를 비교해 봅니다. <code>where</code> 인자에 함수를 넘기면 메타데이터 필터가 됩니다(예: 구판 문서 제외)."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s10/hybrid.py",
+     "src": "\"\"\"하이브리드 검색: BM25 + 벡터를 RRF로 합치기 — python hybrid.py \"질문\"\n세션 9 의 chunk.py·index.py 로 sample/ 을 색인한 폴더(index.npy, index.json 이 있는 곳)에서 실행합니다.\n\"\"\"\nimport json\nimport re\nimport sys\n\nimport numpy as np\nfrom rank_bm25 import BM25Okapi\nfrom sentence_transformers import SentenceTransformer\n\nEMB_MODEL = \"intfloat/multilingual-e5-small\"\nRRF_K = 60          # RRF 상수. 원 논문(Cormack 외, 2009) 값\nPOOL = 50           # 각 검색기에서 가져올 후보 수\n\nvecs = np.load(\"index.npy\")\nrecords = json.load(open(\"index.json\", encoding=\"utf-8\"))\nembedder = SentenceTransformer(EMB_MODEL)\n\n\ndef tokenize(text: str) -> list[str]:\n    \"\"\"형태소 분석기 없이 쓰는 간단한 토큰화.\n    영문·숫자·밑줄 단어(테이블명, 코드값)는 통째로, 한글은 2글자씩 잘라 조사 차이를 흡수합니다.\"\"\"\n    text = text.lower()\n    tokens = re.findall(r\"[a-z0-9_]+\", text)\n    for word in re.findall(r\"[가-힣]+\", text):\n        tokens += [word[i:i + 2] for i in range(len(word) - 1)] or [word]\n    return tokens\n\n\nbm25 = BM25Okapi([tokenize(r[\"text\"]) for r in records])\n\n\ndef vector_rank(question: str, n: int = POOL) -> list[int]:\n    q = embedder.encode([f\"query: {question}\"], normalize_embeddings=True)[0]\n    return [int(i) for i in np.argsort(-(vecs @ q))[:n]]\n\n\ndef bm25_rank(question: str, n: int = POOL) -> list[int]:\n    scores = bm25.get_scores(tokenize(question))\n    return [int(i) for i in np.argsort(-scores)[:n] if scores[i] > 0]\n\n\ndef rrf(rankings: list[list[int]], k: int = RRF_K) -> list[int]:\n    \"\"\"순위만 보고 합칩니다: 점수 = Σ 1 / (k + 순위). 점수 척도가 달라도 섞을 수 있습니다.\"\"\"\n    fused: dict[int, float] = {}\n    for ranking in rankings:\n        for rank, idx in enumerate(ranking, 1):\n            fused[idx] = fused.get(idx, 0.0) + 1.0 / (k + rank)\n    return sorted(fused, key=fused.get, reverse=True)\n\n\ndef hybrid_ids(question: str, n: int = 20, where=None) -> list[int]:\n    ids = rrf([vector_rank(question), bm25_rank(question)])\n    if where:                                  # 메타데이터 필터 (예: 특정 문서만)\n        ids = [i for i in ids if where(records[i])]\n    return ids[:n]\n\n\ndef hybrid_search(question: str, n: int = 20, where=None) -> list[dict]:\n    return [records[i] for i in hybrid_ids(question, n, where)]\n\n\ndef vector_search(question: str, n: int = 20) -> list[dict]:\n    return [records[i] for i in vector_rank(question, n)]\n\n\nif __name__ == \"__main__\":\n    q = \" \".join(sys.argv[1:]) or \"Terrastream 콘솔에서 재실행\"\n    print(\"벡터만 :\", [f\"{r['doc']}#{r['section']}\" for r in vector_search(q, 5)])\n    print(\"하이브리드:\", [f\"{r['doc']}#{r['section']}\" for r in hybrid_search(q, 5)])\n"
+    }
+   },
+   {
+    "title": "리랭커 붙이기",
+    "body": [
+     "하이브리드 상위 20개를 리랭커로 다시 채점해 상위 4개만 남깁니다. <code>python rerank.py \"배치 실패하면 처음부터 다시 돌려요?\"</code>로 개정판과 구판의 '재처리 절차'가 몇 점씩 나오는지 확인하고, 관련 없는 청크의 점수대도 봐 둡니다. 다음 단계의 하한선을 정할 때 씁니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s10/rerank.py",
+     "src": "\"\"\"리랭킹: 후보 청크를 cross-encoder 로 다시 채점 — python rerank.py \"질문\" \"\"\"\nimport os\nimport sys\n\nfrom sentence_transformers import CrossEncoder\n\nfrom hybrid import hybrid_search\n\n# 다국어(한국어 포함) 리랭커. Apache-2.0. 폐쇄망이면 모델 폴더 경로를 넣습니다.\nRERANK_MODEL = os.getenv(\"RERANK_MODEL\", \"BAAI/bge-reranker-v2-m3\")\nreranker = CrossEncoder(RERANK_MODEL, max_length=512)\n\n\ndef rerank(question: str, candidates: list[dict], top: int = 4) -> list[tuple[float, dict]]:\n    \"\"\"질문과 청크를 한 쌍으로 모델에 넣어 관련도를 0~1로 받습니다 (출력 1개 모델은 시그모이드 적용).\"\"\"\n    if not candidates:\n        return []\n    ranked = reranker.rank(question, [c[\"text\"] for c in candidates], top_k=top)\n    return [(float(r[\"score\"]), candidates[r[\"corpus_id\"]]) for r in ranked]\n\n\nif __name__ == \"__main__\":\n    q = \" \".join(sys.argv[1:]) or \"배치가 30분 넘게 안 돌아오면 누구한테 전화하나요?\"\n    for score, r in rerank(q, hybrid_search(q, 20)):\n        print(f\"{score:.3f}  {r['doc']} › {r['section']}\")\n"
+    }
+   },
+   {
+    "title": "질의 재작성과 가드레일로 답하기",
+    "body": [
+     "입력 마스킹 → 용어사전·LLM 재작성 → 검색어별 하이브리드 → RRF → 리랭킹 → 근거 없음 판단 → 답변 → 출력 마스킹 순서로 이어 붙입니다. <code>python guard.py \"TSS 재처리는 어디서부터 하나요?\"</code>로 실행하면 사용한 검색어와 출처 점수가 JSON으로 나옵니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s10/guard.py",
+     "src": "\"\"\"질의 재작성 + 하이브리드 + 리랭킹 + 가드레일로 답하기 — python guard.py \"질문\" \"\"\"\nimport json\nimport re\nimport sys\n\nfrom ask import LLM_MODEL, SYSTEM, client       # 세션 9 의 시스템 프롬프트·클라이언트 재사용\nfrom hybrid import hybrid_ids, records, rrf\nfrom rerank import rerank\n\nMIN_RERANK = 0.30   # 최상위 근거 점수가 이보다 낮으면 답하지 않음 (평가셋으로 조정)\n\n# 업무 용어사전: 약어 → 문서에 실제로 쓰인 표현 (세션 12에서 정비하는 그 사전)\nGLOSSARY = {\"TSS\": \"Terrastream\", \"당직\": \"운영 당직자\", \"재처리\": \"재실행\", \"임시 공간\": \"TEMP 테이블스페이스\"}\n\nPII = [\n    (re.compile(r\"\\b\\d{6}-?[1-4]\\d{6}\\b\"), \"[주민번호]\"),\n    (re.compile(r\"\\b01[016789]-?\\d{3,4}-?\\d{4}\\b\"), \"[전화번호]\"),\n    (re.compile(r\"[\\w.+-]+@[\\w-]+\\.[\\w.]+\"), \"[이메일]\"),\n    (re.compile(r\"\\b\\d{3,6}-\\d{2,6}-\\d{4,8}\\b\"), \"[계좌번호]\"),\n]\n\n\ndef text_of(msg) -> str:\n    \"\"\"응답에 thinking 블록이 먼저 올 수 있으므로 text 블록만 모읍니다.\"\"\"\n    return \"\".join(b.text for b in msg.content if b.type == \"text\")\n\n\ndef mask(text: str) -> str:\n    for pat, label in PII:\n        text = pat.sub(label, text)\n    return text\n\n\ndef rewrite(question: str) -> list[str]:\n    \"\"\"원 질문 + 용어사전 치환본 + LLM이 만든 검색어 2개.\"\"\"\n    expanded = question\n    for short, full in GLOSSARY.items():\n        expanded = expanded.replace(short, f\"{short}({full})\")\n    msg = client.messages.create(\n        model=LLM_MODEL, max_tokens=200,\n        system=\"사내 문서 검색어를 만듭니다. 질문을 문서에 나올 법한 표현으로 바꾼 검색어 2개를 \"\n               \"JSON 문자열 배열로만 출력하세요. 예: [\\\"...\\\", \\\"...\\\"]\",\n        messages=[{\"role\": \"user\", \"content\": expanded}],\n    )\n    try:\n        text = text_of(msg)\n        extra = json.loads(text[text.index(\"[\"): text.rindex(\"]\") + 1])\n    except (ValueError, json.JSONDecodeError):\n        extra = []\n    return list(dict.fromkeys([question, expanded, *[str(e) for e in extra[:2]]]))\n\n\ndef answer(question: str, where=None) -> dict:\n    question = mask(question)                          # 1) 입력 마스킹: 외부 LLM 로 나가기 전에\n    queries = rewrite(question)                        # 2) 질의 재작성\n    ids = rrf([hybrid_ids(q, 20, where) for q in queries])[:20]   # 3) 검색어별 결과를 다시 RRF\n    picked = rerank(question, [records[i] for i in ids], top=4)   # 4) 리랭킹\n    if not picked or picked[0][0] < MIN_RERANK:        # 5) 근거 없음 처리\n        return {\"question\": question, \"queries\": queries, \"grounded\": False, \"sources\": [],\n                \"answer\": \"문서에서 확실한 근거를 찾지 못했습니다. 운영 당직자에게 문의해 주세요.\"}\n    context = \"\\n\\n\".join(\n        f\"[{n}] ({r['doc']} · {r['section']})\\n{r['text']}\" for n, (_, r) in enumerate(picked, 1)\n    )\n    msg = client.messages.create(\n        model=LLM_MODEL, max_tokens=800, system=SYSTEM,\n        messages=[{\"role\": \"user\", \"content\": f\"<근거>\\n{context}\\n</근거>\\n\\n질문: {question}\"}],\n    )\n    text = mask(text_of(msg))                          # 6) 출력 마스킹\n    cited = bool(re.search(r\"\\[\\d+\\]\", text))\n    return {\"question\": question, \"queries\": queries, \"grounded\": cited, \"answer\": text,\n            \"sources\": [{\"doc\": r[\"doc\"], \"section\": r[\"section\"], \"score\": round(s, 3)} for s, r in picked]}\n\n\nif __name__ == \"__main__\":\n    out = answer(\" \".join(sys.argv[1:]) or \"TSS 재처리는 어디서부터 하나요?\")\n    print(json.dumps(out, ensure_ascii=False, indent=2))\n"
+    }
+   },
+   {
+    "title": "평가셋: 질문 유형을 섞어서",
+    "body": [
+     "24문항을 네 유형으로 나눴습니다. <b>키워드</b>(ORA 코드·테이블명·워크플로명이 그대로 들어간 질문, BM25가 유리), <b>의역</b>(문서와 다른 말로 묻는 질문, 벡터가 유리), <b>개정판</b>(구판과 개정판 답이 다른 질문, 리랭커·메타데이터 필터가 필요), <b>범위 밖</b>(문서에 없는 질문, 거절해야 정답). <code>evidence</code>는 <code>문서파일명#섹션제목</code> 형식으로 색인의 doc·section 값과 같아야 합니다.",
+     "팀 문서로 바꿀 때도 유형을 섞어 최소 30문항을 만들고, 범위 밖 질문을 10~20% 넣습니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s10/eval.jsonl",
+     "src": "{\"id\": \"k01\", \"type\": \"키워드\", \"question\": \"ORA-01652 나면 어떻게 해요?\", \"answer\": \"같은 시간대 대용량 SQL 을 확인하고 다른 작업이 끝난 뒤 해당 블록을 재실행, 반복되면 DBA 에게 TEMP 증설·SQL 점검 요청\", \"evidence\": [\"ora-error-guide.md#ORA-01652 TEMP 테이블스페이스 부족\"], \"category\": \"오류 대응\", \"answerable\": true}\n{\"id\": \"k02\", \"type\": \"키워드\", \"question\": \"ORA-00054 resource busy 뜨면 세션을 끊어도 되나요?\", \"answer\": \"임의로 끊지 않고 DBA 에게 잠금 세션을 확인받는다\", \"evidence\": [\"ora-error-guide.md#ORA-00054 resource busy\"], \"category\": \"오류 대응\", \"answerable\": true}\n{\"id\": \"k03\", \"type\": \"키워드\", \"question\": \"ORA-12541 은 무슨 오류이고 뭘 확인하나요?\", \"answer\": \"리스너가 없거나 주소가 틀려 연결이 안 되는 오류, tnsping 으로 확인 후 DBA 당직에 요청\", \"evidence\": [\"ora-error-guide.md#ORA-12541 리스너 없음\"], \"category\": \"오류 대응\", \"answerable\": true}\n{\"id\": \"k04\", \"type\": \"키워드\", \"question\": \"ORA-01555 재발 방지는 어떻게 하나요?\", \"answer\": \"갱신 작업과 시간이 겹치지 않게 스케줄 조정, 재발 시 UNDO 보존 시간 조정 상의\", \"evidence\": [\"ora-error-guide.md#ORA-01555 snapshot too old\"], \"category\": \"오류 대응\", \"answerable\": true}\n{\"id\": \"k05\", \"type\": \"키워드\", \"question\": \"STG_TRD_D 적재 방식은?\", \"answer\": \"기준일 단위 TRUNCATE 후 INSERT, trailer 건수와 비교\", \"evidence\": [\"table-load-guide.md#STG_TRD_D 적재 방식\"], \"category\": \"적재\", \"answerable\": true}\n{\"id\": \"k06\", \"type\": \"키워드\", \"question\": \"DW.TRD_DAY_F 는 MERGE 인가요 INSERT 인가요?\", \"answer\": \"STG_TRD_D 를 집계해 MERGE, 같은 기준일 재실행 시 덮어씀\", \"evidence\": [\"table-load-guide.md#DW.TRD_DAY_F 적재 방식\"], \"category\": \"적재\", \"answerable\": true}\n{\"id\": \"k07\", \"type\": \"키워드\", \"question\": \"WF_MART_TRD_D 는 몇 시까지 끝나야 해요?\", \"answer\": \"05:30\", \"evidence\": [\"table-load-guide.md#MART.TRD_CHNL_DAY_M 적재 방식\", \"batch-ops-manual-v3.md#배치 일정\"], \"category\": \"일정\", \"answerable\": true}\n{\"id\": \"k08\", \"type\": \"키워드\", \"question\": \"TSS 에서 BASE_DT 를 과거 일자로 지정하려면?\", \"answer\": \"실행 창에서 BASE_DT 를 YYYYMMDD 로 직접 입력\", \"evidence\": [\"tss-workflow-guide.md#기준일 변수 지정\"], \"category\": \"TSS\", \"answerable\": true}\n{\"id\": \"k09\", \"type\": \"키워드\", \"question\": \"TSS 스케줄 보류는 누가 해제하나요?\", \"answer\": \"보류한 사람이 복구 후 직접 해제\", \"evidence\": [\"tss-workflow-guide.md#스케줄 보류와 해제\"], \"category\": \"TSS\", \"answerable\": true}\n{\"id\": \"p01\", \"type\": \"의역\", \"question\": \"새벽 작업이 깨졌을 때 맨 먼저 누구한테 알려야 하죠?\", \"answer\": \"정보계 운영 당직자에게 메신저 장애 채널로\", \"evidence\": [\"batch-ops-manual-v3.md#실패 시 연락 체계\"], \"category\": \"연락 체계\", \"answerable\": true}\n{\"id\": \"p02\", \"type\": \"의역\", \"question\": \"반시간이 지나도 못 살리면 윗선 누구에게 전화해요?\", \"answer\": \"데이터팀 팀장\", \"evidence\": [\"batch-ops-manual-v3.md#실패 시 연락 체계\"], \"category\": \"연락 체계\", \"answerable\": true}\n{\"id\": \"p03\", \"type\": \"의역\", \"question\": \"외부에서 받는 원본 자료가 제시간에 안 오면 어떻게 하나요?\", \"answer\": \"30분 간격 3회 재확인, 원천 담당자 확인 요청, 도착 후 STG 적재부터 재시작\", \"evidence\": [\"batch-ops-manual-v3.md#원천 파일 지연\"], \"category\": \"재처리\", \"answerable\": true}\n{\"id\": \"p04\", \"type\": \"의역\", \"question\": \"정렬할 임시 공간이 모자라서 쿼리가 죽었어요\", \"answer\": \"ORA-01652 대응: 동시 대용량 작업 확인 후 재실행, 반복 시 DBA 요청\", \"evidence\": [\"ora-error-guide.md#ORA-01652 TEMP 테이블스페이스 부족\"], \"category\": \"오류 대응\", \"answerable\": true}\n{\"id\": \"p05\", \"type\": \"의역\", \"question\": \"다른 사람이 테이블을 붙잡고 있어서 비우기가 안 돼요\", \"answer\": \"ORA-00054: DBA 에게 잠금 세션 확인, 임의로 끊지 않음\", \"evidence\": [\"ora-error-guide.md#ORA-00054 resource busy\"], \"category\": \"오류 대응\", \"answerable\": true}\n{\"id\": \"p06\", \"type\": \"의역\", \"question\": \"DB 에 아예 붙지를 못하는데 뭘 점검하죠?\", \"answer\": \"ORA-12541: tnsping 확인 후 DBA 당직에 리스너 확인 요청\", \"evidence\": [\"ora-error-guide.md#ORA-12541 리스너 없음\"], \"category\": \"오류 대응\", \"answerable\": true}\n{\"id\": \"p07\", \"type\": \"의역\", \"question\": \"지난여름 보고서가 늦게 나갔던 사고는 왜 생겼어요?\", \"answer\": \"월말 정산 조회와 DW 집계가 겹쳐 임시 공간 부족(ORA-01652), 재실행도 같은 시간대\", \"evidence\": [\"incident-2026-08-temp.md#원인\"], \"category\": \"장애 이력\", \"answerable\": true}\n{\"id\": \"p08\", \"type\": \"의역\", \"question\": \"아침에 세 계층 숫자가 맞는지 어떻게 확인하나요?\", \"answer\": \"06:00 전 검증 SQL 로 STG·DW·마트 기준일 거래금액 합계 비교, 다르면 배포 중지\", \"evidence\": [\"table-load-guide.md#적재 건수 검증\"], \"category\": \"적재\", \"answerable\": true}\n{\"id\": \"r01\", \"type\": \"개정판\", \"question\": \"배치가 실패하면 처음부터 전부 다시 돌려야 하나요?\", \"answer\": \"아니요. Terrastream 콘솔에서 실패한 블록부터 재실행\", \"evidence\": [\"batch-ops-manual-v3.md#재처리 절차\"], \"category\": \"재처리\", \"answerable\": true}\n{\"id\": \"r02\", \"type\": \"개정판\", \"question\": \"복구가 늦어지면 몇 분 뒤에 보고하나요?\", \"answer\": \"30분 (구판의 1시간 아님)\", \"evidence\": [\"batch-ops-manual-v3.md#실패 시 연락 체계\"], \"category\": \"연락 체계\", \"answerable\": true}\n{\"id\": \"r03\", \"type\": \"개정판\", \"question\": \"테이블 데이터를 손으로 고쳐야 하면 누구 승인을 받나요?\", \"answer\": \"데이터 보정 요청서로 데이터팀 팀장 승인, 두 사람 검토 후 DBA 실행\", \"evidence\": [\"batch-ops-manual-v3.md#수작업 데이터 보정 승인\"], \"category\": \"재처리\", \"answerable\": true}\n{\"id\": \"n01\", \"type\": \"범위 밖\", \"question\": \"배치 서버 root 비밀번호가 뭐예요?\", \"answer\": \"\", \"evidence\": [], \"category\": \"범위 밖\", \"answerable\": false}\n{\"id\": \"n02\", \"type\": \"범위 밖\", \"question\": \"이번 달 장애 건수 합계는?\", \"answer\": \"\", \"evidence\": [], \"category\": \"범위 밖\", \"answerable\": false}\n{\"id\": \"n03\", \"type\": \"범위 밖\", \"question\": \"신규 입사자 연차는 며칠인가요?\", \"answer\": \"\", \"evidence\": [], \"category\": \"범위 밖\", \"answerable\": false}\n{\"id\": \"n04\", \"type\": \"범위 밖\", \"question\": \"ORA-04031 은 어떻게 대응하나요?\", \"answer\": \"\", \"evidence\": [], \"category\": \"범위 밖\", \"answerable\": false}\n"
+    }
+   },
+   {
+    "title": "검색 지표 계산 (recall@k, MRR)",
+    "body": [
+     "벡터만 / 하이브리드 / 하이브리드+리랭커 세 설정을 같은 평가셋으로 돌려 <b>전체와 질문 유형별</b> recall@4·MRR을 한 표로 봅니다. 답변을 만들지 않으므로 API 비용이 들지 않습니다. <code>python evaluate.py eval.jsonl</code>",
+     "숫자는 임베딩·리랭커 모델과 토큰화 방식에 따라 달라지므로 정답표가 따로 있지 않습니다. 결과를 읽을 때는 '키워드 유형에서 하이브리드가 벡터보다 나은가', '개정판 유형에서 리랭커가 MRR을 올리는가'처럼 유형별 차이를 봅니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s10/evaluate.py",
+     "src": "\"\"\"검색 평가: recall@k 와 MRR 을 세 가지 설정 × 질문 유형별로 비교 — python evaluate.py eval.jsonl\"\"\"\nimport json\nimport sys\nfrom collections import defaultdict\n\nfrom hybrid import hybrid_search, vector_search\nfrom rerank import rerank\n\nK = 4\n\n\ndef key(r: dict) -> str:\n    return f\"{r['doc']}#{r['section']}\"\n\n\ndef dedup(keys: list[str]) -> list[str]:\n    \"\"\"같은 섹션의 청크가 여러 개면 첫 번째만 셉니다 (근거 단위가 섹션이므로).\"\"\"\n    return list(dict.fromkeys(keys))\n\n\nRETRIEVERS = {\n    \"vector\": lambda q: dedup([key(r) for r in vector_search(q, 20)]),\n    \"hybrid\": lambda q: dedup([key(r) for r in hybrid_search(q, 20)]),\n    \"hybrid+rerank\": lambda q: dedup([key(r) for _, r in rerank(q, hybrid_search(q, 20), top=10)]),\n}\n\n\ndef recall_at_k(ranked: list[str], gold: set[str], k: int = K) -> float:\n    \"\"\"정답 근거 중 상위 k개 안에 들어온 비율.\"\"\"\n    return len(gold & set(ranked[:k])) / len(gold)\n\n\ndef reciprocal_rank(ranked: list[str], gold: set[str]) -> float:\n    \"\"\"첫 정답 근거의 순위 역수. 1위면 1.0, 3위면 0.33, 못 찾으면 0.\"\"\"\n    for i, k in enumerate(ranked, 1):\n        if k in gold:\n            return 1.0 / i\n    return 0.0\n\n\ndef main(path: str):\n    items = [json.loads(line) for line in open(path, encoding=\"utf-8\") if line.strip()]\n    items = [it for it in items if it[\"answerable\"] and it[\"evidence\"]]   # 검색 평가는 답이 있는 문항만\n    types = sorted({it[\"type\"] for it in items})\n    rows = []\n    print(f\"{'설정':14s} {'전체':>14s} \" + \" \".join(f\"{t:>14s}\" for t in types))\n    for name, retrieve in RETRIEVERS.items():\n        rec, rr = defaultdict(list), defaultdict(list)\n        for it in items:\n            ranked, gold = retrieve(it[\"question\"]), set(it[\"evidence\"])\n            for g in (\"전체\", it[\"type\"]):\n                rec[g].append(recall_at_k(ranked, gold))\n                rr[g].append(reciprocal_rank(ranked, gold))\n            if name == \"hybrid+rerank\":\n                hit = next((i for i, k in enumerate(ranked, 1) if k in gold), None)\n                rows.append({\"id\": it[\"id\"], \"type\": it[\"type\"], \"category\": it[\"category\"],\n                             \"rank\": hit, \"top\": ranked[:K]})\n        cell = lambda g: f\"R{sum(rec[g]) / len(rec[g]):.2f} M{sum(rr[g]) / len(rr[g]):.2f}\"\n        print(f\"{name:14s} {cell('전체'):>14s} \" + \" \".join(f\"{cell(t):>14s}\" for t in types))\n    print(f\"(R = recall@{K}, M = MRR, 답이 있는 문항 {len(items)}개)\")\n    with open(\"eval_results.jsonl\", \"w\", encoding=\"utf-8\") as f:\n        for row in rows:\n            f.write(json.dumps(row, ensure_ascii=False) + \"\\n\")\n    print(\"문항별 결과 → eval_results.jsonl (rank 가 비었거나 4보다 큰 문항부터 원인을 봅니다)\")\n\n\nif __name__ == \"__main__\":\n    main(sys.argv[1] if len(sys.argv) > 1 else \"eval.jsonl\")\n"
+    }
+   },
+   {
+    "title": "답변 채점 (LLM 판정 + 사람 검수)",
+    "body": [
+     "문항마다 guard.py로 답을 만들고, 기준표를 준 판정 모델이 JSON으로 점수를 매깁니다. 정답이 아닌 문항 전부와 나머지 20%는 <code>human_review.csv</code>로 뽑아 사람이 '사람판정' 열을 채웁니다. <code>python judge.py eval.jsonl</code> (24문항 기준 LLM 호출 약 70회)"
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s10/judge.py",
+     "src": "\"\"\"답변 평가: LLM 판정(기준표) + 사람 검수 목록 — python judge.py eval.jsonl\"\"\"\nimport csv\nimport json\nimport os\nimport random\nimport sys\n\nfrom ask import client\nfrom guard import answer, text_of\n\nJUDGE_MODEL = os.getenv(\"JUDGE_MODEL\", os.getenv(\"CLAUDE_MODEL\", \"claude-sonnet-5-5\"))\n\nRUBRIC = \"\"\"당신은 사내 문서 Q&A 봇의 답변을 채점하는 평가자입니다. 아래 기준으로만 채점하세요.\n- correct (0~2): 정답 요지와 비교. 2=핵심이 모두 맞음, 1=일부만 맞거나 불필요한 내용 섞임, 0=틀림.\n  정답 요지가 비어 있으면 '문서에 없는 질문'이므로, 답하지 않고 모른다고 하면 2, 지어내면 0.\n- faithful (0~2): 답변의 모든 문장이 제공된 근거로 뒷받침되는가. 2=전부, 1=일부 근거 밖, 0=대부분 근거 밖.\n- cited (0~1): 답변 문장에 [번호] 출처가 붙어 있는가. 거절 답변이면 1.\nJSON 한 줄로만 답하세요: {\"correct\": n, \"faithful\": n, \"cited\": n, \"reason\": \"한 문장\"}\"\"\"\n\n\ndef judge(item: dict, out: dict) -> dict:\n    sources = \"\\n\".join(f\"- {s['doc']} › {s['section']}\" for s in out[\"sources\"]) or \"(없음)\"\n    prompt = (f\"질문: {item['question']}\\n정답 요지: {item['answer']}\\n\"\n              f\"사용된 근거:\\n{sources}\\n\\n봇 답변:\\n{out['answer']}\")\n    # Claude 5.5 계열은 temperature 를 받지 않습니다. 대신 기준표를 구체적으로 적어 흔들림을 줄입니다.\n    msg = client.messages.create(model=JUDGE_MODEL, max_tokens=1000,\n                                 system=RUBRIC, messages=[{\"role\": \"user\", \"content\": prompt}])\n    text = text_of(msg)\n    try:\n        return json.loads(text[text.index(\"{\"): text.rindex(\"}\") + 1])\n    except (ValueError, json.JSONDecodeError):\n        return {\"correct\": None, \"faithful\": None, \"cited\": None, \"reason\": \"판정 파싱 실패: \" + text[:80]}\n\n\ndef main(path: str, review_ratio: float = 0.2):\n    items = [json.loads(line) for line in open(path, encoding=\"utf-8\") if line.strip()]\n    results = []\n    for it in items:\n        out = answer(it[\"question\"])\n        score = judge(it, out)\n        results.append({\"id\": it[\"id\"], \"category\": it[\"category\"], \"answerable\": it[\"answerable\"],\n                        \"bot\": out[\"answer\"], \"grounded\": out[\"grounded\"], **score})\n    ok = [r for r in results if r[\"correct\"] is not None]\n    acc = sum(r[\"correct\"] == 2 for r in ok) / max(len(ok), 1)\n    faith = sum(r[\"faithful\"] == 2 for r in ok) / max(len(ok), 1)\n    print(f\"정답률 {acc:.0%} · 근거 충실 {faith:.0%} · 채점 {len(ok)}/{len(results)}건\")\n\n    with open(\"judge_results.jsonl\", \"w\", encoding=\"utf-8\") as f:\n        for r in results:\n            f.write(json.dumps(r, ensure_ascii=False) + \"\\n\")\n    # 사람 검수: 낮은 점수·파싱 실패는 전부, 나머지는 무작위 20%\n    random.seed(42)\n    review = [r for r in results if r[\"correct\"] != 2 or random.random() < review_ratio]\n    with open(\"human_review.csv\", \"w\", newline=\"\", encoding=\"utf-8-sig\") as f:\n        w = csv.DictWriter(f, fieldnames=[\"id\", \"category\", \"bot\", \"correct\", \"faithful\", \"reason\", \"사람판정\", \"메모\"])\n        w.writeheader()\n        for r in review:\n            w.writerow({k: r.get(k, \"\") for k in w.fieldnames})\n    print(f\"사람 검수 대상 {len(review)}건 → human_review.csv (엑셀로 열어 '사람판정' 열을 채웁니다)\")\n\n\nif __name__ == \"__main__\":\n    main(sys.argv[1] if len(sys.argv) > 1 else \"eval.jsonl\")\n"
+    }
+   }
+  ],
+  "check": [
+   "evaluate.py 표에서 키워드 유형은 하이브리드가, 의역 유형은 벡터가 버티는지 유형별 숫자로 설명할 수 있는가",
+   "개정판 유형(r01~r03)에서 구판(batch-ops-manual-v2.md) 섹션이 상위에 오면, where 필터로 구판을 빼고 다시 재 봤는가",
+   "범위 밖 질문(n01~n04, 특히 문서에 없는 ORA-04031)에 '근거를 찾지 못했습니다'로 답하고, human_review.csv에서 사람과 LLM 판정이 다른 문항을 팀원과 이야기했는가"
+  ]
+ },
+ "example": {
+  "title": "운영 매뉴얼 봇 정답률을 재고 개선 우선순위 정하기",
+  "context": "세션 9에서 만든 정보계 운영 매뉴얼 Q&A 봇을 한 달 시범 운영했더니 '가끔 틀린다'는 의견이 나옵니다. 무엇부터 고칠지 정하려고 실제 질문 로그에서 평가셋 120문항을 만들고, 실패를 <b>검색 · 생성 · 거절</b> 세 유형으로 나눠 건수가 많은 것부터 고칩니다.",
+  "diagram": {
+   "src": "diagrams/s10-example.svg",
+   "caption": "실패 유형마다 고칠 부품이 다르므로, 유형별 건수로 백로그 순서를 정합니다."
+  },
+  "flow": [
+   "메신저 질문 로그 3주치에서 업무 분류별로 질문 100개를 고르고, 문서에 없는 질문 20개를 더합니다 (개인정보는 마스킹 후 사용)",
+   "운영 담당자 2명이 문항마다 정답 요지와 근거 섹션을 적습니다. 두 사람 의견이 다르면 팀장이 정합니다",
+   "evaluate.py로 검색 지표를, judge.py로 정답률을 잽니다. 이것이 기준선(baseline)입니다",
+   "사람 검수로 LLM 판정과 사람 판정의 일치율을 확인합니다 (일치율이 낮으면 기준표부터 고칩니다)",
+   "report.py로 실패를 유형·업무 분류별로 묶고, 건수와 업무 영향(장애 대응 여부)을 곱해 순서를 정합니다",
+   "한 번에 한 가지만 고치고 같은 평가셋으로 다시 재서 전후 숫자를 백로그에 남깁니다"
+  ],
+  "code": {
+   "lang": "python",
+   "file": "labs/s10/report.py",
+   "src": "\"\"\"실패 유형별로 묶어 개선 우선순위표 만들기 — python report.py\nevaluate.py(eval_results.jsonl) 와 judge.py(judge_results.jsonl) 를 먼저 실행합니다.\n\"\"\"\nimport json\nfrom collections import Counter\n\nACTION = {\n    \"검색 실패\": \"용어사전·동의어 보강, 청크 제목 확인, BM25 가중, 문서 누락 여부 확인\",\n    \"생성 실패\": \"프롬프트 지시 보강, 리랭커 top 조정, 근거 순서·길이 확인\",\n    \"거절 실패\": \"리랭커 점수 하한선 올리기, 거절 문구 명시, 범위 밖 예시 추가\",\n}\n\n\ndef load(path: str) -> dict:\n    return {r[\"id\"]: r for r in map(json.loads, open(path, encoding=\"utf-8\"))}\n\n\ndef classify(j: dict, e: dict | None) -> str | None:\n    if j[\"correct\"] == 2:\n        return None\n    if not j[\"answerable\"]:\n        return \"거절 실패\"                    # 문서에 없는데 답을 지어냄\n    if e is None or e[\"rank\"] is None or e[\"rank\"] > 4:\n        return \"검색 실패\"                    # 정답 근거가 상위 4개 안에 없음\n    return \"생성 실패\"                        # 근거는 있었는데 답이 틀림\n\n\ndef main():\n    judged, retrieved = load(\"judge_results.jsonl\"), load(\"eval_results.jsonl\")\n    fails = Counter()\n    for qid, j in judged.items():\n        kind = classify(j, retrieved.get(qid))\n        if kind:\n            fails[(kind, j[\"category\"])] += 1\n    total = len(judged)\n    correct = sum(j[\"correct\"] == 2 for j in judged.values())\n    print(f\"전체 {total}문항 · 정답 {correct} ({correct / total:.0%})\\n\")\n    print(\"| 순위 | 실패 유형 | 업무 분류 | 건수 | 먼저 할 일 |\")\n    print(\"|---|---|---|---|---|\")\n    for n, ((kind, cat), cnt) in enumerate(fails.most_common(), 1):\n        print(f\"| {n} | {kind} | {cat} | {cnt} | {ACTION[kind]} |\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+  },
+  "tips": [
+   "기준선 숫자를 먼저 남기세요. 개선 효과를 보고할 때 '정답률 62% → 81%'처럼 말할 수 있어야 합니다",
+   "검색 실패가 가장 많다면 모델을 바꾸기 전에 용어사전과 청크 제목부터 손보는 편이 싸고 효과가 큽니다",
+   "평가셋은 운영 중 새로 들어온 '찾지 못함' 질문으로 매달 10~20문항씩 늘립니다"
+  ],
+  "pitfalls": [
+   "평가셋을 만든 사람이 프롬프트도 고쳐서, 평가셋에만 맞춘 설정이 되는 경우 (일부 문항은 따로 떼어 두고 마지막에만 씁니다)",
+   "LLM 판정 점수만 보고 사람 검수를 생략해, 판정 모델의 관대함을 정답률로 착각하는 경우",
+   "문서 개정으로 섹션 제목이 바뀌었는데 평가셋 evidence를 고치지 않아 recall이 갑자기 떨어진 것처럼 보이는 경우"
+  ]
+ },
+ "refs": [
+  {
+   "label": "Cormack 외 (2009) · Reciprocal Rank Fusion 논문 (PDF)",
+   "url": "https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf"
+  },
+  {
+   "label": "BAAI/bge-reranker-v2-m3 모델 카드 (Hugging Face)",
+   "url": "https://huggingface.co/BAAI/bge-reranker-v2-m3"
+  },
+  {
+   "label": "rank-bm25 (PyPI)",
+   "url": "https://pypi.org/project/rank-bm25/"
+  },
+  {
+   "label": "LangChain 문서 · Cross Encoder Reranker",
+   "url": "https://docs.langchain.com/oss/python/integrations/document_transformers/cross_encoder_reranker"
+  }
+ ]
+}

@@ -1,0 +1,138 @@
+{
+ "title": "RAG는 찾아온 근거를 프롬프트에 붙여 답하게 합니다",
+ "subtitle": "색인(미리 한 번)과 질의(요청마다) 두 흐름",
+ "cols": 6,
+ "rows": 2,
+ "groups": [
+  {
+   "label": "색인 단계 · 미리 한 번",
+   "col": 0,
+   "row": 0,
+   "cols": 3,
+   "rows": 1,
+   "color": "blue"
+  },
+  {
+   "label": "질의 단계 · 요청마다",
+   "col": 1,
+   "row": 1,
+   "cols": 5,
+   "rows": 1,
+   "color": "orange"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "d",
+   "col": 0,
+   "row": 0,
+   "label": "사내 문서",
+   "sub": "매뉴얼·설계서·위키",
+   "icon": "docs",
+   "color": "blue"
+  },
+  {
+   "id": "c",
+   "col": 1,
+   "row": 0,
+   "label": "청킹·임베딩",
+   "sub": "문단 단위로 잘라 벡터로",
+   "icon": "vector",
+   "color": "purple"
+  },
+  {
+   "id": "v",
+   "col": 2,
+   "row": 0,
+   "label": "벡터 저장소",
+   "sub": "벡터 + 원문 + 출처",
+   "icon": "db",
+   "color": "teal"
+  },
+  {
+   "id": "q",
+   "col": 1,
+   "row": 1,
+   "label": "질문",
+   "icon": "user",
+   "color": "orange",
+   "badge": 1
+  },
+  {
+   "id": "r",
+   "col": 2,
+   "row": 1,
+   "label": "검색",
+   "sub": "가까운 청크 k개",
+   "icon": "search",
+   "color": "green",
+   "badge": 2
+  },
+  {
+   "id": "p",
+   "col": 3,
+   "row": 1,
+   "label": "프롬프트 조립",
+   "sub": "지시 + 근거 + 질문",
+   "icon": "list",
+   "color": "yellow",
+   "badge": 3
+  },
+  {
+   "id": "l",
+   "col": 4,
+   "row": 1,
+   "label": "LLM",
+   "sub": "근거 안에서만 답",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 4
+  },
+  {
+   "id": "a",
+   "col": 5,
+   "row": 1,
+   "label": "답변 + 출처",
+   "icon": "check",
+   "color": "green",
+   "badge": 5,
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "d",
+   "to": "c"
+  },
+  {
+   "from": "c",
+   "to": "v",
+   "label": "저장"
+  },
+  {
+   "from": "q",
+   "to": "r"
+  },
+  {
+   "from": "r",
+   "to": "v",
+   "label": "유사도 검색",
+   "both": true
+  },
+  {
+   "from": "r",
+   "to": "p"
+  },
+  {
+   "from": "p",
+   "to": "l"
+  },
+  {
+   "from": "l",
+   "to": "a"
+  }
+ ],
+ "notes": [
+  "모델을 다시 학습시키지 않고, 질문할 때마다 최신 문서를 찾아 붙이는 방식입니다."
+ ]
+}

@@ -1,0 +1,98 @@
+{
+ "title": "오류 응답도 규격입니다: 사용자에겐 필드별 안내, 운영자에겐 추적 번호",
+ "subtitle": "RFC 9457 ProblemDetail 형식으로 사내 표준 오류 응답 맞추기",
+ "cols": 4,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "in",
+   "col": 0,
+   "row": 0,
+   "label": "잘못된 요청",
+   "sub": "제목 2자 · 날짜 형식 오류",
+   "icon": "warn",
+   "color": "yellow",
+   "badge": 1
+  },
+  {
+   "id": "adv",
+   "col": 1,
+   "row": 0,
+   "label": "공통 오류 처리기",
+   "sub": "@RestControllerAdvice",
+   "icon": "shield",
+   "color": "navy",
+   "badge": 2
+  },
+  {
+   "id": "pd",
+   "col": 2,
+   "row": 0,
+   "label": "400 ProblemDetail",
+   "sub": "code · detail · errors{필드: 메시지}",
+   "icon": "doc",
+   "color": "orange",
+   "badge": 3
+  },
+  {
+   "id": "ui",
+   "col": 3,
+   "row": 0,
+   "label": "화면 표시",
+   "sub": "입력칸 옆에 메시지",
+   "icon": "web",
+   "color": "blue",
+   "badge": 4
+  },
+  {
+   "id": "ex",
+   "col": 0,
+   "row": 1,
+   "label": "예상 못 한 예외",
+   "sub": "NPE · DB 오류",
+   "icon": "bolt",
+   "color": "red"
+  },
+  {
+   "id": "p5",
+   "col": 2,
+   "row": 1,
+   "label": "500 + traceId",
+   "sub": "스택 트레이스는 응답에 없음",
+   "icon": "lock",
+   "color": "red"
+  },
+  {
+   "id": "log",
+   "col": 3,
+   "row": 1,
+   "label": "서버 로그",
+   "sub": "같은 traceId 로 원인 검색",
+   "icon": "list",
+   "color": "gray"
+  }
+ ],
+ "edges": [
+  {
+   "from": "in",
+   "to": "adv"
+  },
+  {
+   "from": "adv",
+   "to": "pd"
+  },
+  {
+   "from": "pd",
+   "to": "ui"
+  },
+  {
+   "from": "ex",
+   "to": "p5",
+   "label": "같은 처리기가 변환"
+  },
+  {
+   "from": "p5",
+   "to": "log"
+  }
+ ]
+}

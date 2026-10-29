@@ -1,0 +1,103 @@
+{
+ "title": "운영 매뉴얼 Q&A 봇: 문서 갱신은 배치, 질문은 실시간",
+ "subtitle": "정보계 운영팀 예시 구성",
+ "cols": 5,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "w",
+   "col": 0,
+   "row": 0,
+   "label": "문서 저장소",
+   "sub": "매뉴얼·ETL 설계서",
+   "icon": "docs",
+   "color": "blue"
+  },
+  {
+   "id": "b",
+   "col": 1,
+   "row": 0,
+   "label": "야간 색인 배치",
+   "sub": "바뀐 문서만 다시",
+   "icon": "clock",
+   "color": "purple"
+  },
+  {
+   "id": "v",
+   "col": 2,
+   "row": 0,
+   "label": "pgvector",
+   "sub": "문서명·개정일 함께",
+   "icon": "db",
+   "color": "teal"
+  },
+  {
+   "id": "u",
+   "col": 0,
+   "row": 1,
+   "label": "운영 담당자",
+   "sub": "메신저로 질문",
+   "icon": "user",
+   "color": "orange",
+   "badge": 1
+  },
+  {
+   "id": "api",
+   "col": 2,
+   "row": 1,
+   "label": "Q&A API",
+   "sub": "검색 + 생성",
+   "icon": "server",
+   "color": "navy",
+   "badge": 2
+  },
+  {
+   "id": "llm",
+   "col": 3,
+   "row": 1,
+   "label": "LLM",
+   "sub": "사내 승인 모델",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 3
+  },
+  {
+   "id": "ans",
+   "col": 4,
+   "row": 1,
+   "label": "답변 + 문서 링크",
+   "sub": "근거 없으면 담당자 안내",
+   "icon": "check",
+   "color": "green",
+   "badge": 4
+  }
+ ],
+ "edges": [
+  {
+   "from": "w",
+   "to": "b"
+  },
+  {
+   "from": "b",
+   "to": "v"
+  },
+  {
+   "from": "u",
+   "to": "api"
+  },
+  {
+   "from": "api",
+   "to": "v",
+   "label": "검색",
+   "both": true
+  },
+  {
+   "from": "api",
+   "to": "llm"
+  },
+  {
+   "from": "llm",
+   "to": "ans"
+  }
+ ]
+}

@@ -1,0 +1,25 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 도식이 사양과 같은지 확인
+        run: |
+          python3 tools/diagram.py
+          git diff --exit-code diagrams/ || (echo "tools/diagrams 사양을 고쳤다면 python3 tools/diagram.py 를 실행해 커밋하세요" && exit 1)
+      - name: 실습 파일이 세션 JSON과 같은지 확인
+        run: |
+          python3 tools/export_labs.py
+          git diff --exit-code labs/ || (echo "세션 JSON의 코드를 고쳤다면 python3 tools/export_labs.py 를 실행해 커밋하세요" && exit 1)
+      - name: 세션 데이터 검증
+        run: python3 tools/validate.py

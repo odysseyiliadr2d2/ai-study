@@ -1,0 +1,54 @@
+# .gitlab-ci.yml — 폐쇄망 사내 GitLab CI (ticket-desk-api)
+# 전제: 러너는 사내망 shell executor(docker · kubectl 설치), 모든 이미지 · 의존성은 사내 저장소에서
+# CI/CD 변수(Masked · Protected): NEXUS_USER, NEXUS_PASSWORD, HARBOR_USER, HARBOR_PASSWORD, KUBECONFIG_PROD(File 타입)
+stages: [test, build, deploy]
+
+variables:
+  HARBOR: harbor.example.internal
+  IMAGE: $HARBOR/ticketdesk/ticket-desk-api
+  BASE_JRE: $HARBOR/base/eclipse-temurin:21-jre       # 반입 · 스캔된 기본 이미지
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+
+default:
+  tags: [intranet-shell]
+
+test:
+  stage: test
+  cache:
+    key: maven
+    paths: [.m2/repository]
+  script:
+    - ./mvnw -B -s ci/settings.xml verify      # 사내 Nexus 만 사용
+  artifacts:
+    paths: [target/*.jar]
+    expire_in: 3 days
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+
+build-image:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - echo "$HARBOR_PASSWORD" | docker login $HARBOR -u "$HARBOR_USER" --password-stdin
+    - docker build --build-arg BASE_IMAGE=$BASE_JRE -t $IMAGE:$CI_COMMIT_SHORT_SHA .
+    - docker push $IMAGE:$CI_COMMIT_SHORT_SHA
+    # Harbor 의 취약점 스캔 결과가 기준 미달이면 이미지 pull 을 막도록 프로젝트 정책 설정
+
+deploy-prod:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual                              # 운영 반영은 변경 승인 후 담당자가 버튼으로
+  environment:
+    name: production
+  script:
+    - export KUBECONFIG=$KUBECONFIG_PROD
+    - kubectl -n ticketdesk set image deployment/ticket-desk-api app=$IMAGE:$CI_COMMIT_SHORT_SHA
+    - kubectl -n ticketdesk annotate deployment/ticket-desk-api kubernetes.io/change-cause="$CI_COMMIT_SHORT_SHA $GITLAB_USER_LOGIN" --overwrite
+    - |
+      if ! kubectl -n ticketdesk rollout status deployment/ticket-desk-api --timeout=300s; then
+        kubectl -n ticketdesk rollout undo deployment/ticket-desk-api
+        echo "롤아웃 실패 — 이전 버전으로 되돌렸습니다" >&2
+        exit 1
+      fi

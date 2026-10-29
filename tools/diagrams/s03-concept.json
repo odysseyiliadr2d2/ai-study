@@ -1,0 +1,114 @@
+{
+ "title": "좋은 프롬프트는 역할 · 맥락 · 제약 · 출력형식 네 칸을 채웁니다",
+ "subtitle": "네 칸 + 입력 데이터를 조립하면 업무용 프롬프트 하나가 됩니다",
+ "cols": 4,
+ "rows": 2,
+ "cell_h": 136,
+ "groups": [
+  {
+   "label": "시스템 프롬프트 · 매번 같은 네 칸",
+   "col": 0,
+   "row": 0,
+   "cols": 4,
+   "rows": 1,
+   "color": "navy"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "r",
+   "col": 0,
+   "row": 0,
+   "label": "역할",
+   "sub": "누구로서 답하나 · 정보계 DW 운영 10년차",
+   "icon": "user",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "c",
+   "col": 1,
+   "row": 0,
+   "label": "맥락",
+   "sub": "왜, 누구에게 · 신규 담당자 인수인계용",
+   "icon": "docs",
+   "color": "purple",
+   "badge": 2
+  },
+  {
+   "id": "k",
+   "col": 2,
+   "row": 0,
+   "label": "제약",
+   "sub": "하지 말 것·범위 · 근거 밖 추측 금지",
+   "icon": "shield",
+   "color": "orange",
+   "badge": 3
+  },
+  {
+   "id": "f",
+   "col": 3,
+   "row": 0,
+   "label": "출력형식",
+   "sub": "모양 · 표, JSON, 5줄 이내",
+   "icon": "list",
+   "color": "teal",
+   "badge": 4
+  },
+  {
+   "id": "in",
+   "col": 0,
+   "row": 1,
+   "label": "입력 데이터",
+   "sub": "로그·정의서·회의록을 태그로 감쌈",
+   "icon": "inbox",
+   "color": "gray"
+  },
+  {
+   "id": "p",
+   "col": 1,
+   "row": 1,
+   "span": 2,
+   "label": "조립된 프롬프트",
+   "sub": "시스템 = 네 칸 · 사용자 = 입력 + 요청 한 줄",
+   "icon": "layers",
+   "color": "navy"
+  },
+  {
+   "id": "o",
+   "col": 3,
+   "row": 1,
+   "label": "일관된 결과",
+   "sub": "그대로 붙여 쓰는 형식",
+   "icon": "check",
+   "color": "green",
+   "emph": true
+  }
+ ],
+ "edges": [
+  {
+   "from": "c",
+   "to": "p"
+  },
+  {
+   "from": "k",
+   "to": "p"
+  },
+  {
+   "from": "in",
+   "to": "p"
+  },
+  {
+   "from": "p",
+   "to": "o"
+  },
+  {
+   "from": "f",
+   "to": "o",
+   "label": "모양을 정함"
+  }
+ ],
+ "notes": [
+  "few-shot 예시와 '단계적으로 생각하라'는 지시는 네 칸 위에 얹는 보강 장치입니다."
+ ]
+}

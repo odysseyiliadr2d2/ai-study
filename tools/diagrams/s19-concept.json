@@ -1,0 +1,127 @@
+{
+ "title": "Agent SDK 는 루프를 대신 돌리고, 우리는 도구 · 권한 · 역할만 정합니다",
+ "subtitle": "세션 17에서 손으로 짠 부분이 SDK 안으로 들어갑니다",
+ "cols": 4,
+ "rows": 3,
+ "cell_h": 112,
+ "groups": [
+  {
+   "label": "Agent SDK 가 맡는 부분",
+   "col": 1,
+   "row": 0,
+   "cols": 2,
+   "rows": 3,
+   "color": "purple"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "app",
+   "col": 0,
+   "row": 1,
+   "label": "우리 코드",
+   "sub": "도구·권한·역할 설정",
+   "icon": "code",
+   "color": "orange",
+   "emph": true
+  },
+  {
+   "id": "loop",
+   "col": 1,
+   "row": 0,
+   "label": "에이전트 루프",
+   "sub": "반복·종료·재시도",
+   "icon": "cycle",
+   "color": "purple"
+  },
+  {
+   "id": "sess",
+   "col": 1,
+   "row": 1,
+   "label": "세션·메모리",
+   "sub": "이어 묻기·재개",
+   "icon": "clock",
+   "color": "purple"
+  },
+  {
+   "id": "perm",
+   "col": 1,
+   "row": 2,
+   "label": "권한·훅",
+   "sub": "허용·승인·차단",
+   "icon": "shield",
+   "color": "yellow"
+  },
+  {
+   "id": "main",
+   "col": 2,
+   "row": 0,
+   "label": "메인 에이전트",
+   "sub": "보고서 작성",
+   "icon": "bot",
+   "color": "pink"
+  },
+  {
+   "id": "sub",
+   "col": 2,
+   "row": 1,
+   "label": "서브에이전트",
+   "sub": "조사 전담·읽기만",
+   "icon": "users",
+   "color": "pink"
+  },
+  {
+   "id": "mcp",
+   "col": 3,
+   "row": 1,
+   "label": "MCP 서버 ops-dw",
+   "sub": "세션 18",
+   "icon": "server",
+   "color": "teal"
+  },
+  {
+   "id": "hum",
+   "col": 3,
+   "row": 2,
+   "label": "담당자 승인",
+   "sub": "쓰기 도구만",
+   "icon": "user",
+   "color": "yellow"
+  }
+ ],
+ "edges": [
+  {
+   "from": "app",
+   "to": "loop",
+   "route": "vh"
+  },
+  {
+   "from": "app",
+   "to": "sess"
+  },
+  {
+   "from": "app",
+   "to": "perm",
+   "route": "vh"
+  },
+  {
+   "from": "loop",
+   "to": "main"
+  },
+  {
+   "from": "main",
+   "to": "sub",
+   "label": "위임"
+  },
+  {
+   "from": "sub",
+   "to": "mcp",
+   "label": "읽기 도구"
+  },
+  {
+   "from": "perm",
+   "to": "hum",
+   "dashed": true
+  }
+ ]
+}

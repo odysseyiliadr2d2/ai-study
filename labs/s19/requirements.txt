@@ -1,0 +1,3 @@
+claude-agent-sdk>=0.2.170   # Claude Code CLI 가 함께 설치됨
+openai-agents>=0.24          # 선택: OpenAI Agents SDK 비교
+mcp>=2.3,<3                  # 세션 18 서버

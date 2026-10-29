@@ -1,0 +1,8 @@
+{
+  "category": "장애·오류",
+  "urgency": "높음",
+  "summary": "월별 정산 보고서 화면 조회 시 ERR-5031 오류",
+  "faq_used": "FAQ-012",
+  "needs_human": false,
+  "reply_draft": "안녕하세요. 문의 주신 ERR-5031 오류는 ..."
+}

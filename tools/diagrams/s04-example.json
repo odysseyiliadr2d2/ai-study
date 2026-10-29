@@ -1,0 +1,134 @@
+{
+ "title": "폐쇄망 금융팀은 사내 승인 모델을 기본으로, 외부 API는 심사를 거쳐 씁니다",
+ "subtitle": "모든 호출은 게이트웨이 한 곳을 지나며 기록됩니다",
+ "cols": 4,
+ "rows": 2,
+ "cell_h": 136,
+ "groups": [
+  {
+   "label": "사내망",
+   "col": 0,
+   "row": 0,
+   "cols": 4,
+   "rows": 1,
+   "color": "navy"
+  },
+  {
+   "label": "외부 연계 · 승인 시",
+   "col": 0,
+   "row": 1,
+   "cols": 3,
+   "rows": 1,
+   "color": "yellow"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "u",
+   "col": 0,
+   "row": 0,
+   "label": "직원·개발자",
+   "sub": "사내 PC · IDE",
+   "icon": "users",
+   "color": "gray",
+   "badge": 1
+  },
+  {
+   "id": "gw",
+   "col": 1,
+   "row": 0,
+   "label": "LLM 게이트웨이",
+   "sub": "인증 · 사용량 · 로그",
+   "icon": "shield",
+   "color": "navy",
+   "badge": 2
+  },
+  {
+   "id": "lm",
+   "col": 2,
+   "row": 0,
+   "label": "사내 승인 모델",
+   "sub": "오픈웨이트 · GPU 서버 · OpenAI 호환",
+   "icon": "server",
+   "color": "teal",
+   "badge": 3,
+   "emph": true
+  },
+  {
+   "id": "out",
+   "col": 3,
+   "row": 0,
+   "label": "답변 + 감사 로그",
+   "sub": "프롬프트·응답 보관",
+   "icon": "check",
+   "color": "green"
+  },
+  {
+   "id": "pol",
+   "col": 0,
+   "row": 1,
+   "label": "데이터 등급 정책",
+   "sub": "공개 · 내부 · 기밀",
+   "icon": "list",
+   "color": "yellow"
+  },
+  {
+   "id": "dlp",
+   "col": 1,
+   "row": 1,
+   "label": "반출 심사",
+   "sub": "비식별 · 마스킹",
+   "icon": "eye",
+   "color": "yellow",
+   "badge": 4
+  },
+  {
+   "id": "ext",
+   "col": 2,
+   "row": 1,
+   "label": "외부 API",
+   "sub": "Claude · GPT (계약)",
+   "icon": "cloud",
+   "color": "purple",
+   "badge": 5
+  }
+ ],
+ "edges": [
+  {
+   "from": "u",
+   "to": "gw"
+  },
+  {
+   "from": "gw",
+   "to": "lm",
+   "label": "기본"
+  },
+  {
+   "from": "lm",
+   "to": "out"
+  },
+  {
+   "from": "gw",
+   "to": "dlp",
+   "label": "외부 필요 시"
+  },
+  {
+   "from": "pol",
+   "to": "dlp",
+   "label": "기준"
+  },
+  {
+   "from": "dlp",
+   "to": "ext",
+   "label": "공개·내부만"
+  },
+  {
+   "from": "ext",
+   "to": "out",
+   "label": "응답"
+  }
+ ],
+ "notes": [
+  "기밀 등급 데이터는 외부로 나가지 않습니다. 외부 API 사용은 회사 정책과 계약 조건이 허용하는 범위에서만 엽니다."
+ ]
+}

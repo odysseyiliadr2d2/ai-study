@@ -1,0 +1,217 @@
+{
+ "title": "회사마다 앱 · CLI · 규칙 파일 · SDK · 모델이 한 벌로 묶여 있습니다",
+ "subtitle": "같은 열끼리는 역할이 같습니다 · 2026-10 기준",
+ "cols": 6,
+ "rows": 3,
+ "cell_h": 118,
+ "groups": [
+  {
+   "label": "앱",
+   "col": 1,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "gray"
+  },
+  {
+   "label": "터미널 CLI",
+   "col": 2,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "gray"
+  },
+  {
+   "label": "규칙 파일",
+   "col": 3,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "gray"
+  },
+  {
+   "label": "SDK · API",
+   "col": 4,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "gray"
+  },
+  {
+   "label": "모델",
+   "col": 5,
+   "row": 0,
+   "cols": 1,
+   "rows": 3,
+   "color": "gray"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "a",
+   "col": 0,
+   "row": 0,
+   "label": "Anthropic",
+   "icon": "building",
+   "color": "orange",
+   "emph": true
+  },
+  {
+   "id": "a1",
+   "col": 1,
+   "row": 0,
+   "label": "Claude 앱",
+   "sub": "웹 · 데스크톱",
+   "icon": "chat",
+   "color": "orange"
+  },
+  {
+   "id": "a2",
+   "col": 2,
+   "row": 0,
+   "label": "Claude Code",
+   "sub": "스킬 · 훅 · MCP",
+   "icon": "terminal",
+   "color": "orange"
+  },
+  {
+   "id": "a3",
+   "col": 3,
+   "row": 0,
+   "label": "CLAUDE.md",
+   "sub": "프로젝트 지침",
+   "icon": "doc",
+   "color": "orange"
+  },
+  {
+   "id": "a4",
+   "col": 4,
+   "row": 0,
+   "label": "Agent SDK",
+   "sub": "Messages API",
+   "icon": "code",
+   "color": "orange"
+  },
+  {
+   "id": "a5",
+   "col": 5,
+   "row": 0,
+   "label": "Claude 5.5",
+   "sub": "Opus · Sonnet 등",
+   "icon": "spark",
+   "color": "orange"
+  },
+  {
+   "id": "o",
+   "col": 0,
+   "row": 1,
+   "label": "OpenAI",
+   "icon": "building",
+   "color": "green",
+   "emph": true
+  },
+  {
+   "id": "o1",
+   "col": 1,
+   "row": 1,
+   "label": "ChatGPT",
+   "sub": "웹 · 데스크톱",
+   "icon": "chat",
+   "color": "green"
+  },
+  {
+   "id": "o2",
+   "col": 2,
+   "row": 1,
+   "label": "Codex CLI",
+   "sub": "Apache-2.0",
+   "icon": "terminal",
+   "color": "green"
+  },
+  {
+   "id": "o3",
+   "col": 3,
+   "row": 1,
+   "label": "AGENTS.md",
+   "sub": "프로젝트 지침",
+   "icon": "doc",
+   "color": "green"
+  },
+  {
+   "id": "o4",
+   "col": 4,
+   "row": 1,
+   "label": "Agents SDK",
+   "sub": "Responses API",
+   "icon": "code",
+   "color": "green"
+  },
+  {
+   "id": "o5",
+   "col": 5,
+   "row": 1,
+   "label": "GPT-5.5",
+   "sub": "오픈: gpt-oss",
+   "icon": "spark",
+   "color": "green"
+  },
+  {
+   "id": "g",
+   "col": 0,
+   "row": 2,
+   "label": "Google",
+   "icon": "building",
+   "color": "blue",
+   "emph": true
+  },
+  {
+   "id": "g1",
+   "col": 1,
+   "row": 2,
+   "label": "Gemini 앱",
+   "sub": "웹 · 모바일",
+   "icon": "chat",
+   "color": "blue"
+  },
+  {
+   "id": "g2",
+   "col": 2,
+   "row": 2,
+   "label": "agy",
+   "sub": "Antigravity CLI",
+   "icon": "terminal",
+   "color": "blue"
+  },
+  {
+   "id": "g3",
+   "col": 3,
+   "row": 2,
+   "label": "AGENTS.md",
+   "sub": "GEMINI.md 호환",
+   "icon": "doc",
+   "color": "blue"
+  },
+  {
+   "id": "g4",
+   "col": 4,
+   "row": 2,
+   "label": "Gemini API",
+   "sub": "유료 키 사용",
+   "icon": "code",
+   "color": "blue"
+  },
+  {
+   "id": "g5",
+   "col": 5,
+   "row": 2,
+   "label": "Gemini",
+   "sub": "오픈: Gemma 4",
+   "icon": "spark",
+   "color": "blue"
+  }
+ ],
+ "edges": [],
+ "notes": [
+  "공통 연결 규격 MCP 와 오픈소스 축(Ollama · n8n · OpenClaw)은 어느 회사 모델과도 조합할 수 있습니다."
+ ]
+}

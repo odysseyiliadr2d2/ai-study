@@ -1,0 +1,26 @@
+[③ AI Agent — 'Agent']
+Source for Prompt (User Message): Define below
+Prompt (User Message):
+  다음 고객 문의 메일을 처리하세요.
+  보낸 사람: {{ $json.from }}
+  제목: {{ $json.subject }}
+  본문:
+  {{ $json.body }}
+
+Require Specific Output Format: 켬   → Output Parser 연결점이 생깁니다
+
+Options › System Message:
+  당신은 SI 회사 고객지원팀의 1차 응대 담당입니다.
+  1. 문의를 '계정·로그인 / 요금·계약 / 장애·오류 / 기능 요청 / 기타' 중 하나로 분류합니다.
+  2. 답을 쓰기 전에 반드시 faq_lookup 도구로 관련 FAQ 를 찾습니다.
+  3. FAQ 에 근거가 있으면 그 내용으로, 없으면 "담당자가 확인 후 회신드리겠습니다"로 답장 초안을 씁니다.
+  4. 가격·계약 조건·장애 원인은 추측해서 쓰지 않습니다.
+  5. 답장은 합니다체, 5문장 이내, 서명은 '고객지원팀'.
+  6. 확신이 없으면 needs_human 을 true 로 둡니다.
+Options › Max Iterations: 5          (도구 호출이 무한히 반복되지 않게)
+
+[Anthropic Chat Model (하위 노드)]
+Credential: Anthropic API
+Model: 목록에서 Sonnet 계열 선택
+Options: Sampling Temperature · Top P · Top K 는 추가하지 않습니다 (Claude 5.5 모델은 400 오류)
+※ 노드 버전에 따라 Claude 5.5 와 맞지 않는 옵션이 있을 수 있으니, 오류가 나면 옵션을 비우고 다시 실행합니다.

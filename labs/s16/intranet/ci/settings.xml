@@ -1,0 +1,18 @@
+<!-- ci/settings.xml — 모든 Maven 요청을 사내 Nexus 로 (외부 Maven Central 직접 접근 없음) -->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">
+  <mirrors>
+    <mirror>
+      <id>nexus</id>
+      <mirrorOf>*</mirrorOf>
+      <url>https://nexus.example.internal/repository/maven-public/</url>
+    </mirror>
+  </mirrors>
+  <servers>
+    <server>
+      <id>nexus</id>
+      <username>${env.NEXUS_USER}</username>
+      <password>${env.NEXUS_PASSWORD}</password>
+    </server>
+  </servers>
+</settings>
+<!-- npm 은 저장소 루트 .npmrc 한 줄:  registry=https://nexus.example.internal/repository/npm-group/ -->

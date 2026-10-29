@@ -1,0 +1,148 @@
+{
+ "title": "운영팀 메일 처리: 에이전트는 초안까지, 발송은 사람이 누릅니다",
+ "subtitle": "고객센터·운영팀 공용 메일함 예시 — 정상 흐름과 실패 흐름을 따로 설계",
+ "cols": 6,
+ "rows": 2,
+ "groups": [
+  {
+   "label": "본 워크플로",
+   "col": 0,
+   "row": 0,
+   "cols": 6,
+   "rows": 1,
+   "color": "blue"
+  },
+  {
+   "label": "오류 워크플로",
+   "col": 3,
+   "row": 1,
+   "cols": 3,
+   "rows": 1,
+   "color": "red"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "t",
+   "col": 0,
+   "row": 0,
+   "label": "메일 수신",
+   "sub": "Gmail Trigger",
+   "icon": "mail",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "ag",
+   "col": 1,
+   "row": 0,
+   "label": "AI Agent",
+   "sub": "분류·초안",
+   "icon": "bot",
+   "color": "purple",
+   "badge": 2
+  },
+  {
+   "id": "ap",
+   "col": 2,
+   "row": 0,
+   "label": "승인 요청",
+   "sub": "담당자 메일",
+   "icon": "clock",
+   "color": "yellow",
+   "badge": 3
+  },
+  {
+   "id": "if",
+   "col": 3,
+   "row": 0,
+   "label": "승인?",
+   "sub": "IF 노드",
+   "icon": "target",
+   "color": "navy",
+   "badge": 4
+  },
+  {
+   "id": "rp",
+   "col": 4,
+   "row": 0,
+   "label": "답장 발송",
+   "sub": "Gmail Reply",
+   "icon": "send",
+   "color": "green",
+   "badge": 5
+  },
+  {
+   "id": "lg",
+   "col": 5,
+   "row": 0,
+   "label": "시트 기록",
+   "sub": "결과·승인자",
+   "icon": "sheet",
+   "color": "teal",
+   "badge": 6
+  },
+  {
+   "id": "faq",
+   "col": 1,
+   "row": 1,
+   "label": "FAQ 조회",
+   "sub": "에이전트 도구",
+   "icon": "search",
+   "color": "orange"
+  },
+  {
+   "id": "et",
+   "col": 3,
+   "row": 1,
+   "label": "Error Trigger",
+   "sub": "실패 시 실행",
+   "icon": "warn",
+   "color": "red"
+  },
+  {
+   "id": "en",
+   "col": 4,
+   "row": 1,
+   "label": "당직 알림",
+   "sub": "실행 링크 포함",
+   "icon": "bolt",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "t",
+   "to": "ag"
+  },
+  {
+   "from": "ag",
+   "to": "ap"
+  },
+  {
+   "from": "ap",
+   "to": "if"
+  },
+  {
+   "from": "if",
+   "to": "rp",
+   "label": "예"
+  },
+  {
+   "from": "rp",
+   "to": "lg"
+  },
+  {
+   "from": "faq",
+   "to": "ag",
+   "both": true
+  },
+  {
+   "from": "et",
+   "to": "en"
+  }
+ ],
+ "notes": [
+  "거절·시간 초과는 발송 없이 시트에 '수동 처리'로 남기고, 어느 노드든 실패하면 오류 워크플로가 당직자에게 알립니다."
+ ]
+}

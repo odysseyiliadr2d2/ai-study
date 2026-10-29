@@ -1,0 +1,92 @@
+{
+ "title": "LLM 결과는 스키마로 받고, 검증을 통과한 값만 씁니다",
+ "subtitle": "구조화 출력 · 검증 · 대체 경로",
+ "cols": 4,
+ "rows": 2,
+ "nodes": [
+  {
+   "id": "p",
+   "col": 0,
+   "row": 0,
+   "label": "프롬프트",
+   "sub": "분류 기준 + 마스킹된 본문",
+   "icon": "list",
+   "color": "blue",
+   "badge": 1
+  },
+  {
+   "id": "s",
+   "col": 1,
+   "row": 0,
+   "label": "출력 스키마",
+   "sub": "zod 객체 · Java record",
+   "icon": "layers",
+   "color": "purple",
+   "badge": 2
+  },
+  {
+   "id": "m",
+   "col": 2,
+   "row": 0,
+   "label": "모델 호출",
+   "sub": "제한 시간 20초",
+   "icon": "spark",
+   "color": "pink",
+   "badge": 3
+  },
+  {
+   "id": "v",
+   "col": 3,
+   "row": 0,
+   "label": "검증",
+   "sub": "enum 값 · 길이 · 필수",
+   "icon": "check",
+   "color": "green",
+   "badge": 4
+  },
+  {
+   "id": "ok",
+   "col": 3,
+   "row": 1,
+   "label": "저장",
+   "sub": "요약 · 분류 · 우선순위",
+   "icon": "db",
+   "color": "teal",
+   "badge": 5
+  },
+  {
+   "id": "fb",
+   "col": 1,
+   "row": 1,
+   "span": 2,
+   "label": "대체 경로",
+   "sub": "시간 초과 · 형식 오류 · 키 없음 → 분류 없이 저장, 담당자가 분류",
+   "icon": "warn",
+   "color": "red"
+  }
+ ],
+ "edges": [
+  {
+   "from": "p",
+   "to": "s"
+  },
+  {
+   "from": "s",
+   "to": "m"
+  },
+  {
+   "from": "m",
+   "to": "v"
+  },
+  {
+   "from": "v",
+   "to": "ok",
+   "label": "통과"
+  },
+  {
+   "from": "m",
+   "to": "fb",
+   "label": "실패"
+  }
+ ]
+}

@@ -1,0 +1,9 @@
+torch>=2.4
+transformers>=4.56
+peft>=0.17
+trl>=0.24
+datasets>=3.0
+accelerate>=1.0
+pyyaml>=6.0
+openai>=2.0                  # fewshot.py (사내 OpenAI 호환 서버 호출)
+sentence-transformers>=3.0   # fewshot.py (예시 검색)

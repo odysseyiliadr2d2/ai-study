@@ -1,0 +1,143 @@
+{
+ "title": "폐쇄망 배포: 외부 의존성은 반입 경로 하나로, 빌드와 배포는 사내에서",
+ "subtitle": "사내 GitLab · Nexus · Harbor · Kubernetes 구성 예",
+ "cols": 5,
+ "rows": 2,
+ "groups": [
+  {
+   "label": "외부 인터넷",
+   "col": 0,
+   "row": 0,
+   "cols": 1,
+   "rows": 2,
+   "color": "gray"
+  },
+  {
+   "label": "사내망",
+   "col": 2,
+   "row": 0,
+   "cols": 3,
+   "rows": 2,
+   "color": "navy"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "pub",
+   "col": 0,
+   "row": 0,
+   "label": "공개 저장소",
+   "sub": "Maven Central · npm · Docker Hub",
+   "icon": "cloud",
+   "color": "gray"
+  },
+  {
+   "id": "llm",
+   "col": 0,
+   "row": 1,
+   "label": "외부 LLM",
+   "sub": "승인된 경우만",
+   "icon": "spark",
+   "color": "pink"
+  },
+  {
+   "id": "gate",
+   "col": 1,
+   "row": 0,
+   "label": "반입 · 검사",
+   "sub": "승인 프록시 · 취약점 스캔",
+   "icon": "shield",
+   "color": "red"
+  },
+  {
+   "id": "gw",
+   "col": 1,
+   "row": 1,
+   "label": "AI 게이트웨이",
+   "sub": "DMZ · 사용 로그",
+   "icon": "shield",
+   "color": "purple"
+  },
+  {
+   "id": "nexus",
+   "col": 2,
+   "row": 0,
+   "label": "Nexus",
+   "sub": "Maven · npm 미러",
+   "icon": "stack",
+   "color": "teal"
+  },
+  {
+   "id": "ci",
+   "col": 3,
+   "row": 0,
+   "label": "사내 GitLab CI",
+   "sub": "테스트 · 이미지 빌드",
+   "icon": "gear",
+   "color": "blue"
+  },
+  {
+   "id": "harbor",
+   "col": 4,
+   "row": 0,
+   "label": "Harbor",
+   "sub": "사내 이미지 레지스트리",
+   "icon": "layers",
+   "color": "teal"
+  },
+  {
+   "id": "k8s",
+   "col": 4,
+   "row": 1,
+   "label": "Kubernetes",
+   "sub": "운영 네임스페이스",
+   "icon": "server",
+   "color": "green"
+  },
+  {
+   "id": "ora",
+   "col": 3,
+   "row": 1,
+   "label": "Oracle",
+   "sub": "TICKETDESK",
+   "icon": "db",
+   "color": "orange"
+  }
+ ],
+ "edges": [
+  {
+   "from": "pub",
+   "to": "gate"
+  },
+  {
+   "from": "gate",
+   "to": "nexus"
+  },
+  {
+   "from": "nexus",
+   "to": "ci"
+  },
+  {
+   "from": "ci",
+   "to": "harbor"
+  },
+  {
+   "from": "harbor",
+   "to": "k8s",
+   "label": "pull"
+  },
+  {
+   "from": "k8s",
+   "to": "ora",
+   "both": true
+  },
+  {
+   "from": "gw",
+   "to": "llm",
+   "both": true
+  }
+ ],
+ "notes": [
+  "앱은 AI 게이트웨이 주소만 압니다. 외부 저장소 · LLM 으로 직접 나가는 경로는 없습니다."
+ ]
+}

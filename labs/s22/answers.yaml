@@ -1,0 +1,10 @@
+name: 장애 보고서 요약 (보고서 문체)
+needs_new_facts: false
+facts_change_often: false
+needs_citation: false
+format_or_tone_issue: true
+prompt_tried: true
+prompt_score: 0.72
+target_score: 0.90
+labeled_examples: 800
+has_gpu: true

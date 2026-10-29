@@ -1,0 +1,261 @@
+{
+ "id": 5,
+ "part": 2,
+ "title": "n8n 업무자동화 입문",
+ "summary": "트리거 → 처리 → 전달 구조로 첫 자동화 워크플로 만들기",
+ "level": "기초",
+ "tags": [
+  "n8n"
+ ],
+ "duration": "120분 (설명 35 · 실습 65 · 토론 20)",
+ "goals": [
+  "반복 업무를 트리거 → 처리 → 전달 세 칸으로 쪼개 설명할 수 있다",
+  "빈도 × 소요시간으로 자동화 후보를 고르고 우선순위를 정한다",
+  "Docker 로 n8n 을 띄우고 노드·연결·자격증명·실행 기록을 다룬다",
+  "스케줄 트리거, 표현식, Code 노드로 '아침 메일·RSS 요약 브리핑'을 완성한다"
+ ],
+ "output": "매일 아침 메일·RSS 를 LLM 으로 요약해 메일(또는 메신저)로 보내고 Google Sheets 에 기록하는 n8n 워크플로",
+ "concept": {
+  "lead": "n8n 은 <b>노드를 선으로 이어 업무 흐름을 만드는 워크플로 자동화 도구</b>입니다. 모든 워크플로는 '언제 시작하나(트리거) → 무엇을 하나(처리) → 어디로 보내나(전달)'의 세 칸으로 나뉩니다.",
+  "body": [
+   "매일 아침 메일함을 훑고, 중요한 것만 골라 팀에 공유하고, 엑셀에 적는 일은 판단보다 반복이 많습니다. 이런 일은 '7시 30분이 되면(트리거) 메일을 모아 요약하고(처리) 메신저로 보낸다(전달)'처럼 한 문장으로 적을 수 있고, 한 문장으로 적히면 자동화할 수 있습니다.",
+   "n8n 에서 각 단계는 <b>노드</b> 하나입니다. Gmail 노드는 메일을 가져오고, Code 노드는 데이터를 가공하고, LLM 노드는 요약합니다. 노드 사이로는 <b>항목(item) 배열</b>이 흐르고, 각 노드는 앞 노드의 출력을 <code>{{ $json.필드 }}</code> 같은 <b>표현식</b>으로 참조합니다.",
+   "n8n 은 소스가 공개된 도구라 <b>사내 서버에 직접 설치(셀프호스팅)</b>할 수 있습니다. 데이터가 밖으로 나가면 안 되는 금융권에서는 이 점이 클라우드형 자동화 도구와 가장 큰 차이입니다. 실습은 개인 노트북의 Docker 로 하고, 사내 적용은 승인된 서버와 모델을 전제로 생각합니다."
+  ],
+  "diagram": {
+   "src": "diagrams/s05-concept.svg",
+   "caption": "노드는 위 줄의 흐름을 만들고, 자격증명·표현식·실행 기록은 아래에서 받칩니다."
+  },
+  "terms": [
+   {
+    "term": "노드 (Node)",
+    "desc": "한 가지 일을 하는 블록. 트리거 노드, 앱 노드(Gmail·Sheets), 코어 노드(Code·IF·Merge), AI 노드로 나뉩니다."
+   },
+   {
+    "term": "항목 (Item)",
+    "desc": "노드 사이로 흐르는 데이터 단위. 메일 10통을 가져오면 항목 10개가 다음 노드로 넘어가고, 대부분의 노드는 항목마다 한 번씩 실행됩니다."
+   },
+   {
+    "term": "자격증명 (Credential)",
+    "desc": "API 키·OAuth 토큰을 워크플로와 따로 암호화해 보관하는 곳. 워크플로를 공유해도 키는 따라가지 않습니다."
+   },
+   {
+    "term": "표현식 (Expression)",
+    "desc": "<code>{{ }}</code> 안에 쓰는 JavaScript. <code>$json</code>(현재 항목), <code>$('노드 이름')</code>(다른 노드 출력), <code>$now</code>(현재 시각)를 씁니다."
+   },
+   {
+    "term": "실행 기록 (Executions)",
+    "desc": "워크플로가 돌 때마다 노드별 입력·출력이 남는 기록. 디버깅은 여기서 시작합니다."
+   },
+   {
+    "term": "게시 (Publish)",
+    "desc": "n8n 2.0 부터 저장과 운영 반영이 나뉘었습니다. 스케줄·웹훅 트리거는 워크플로를 게시해야 실제로 동작합니다."
+   }
+  ]
+ },
+ "theory": {
+  "lead": "자동화는 도구보다 <b>무엇을 자동화할지 고르는 일</b>에서 성패가 갈립니다. 후보를 고르고, 세 칸으로 쪼개고, 트리거와 표현식을 정하는 순서로 봅니다.",
+  "diagram": {
+   "src": "diagrams/s05-theory.svg",
+   "caption": "빈도와 1회 소요시간으로 네 칸을 나누고, 왼쪽 위부터 자동화합니다."
+  },
+  "sections": [
+   {
+    "title": "1. 자동화 후보 고르기: 빈도 × 소요시간",
+    "body": [
+     "팀원에게 지난 2주 동안 반복한 일을 적게 한 뒤, <b>월 발생 횟수 × 1회 소요 분</b>으로 월 절감 시간을 계산합니다. 매일 20분씩 하는 아침 메일 정리는 월 약 400분, 분기에 한 번 2시간 걸리는 보고서는 월 40분입니다. 앞의 것부터 자동화합니다."
+    ],
+    "bullets": [
+     "입력과 출력이 매번 같은 형식인가 (메일 제목 규칙, 엑셀 양식)",
+     "판단이 들어가면 '초안까지만 자동, 확정은 사람'으로 나눕니다",
+     "개인정보·고객정보가 지나가는 흐름은 사내 서버·승인 모델에서만 돌립니다",
+     "만드는 데 걸리는 시간이 3개월 절감분보다 크면 미룹니다"
+    ]
+   },
+   {
+    "title": "2. 세 칸으로 쪼개기: 트리거 → 처리 → 전달",
+    "body": [
+     "업무를 한 문장으로 적고 세 칸에 나눠 담습니다. 칸마다 n8n 노드가 하나 이상 대응합니다. 처리 칸은 다시 '가져오기 → 가공 → 판단(LLM)' 으로 나누면 노드 배치가 바로 보입니다."
+    ],
+    "code": {
+     "lang": "text",
+     "src": "업무 문장: 평일 7시 30분에, 지난 24시간 메일과 RSS 를 모아 요약해서, 팀 메신저로 보내고 시트에 남긴다\n\n트리거  Schedule Trigger (평일 07:30)\n처리    Gmail(Get Many) + RSS Read → Merge → Code(정리) → Basic LLM Chain(요약)\n전달    Slack 또는 Gmail(Send) → Google Sheets(Append Row)"
+    }
+   },
+   {
+    "title": "3. 트리거 고르기: 스케줄 · 웹훅 · 앱 이벤트",
+    "body": [
+     "<b>Schedule Trigger</b>는 정해진 시각에 돕니다. 시간대는 워크플로 설정의 시간대, 없으면 인스턴스 시간대(<code>GENERIC_TIMEZONE</code>)를 따르므로 Docker 실행 때 서울 시간대를 꼭 넣습니다. <b>Webhook</b> 노드는 외부 시스템이 URL 을 호출하는 순간 돌고, Gmail Trigger 같은 앱 트리거는 주기적으로 새 항목이 있는지 확인(폴링)합니다."
+    ],
+    "bullets": [
+     "테스트 URL 과 운영(Production) URL 이 다릅니다 — 운영 URL 은 게시 후에만 응답",
+     "배치 서버가 끝날 때 웹훅을 호출하게 하면 '끝나자마자' 알림을 만들 수 있습니다",
+     "폐쇄망에서는 Gmail 대신 Email Trigger (IMAP) 로 사내 메일 서버를 읽습니다"
+    ]
+   },
+   {
+    "title": "4. 표현식과 Code 노드: 데이터 다루기",
+    "body": [
+     "간단한 값은 표현식으로, 여러 항목을 합치거나 반복하는 일은 Code 노드로 합니다. Code 노드는 <b>Run Once for All Items</b>(전체 한 번)와 <b>Run Once for Each Item</b>(항목마다) 두 모드가 있고, 결과는 <code>[{ json: {...} }]</code> 모양의 배열로 돌려줍니다."
+    ],
+    "code": {
+     "lang": "javascript",
+     "src": "// 표현식 예 — 필드 칸에 그대로 씁니다\n{{ $json.Subject }}                          // 현재 항목의 제목\n{{ $('Digest').item.json.date }}            // 'Digest' 노드 출력의 date\n{{ $now.minus({ hours: 24 }).toISO() }}     // 24시간 전 (Luxon)\n{{ $json.text.slice(0, 500) }}              // 문자열 자르기\n\n// Code 노드 — 항목 여러 개를 하나로 합치기\nconst lines = $input.all().map(i => i.json.Subject);\nreturn [{ json: { count: lines.length, lines } }];"
+    }
+   },
+   {
+    "title": "5. 셀프호스팅과 클라우드",
+    "body": [
+     "n8n Cloud 는 설치 없이 바로 쓸 수 있지만 데이터가 n8n 의 서버를 지나갑니다. 셀프호스팅은 Docker 한 줄로 시작하고, 운영할 때는 Compose 와 PostgreSQL(기본은 SQLite), 백업, HTTPS 리버스 프록시를 붙입니다. <code>/home/node/.n8n</code> 볼륨에는 자격증명을 암호화하는 키가 있으므로 반드시 백업합니다."
+    ],
+    "bullets": [
+     "n8n 2.0 부터 Code 노드는 기본적으로 환경변수를 읽지 못합니다 — 비밀값은 자격증명에 둡니다",
+     "Execute Command 노드는 2.0 부터 기본 비활성 — 서버 명령 실행은 별도 승인 후"
+    ]
+   }
+  ]
+ },
+ "lab": {
+  "title": "아침 메일·RSS 요약 브리핑 만들기",
+  "lead": "개인 노트북에 n8n 을 띄우고, 매일 아침 지난 24시간의 메일과 RSS 를 모아 LLM 으로 요약한 뒤 메일로 보내고 Google Sheets 에 남기는 워크플로를 만듭니다. 실습은 개인 Gmail·Google 계정으로 하고 회사 메일은 연결하지 않습니다.",
+  "env": [
+   "Docker Desktop (또는 Docker Engine)",
+   "n8n (n8nio/n8n 이미지)",
+   "개인 Gmail · Google Sheets 계정",
+   "Anthropic API 키",
+   "RSS 주소 1개"
+  ],
+  "steps": [
+   {
+    "title": "Docker 로 n8n 띄우기",
+    "body": [
+     "볼륨을 만들고 컨테이너를 실행합니다. <code>GENERIC_TIMEZONE</code> 을 빼면 스케줄이 UTC 기준으로 돌아 9시간 어긋납니다. 실행 후 <code>http://localhost:5678</code> 에서 소유자 계정을 만듭니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s05/run-n8n.sh",
+     "src": "# 1) 데이터 볼륨 만들기 (워크플로·자격증명이 여기에 저장됩니다)\ndocker volume create n8n_data\n\n# 2) n8n 실행 — docs.n8n.io 'Install with Docker' 의 명령에 서울 시간대만 넣었습니다\ndocker run -it --rm \\\n  --name n8n \\\n  -p 5678:5678 \\\n  -e GENERIC_TIMEZONE=\"Asia/Seoul\" \\\n  -e TZ=\"Asia/Seoul\" \\\n  -e N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true \\\n  -v n8n_data:/home/node/.n8n \\\n  n8nio/n8n\n\n# 3) 브라우저에서 http://localhost:5678 접속 → 소유자 계정 만들기\n# 업데이트: docker pull n8nio/n8n 후 컨테이너를 다시 실행\n"
+    }
+   },
+   {
+    "title": "계속 켜 둘 때는 Compose 로",
+    "body": [
+     "공식 문서는 장기 운영에 Docker Compose 를 권합니다. 같은 설정을 Compose 파일로 옮기고 <code>docker compose up -d</code> 로 띄웁니다. 운영 서버라면 PostgreSQL 과 HTTPS 프록시를 추가합니다."
+    ],
+    "code": {
+     "lang": "yaml",
+     "file": "labs/s05/compose.yaml",
+     "src": "# 계속 켜 둘 때는 Compose 를 권장합니다 (docker compose up -d)\nservices:\n  n8n:\n    image: n8nio/n8n\n    restart: unless-stopped\n    ports:\n      - \"5678:5678\"\n    environment:\n      - GENERIC_TIMEZONE=Asia/Seoul      # Schedule Trigger 가 쓰는 시간대\n      - TZ=Asia/Seoul                    # 컨테이너 시스템 시간대\n      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true\n    volumes:\n      - n8n_data:/home/node/.n8n\nvolumes:\n  n8n_data:\n"
+    }
+   },
+   {
+    "title": "자격증명 등록과 노드 배치",
+    "body": [
+     "왼쪽 메뉴의 Credentials 에서 Gmail OAuth2, Google Sheets OAuth2, Anthropic 을 만듭니다. Google 계정 연결 화면의 안내(OAuth 클라이언트 만들기)는 각 노드 문서의 Credentials 링크를 따라 합니다. 그다음 새 워크플로에 아래 순서로 노드를 놓고 연결합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s05/nodes.txt",
+     "src": "[워크플로 이름] 아침 메일·RSS 브리핑\n\n① Schedule Trigger\n   Trigger Interval: Days / Days Between Triggers: 1\n   Trigger at Hour: 7am / Trigger at Minute: 30\n\n② Gmail  (Resource: Message, Operation: Get Many)\n   Credential: Gmail OAuth2 (내 실습 계정)\n   Return All: 끔 / Limit: 30 / Simplify: 켬\n   Filters › Received After:  {{ $now.minus({ hours: 24 }).toISO() }}\n   Filters › Search:          -category:promotions\n\n③ RSS Read\n   URL: 팀이 보는 기술 블로그·공지 RSS 주소 하나\n   (② 와 ③ 은 둘 다 ① 에 연결 — 갈래가 두 개)\n\n④ Merge\n   Mode: Append      ← ② 와 ③ 의 항목을 한 줄로 이어 붙입니다\n   Input 1 = Gmail, Input 2 = RSS Read\n\n⑤ Code  (이름을 'Digest' 로 바꾸기, Mode: Run Once for All Items)\n   → 다음 단계의 JavaScript\n\n⑥ Basic LLM Chain  + 하위 노드 Anthropic Chat Model\n   Prompt: Define below  → 7단계 프롬프트\n\n⑦ Gmail (Operation: Send)  또는 Slack / Telegram 노드\n⑧ Google Sheets (Operation: Append Row)\n"
+    }
+   },
+   {
+    "title": "Code 노드로 메일·RSS 를 한 덩어리로",
+    "body": [
+     "Merge 뒤에 Code 노드를 붙이고 이름을 <code>Digest</code> 로 바꿉니다. 항목 수십 개를 LLM 에 하나씩 보내면 호출이 수십 번 일어나므로, 하나의 문자열로 합쳐 한 번만 부릅니다. 글자 수 상한을 두어 토큰 비용을 막습니다. 노드 위의 Execute step 으로 이 노드만 실행해 출력을 확인합니다."
+    ],
+    "code": {
+     "lang": "javascript",
+     "file": "labs/s05/digest-code-node.js",
+     "src": "// n8n Code 노드 (JavaScript, Run Once for All Items)\n// 입력: Merge(Append) 로 합쳐진 Gmail 항목 + RSS 항목\n// 출력: LLM 에 넘길 digest 문자열 하나 (항목 1개)\nconst MAX_BODY = 500;      // 메일 한 통에서 쓸 최대 글자 수\nconst MAX_MAILS = 30;      // 토큰 비용을 막는 상한\n\nconst mails = [];\nconst feeds = [];\n\nfor (const { json: j } of $input.all()) {\n  if (j.link && j.title && !j.threadId) {\n    // RSS 항목: title · link · contentSnippet\n    const snippet = (j.contentSnippet || '').replace(/\\s+/g, ' ').slice(0, 300);\n    feeds.push(`- ${j.title} (${j.link})\\n  ${snippet}`);\n  } else {\n    // Gmail(Simplify 켬) 항목: From · Subject · snippet\n    // 필드 이름은 실행 기록(Executions)에서 한 번 확인하세요\n    const from = j.From || j.from || '';\n    const subject = j.Subject || j.subject || '(제목 없음)';\n    const body = (j.snippet || j.text || '').replace(/\\s+/g, ' ').slice(0, MAX_BODY);\n    mails.push(`- [${from}] ${subject}\\n  ${body}`);\n  }\n}\n\nconst digest = [\n  `## 받은 메일 ${mails.length}건`,\n  ...mails.slice(0, MAX_MAILS),\n  '',\n  `## RSS 새 글 ${feeds.length}건`,\n  ...feeds,\n].join('\\n');\n\nreturn [{\n  json: {\n    date: $now.toFormat('yyyy-MM-dd'),\n    mailCount: mails.length,\n    feedCount: feeds.length,\n    digest,\n  },\n}];\n"
+    }
+   },
+   {
+    "title": "LLM 요약 프롬프트",
+    "body": [
+     "Basic LLM Chain 노드를 붙이고 Prompt 를 Define below 로 바꿔 아래 내용을 넣습니다. <code>{{ }}</code> 부분은 표현식이라 실행할 때 실제 값으로 바뀝니다. 아래 Model 연결점에 Anthropic Chat Model 하위 노드를 붙입니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s05/prompt.txt",
+     "src": "[Basic LLM Chain › Prompt (User Message) — Define below]\n\n아래는 {{ $json.date }} 아침까지 받은 메일 {{ $json.mailCount }}건과\nRSS 새 글 {{ $json.feedCount }}건입니다.\n\n다음 형식으로 한국어 브리핑을 작성하세요.\n1. 오늘 꼭 처리할 일 (최대 3개, 보낸 사람 표시)\n2. 참고만 할 메일 (한 줄씩)\n3. 기술 소식 (RSS, 제목과 한 줄 요약)\n- 원문에 없는 내용은 쓰지 않습니다.\n- 전체 15줄 이내.\n\n---\n{{ $json.digest }}\n\n\n[Anthropic Chat Model 하위 노드]\nCredential: Anthropic API (API 키는 자격증명에만 저장)\nModel: 목록에서 Sonnet 계열 선택 (요약은 Haiku 로도 충분한지 비교)\nOptions: Sampling Temperature · Top P · Top K 는 추가하지 않습니다\n  (Claude 5.5 모델은 이 값들을 받으면 400 오류)\n"
+    }
+   },
+   {
+    "title": "발송·기록 노드 설정",
+    "body": [
+     "요약을 메일로 보내고 시트에 한 줄 남깁니다. 다른 노드의 값은 <code>$('Digest')</code> 처럼 노드 이름으로 참조하므로, 노드 이름을 바꾸면 표현식도 함께 고쳐야 합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s05/send-and-log.txt",
+     "src": "[⑦ Gmail — Operation: Send]\nTo:       나 또는 팀 메일\nSubject:  [아침 브리핑] {{ $('Digest').item.json.date }}\nEmail Type: Text\nMessage:  {{ $json.text }}\n          ↑ Basic LLM Chain 의 출력 필드 이름은 실행 기록에서 확인 (보통 text)\nOptions › Append n8n Attribution: 끔\n\n[⑧ Google Sheets — Operation: Append Row]\nDocument: 'AI 브리핑 기록' 스프레드시트 (첫 행에 date, mails, feeds, summary 헤더)\nSheet:    Sheet1\nMapping Column Mode: Map Each Column Manually\n  date    = {{ $('Digest').item.json.date }}\n  mails   = {{ $('Digest').item.json.mailCount }}\n  feeds   = {{ $('Digest').item.json.feedCount }}\n  summary = {{ $json.text.slice(0, 500) }}\n\n[⑦ 대신 메신저로 보내려면]\nSlack: Send Message / Telegram: Send Message — 본문 표현식은 같습니다.\n"
+    }
+   },
+   {
+    "title": "전체 실행 → 게시 → 실행 기록 확인",
+    "body": [
+     "Execute workflow 로 처음부터 끝까지 한 번 돌려 메일과 시트를 확인합니다. 문제없으면 저장 후 <b>Publish</b> 를 눌러 스케줄이 실제로 돌게 합니다. 다음 날 아침 Executions 탭에서 실행 기록이 성공으로 남았는지, 각 노드의 입력·출력이 예상과 같은지 봅니다."
+    ]
+   }
+  ],
+  "check": [
+   "Schedule Trigger 가 서울 시간 07:30 에 돌았는가 (Executions 의 시작 시각 확인)",
+   "Gmail 이 0건인 날에도 워크플로가 실패하지 않고 '메일 0건' 브리핑을 보내는가",
+   "Google Sheets 에 날짜·건수·요약이 한 줄씩 쌓이고, API 키가 워크플로 JSON 에 보이지 않는가"
+  ]
+ },
+ "example": {
+  "title": "정보계 야간 배치 결과 아침 브리핑",
+  "context": "정보계 야간 배치(ODS → STG → DW 적재)는 작업마다 결과 메일을 보내서 아침이면 수십 통이 쌓입니다. 담당자는 출근하자마자 실패 메일을 찾느라 20~30분을 씁니다. 결과 메일을 모아 <b>정상·실패·지연 건수와 실패 건 요약</b>만 팀 메신저로 보내고, 원문 제목 목록을 아래에 붙입니다.",
+  "diagram": {
+   "src": "diagrams/s05-example.svg",
+   "caption": "실패가 없으면 LLM 을 부르지 않고 한 줄 알림만 보냅니다."
+  },
+  "flow": [
+   "배치 서버가 보내는 결과 메일 제목 규칙을 먼저 정합니다: <code>[BATCH][OK|FAIL|LATE] 작업ID 상세</code>",
+   "메일 규칙(필터)으로 결과 메일에 batch-result 라벨을 붙이고, 07:30 스케줄로 지난 24시간분만 가져옵니다",
+   "Code 노드가 제목을 정규식으로 읽어 정상·실패·지연 건수를 세고, 실패·지연 건만 골라 냅니다",
+   "IF 노드로 실패·지연이 0건이면 '정상 52 · 실패 0 · 지연 0' 한 줄만 보냅니다",
+   "실패가 있으면 LLM 에 실패 건만 넘겨 '원인 추정 · 확인할 로그 · 재처리 순서'를 요약하게 합니다",
+   "브리핑 끝에 원문 메일 제목을 붙이고, 일자별 건수를 시트에 쌓아 월간 장애 통계로 씁니다"
+  ],
+  "code": {
+   "lang": "javascript",
+   "file": "labs/s05/batch-digest.js",
+   "src": "// 정보계 아침 브리핑 — 배치 결과 메일 집계 (Code 노드, Run Once for All Items)\n// 가정: 배치 서버가 보내는 메일 제목 형식\n//   [BATCH][OK]   DW_DAILY_LOAD  02:14~02:51\n//   [BATCH][FAIL] ODS_CUST_SNAP  03:05  ORA-01652\n//   [BATCH][LATE] STG_ACCT_HIST  예정 04:00 → 05:12\nconst RE = /\\[BATCH\\]\\[(OK|FAIL|LATE)\\]\\s+(\\S+)\\s*(.*)/;\n\nconst counts = { OK: 0, FAIL: 0, LATE: 0 };\nconst issues = [];\nconst unknown = [];\n\nfor (const { json: j } of $input.all()) {\n  const subject = j.Subject || j.subject || '';\n  const m = subject.match(RE);\n  if (!m) { unknown.push(subject); continue; }\n  const [, status, job, rest] = m;\n  counts[status] += 1;\n  if (status !== 'OK') {\n    issues.push({\n      status, job, detail: rest.trim(),\n      body: (j.snippet || '').replace(/\\s+/g, ' ').slice(0, 400),\n    });\n  }\n}\n\nreturn [{\n  json: {\n    date: $now.toFormat('yyyy-MM-dd'),\n    okCount: counts.OK,\n    failCount: counts.FAIL,\n    lateCount: counts.LATE,\n    issues,                       // LLM 에는 실패·지연 건만 넘깁니다\n    unknownSubjects: unknown,     // 형식이 다른 메일은 따로 표시\n    oneLine: `정상 ${counts.OK} · 실패 ${counts.FAIL} · 지연 ${counts.LATE}`,\n  },\n}];\n"
+  },
+  "tips": [
+   "LLM 은 실패 건에만 씁니다. 정상 건 집계는 Code 노드로 충분하고, 그래야 비용과 지연이 줄어듭니다",
+   "제목 형식이 다른 메일(unknownSubjects)을 따로 보여 주면 규칙에서 빠진 작업을 바로 찾을 수 있습니다",
+   "처음 2주는 사람이 원문과 브리핑을 나란히 보고, 놓친 실패가 없는지 확인한 뒤 원문 확인을 줄입니다"
+  ],
+  "pitfalls": [
+   "시간대를 설정하지 않아 스케줄이 UTC 기준으로 돌아 오후 4시 30분에 아침 브리핑이 오는 경우",
+   "LLM 이 '모두 정상'이라고 요약했는데 실제로는 형식이 다른 실패 메일을 놓친 경우 — 건수는 반드시 코드로 셉니다",
+   "배치 메일에 고객 데이터 일부가 찍혀 나오는데 그대로 외부 LLM API 로 보내는 경우 — 사내 승인 모델 또는 마스킹 후 전송"
+  ]
+ },
+ "refs": [
+  {
+   "label": "n8n 문서 · Install with Docker",
+   "url": "https://docs.n8n.io/deploy/host-n8n/install-options/install-with-docker"
+  },
+  {
+   "label": "n8n 문서 · Schedule Trigger 노드",
+   "url": "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger"
+  },
+  {
+   "label": "n8n 문서 · Gmail 메시지 작업 (Get Many · Send · Reply)",
+   "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/message-operations/"
+  },
+  {
+   "label": "n8n 문서 · Google Sheets 시트 작업 (Append Row)",
+   "url": "https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/sheet-operations"
+  },
+  {
+   "label": "n8n 문서 · 2.0 주요 변경 (게시, Code 노드 보안)",
+   "url": "https://docs.n8n.io/changelog/v20-breaking-changes"
+  }
+ ]
+}

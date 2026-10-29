@@ -1,0 +1,136 @@
+{
+ "title": "프롬프트 인젝션은 '도구 결과 속 지시문'으로 들어오고, 겹겹이 막습니다",
+ "subtitle": "배치 로그 한 줄이 공격이 되는 경로와 방어 위치",
+ "cols": 5,
+ "rows": 2,
+ "cell_h": 128,
+ "nodes": [
+  {
+   "id": "src",
+   "col": 0,
+   "row": 0,
+   "label": "오염된 데이터",
+   "sub": "로그·정의서·메일 속 지시문",
+   "icon": "warn",
+   "color": "red",
+   "badge": 1
+  },
+  {
+   "id": "tool",
+   "col": 1,
+   "row": 0,
+   "label": "도구 결과",
+   "sub": "모델 컨텍스트로 들어감",
+   "icon": "inbox",
+   "color": "gray",
+   "badge": 2
+  },
+  {
+   "id": "llm",
+   "col": 2,
+   "row": 0,
+   "label": "LLM 판단",
+   "sub": "지시로 오해할 수 있음",
+   "icon": "brain",
+   "color": "pink",
+   "badge": 3
+  },
+  {
+   "id": "act",
+   "col": 3,
+   "row": 0,
+   "label": "도구 호출 시도",
+   "sub": "재실행·삭제·유출",
+   "icon": "bolt",
+   "color": "red",
+   "badge": 4
+  },
+  {
+   "id": "out",
+   "col": 4,
+   "row": 0,
+   "label": "최종 답변",
+   "sub": "위험 SQL·비밀 요청",
+   "icon": "chat",
+   "color": "red",
+   "badge": 5
+  },
+  {
+   "id": "d1",
+   "col": 1,
+   "row": 1,
+   "label": "데이터 경계",
+   "sub": "tool_output 태그·지침",
+   "icon": "layers",
+   "color": "teal"
+  },
+  {
+   "id": "d2",
+   "col": 2,
+   "row": 1,
+   "label": "탐지·경고",
+   "sub": "의심 문구 → 경고 문맥",
+   "icon": "eye",
+   "color": "teal"
+  },
+  {
+   "id": "d3",
+   "col": 3,
+   "row": 1,
+   "label": "권한·승인",
+   "sub": "쓰기 미노출·훅 차단",
+   "icon": "lock",
+   "color": "teal"
+  },
+  {
+   "id": "d4",
+   "col": 4,
+   "row": 1,
+   "label": "출력 검증",
+   "sub": "금지 패턴이면 보류",
+   "icon": "check",
+   "color": "teal"
+  }
+ ],
+ "edges": [
+  {
+   "from": "src",
+   "to": "tool"
+  },
+  {
+   "from": "tool",
+   "to": "llm"
+  },
+  {
+   "from": "llm",
+   "to": "act"
+  },
+  {
+   "from": "act",
+   "to": "out"
+  },
+  {
+   "from": "d1",
+   "to": "tool",
+   "dashed": true
+  },
+  {
+   "from": "d2",
+   "to": "llm",
+   "dashed": true
+  },
+  {
+   "from": "d3",
+   "to": "act",
+   "dashed": true
+  },
+  {
+   "from": "d4",
+   "to": "out",
+   "dashed": true
+  }
+ ],
+ "notes": [
+  "프롬프트만으로는 막을 수 없습니다. 가장 확실한 방어는 3번(권한)입니다 — 할 수 없는 일은 속아도 못 합니다."
+ ]
+}

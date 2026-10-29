@@ -1,0 +1,18 @@
+[① Gmail Trigger — 'New Mail']
+Credential: Gmail OAuth2 (실습용 개인 계정)
+Poll Times: Every Minute   (실습용 — 운영은 Every 5 Minutes 정도)
+Event: Message Received
+Simplify: 끔               ← 본문 전체(text)가 필요하므로
+Filters
+  Label Names or IDs: support      (Gmail 에서 'support' 라벨과 자동 분류 규칙을 먼저 만듭니다)
+  Read Status: Unread emails only
+
+[② Edit Fields (Set) — 'Mail']
+Mode: Manual Mapping
+  messageId  (String) = {{ $json.id }}
+  threadId   (String) = {{ $json.threadId }}
+  from       (String) = {{ $json.from.value[0].address }}
+  subject    (String) = {{ $json.subject }}
+  body       (String) = {{ ($json.text || '').slice(0, 4000) }}
+Include Other Input Fields: 끔
+※ Simplify 를 끈 Gmail 출력의 필드 이름은 실행 기록(Executions)에서 한 번 확인하고 맞춥니다.
