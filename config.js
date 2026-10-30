@@ -6,5 +6,7 @@ window.SITE_CONFIG = {
   // 진도·대시보드 저장소 (Supabase 프로젝트 ai-glossary).
   // publishable 키는 브라우저에 공개되는 키이며, 데이터 보호는 RLS와 함수 권한 검사로 합니다.
   supabaseUrl: "https://keqatughczjqhnubkydy.supabase.co",
-  supabaseKey: "sb_publishable_DlZV7muab9bvGUiUNWh3gA_RTX9Y6MW"
+  supabaseKey: "sb_publishable_DlZV7muab9bvGUiUNWh3gA_RTX9Y6MW",
+  // 카카오 앱 REST API 키 (공개되는 값. 카카오 인가 주소에 그대로 들어갑니다)
+  kakaoRestKey: "7e4a0194c9468acd41b7bdd36a91d724"
 };
