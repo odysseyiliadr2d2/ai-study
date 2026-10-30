@@ -8,5 +8,5 @@ window.SITE_CONFIG = {
   supabaseUrl: "https://keqatughczjqhnubkydy.supabase.co",
   supabaseKey: "sb_publishable_DlZV7muab9bvGUiUNWh3gA_RTX9Y6MW",
   // 카카오 앱 REST API 키 (공개되는 값. 카카오 인가 주소에 그대로 들어갑니다)
-  kakaoRestKey: ""
+  kakaoRestKey: "7e4a0194c9468acd41b7bdd36a91d724"
 };
