@@ -88,6 +88,12 @@
   async function loginKakao() {
     if (!auth.sb) { toast("로그인 서버에 연결할 수 없습니다. 진도는 이 브라우저에만 저장됩니다."); return; }
     // 카카오에서 돌아올 주소는 사이트 첫 화면 하나로 고정하고, 원래 보던 화면은 따로 기억합니다
+    // 카카오 로그인이 서버에서 꺼져 있으면 오류 화면(JSON)으로 넘어가지 않고 안내만 합니다
+    try {
+      const r = await fetch(SITE.supabaseUrl + "/auth/v1/settings", { headers: { apikey: SITE.supabaseKey } });
+      const st = r.ok ? await r.json() : null;
+      if (st && st.external && !st.external.kakao) { toast("카카오 로그인이 아직 준비 중입니다. 운영자에게 문의하세요. 진도는 이 브라우저에 저장됩니다."); return; }
+    } catch (e) { /* 확인 실패 시 그대로 진행 */ }
     const page = location.pathname.split("/").pop() || "index.html";
     store.set("axstudy.after", page + location.search + location.hash);
     const { error } = await auth.sb.auth.signInWithOAuth({
