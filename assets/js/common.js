@@ -64,7 +64,7 @@
   if (window.supabase && SITE.supabaseUrl && SITE.supabaseKey) {
     try {
       auth.sb = window.supabase.createClient(SITE.supabaseUrl, SITE.supabaseKey, {
-        auth: { flowType: "pkce", detectSessionInUrl: true, persistSession: true, autoRefreshToken: true }
+        auth: { flowType: "pkce", detectSessionInUrl: false, persistSession: true, autoRefreshToken: true }
       });
     } catch (e) { auth.sb = null; }
   }
@@ -85,22 +85,44 @@
     if (error) throw new Error(error.message || "요청 실패");
     return data;
   }
+  // ── 카카오 로그인 (OpenID Connect) ──
+  // Supabase 기본 카카오 로그인은 이메일(account_email) 동의를 항상 요청하므로 쓰지 않습니다.
+  // 1) 카카오 인가 화면(openid · 닉네임 · 프로필 사진만) → 2) 돌아온 code 를 Edge Function(kakao-token)이
+  //    id_token 으로 교환 → 3) supabase.auth.signInWithIdToken 으로 로그인
+  const KAKAO_BACK = () => new URL("./", location.href).href;           // 사이트 첫 화면 (카카오 Redirect URI)
+  const rand = () => [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  async function sha256hex(t) {
+    const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t));
+    return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
   async function loginKakao() {
-    if (!auth.sb) { toast("로그인 서버에 연결할 수 없습니다. 진도는 이 브라우저에만 저장됩니다."); return; }
-    // 카카오에서 돌아올 주소는 사이트 첫 화면 하나로 고정하고, 원래 보던 화면은 따로 기억합니다
-    // 카카오 로그인이 서버에서 꺼져 있으면 오류 화면(JSON)으로 넘어가지 않고 안내만 합니다
-    try {
-      const r = await fetch(SITE.supabaseUrl + "/auth/v1/settings", { headers: { apikey: SITE.supabaseKey } });
-      const st = r.ok ? await r.json() : null;
-      if (st && st.external && !st.external.kakao) { toast("카카오 로그인이 아직 준비 중입니다. 운영자에게 문의하세요. 진도는 이 브라우저에 저장됩니다."); return; }
-    } catch (e) { /* 확인 실패 시 그대로 진행 */ }
+    if (!auth.sb || !SITE.kakaoRestKey) { toast("카카오 로그인이 아직 준비 중입니다. 진도는 이 브라우저에 저장됩니다."); return; }
     const page = location.pathname.split("/").pop() || "index.html";
     store.set("axstudy.after", page + location.search + location.hash);
-    const { error } = await auth.sb.auth.signInWithOAuth({
-      provider: "kakao",
-      options: { redirectTo: new URL("./", location.href).href }
+    const state = rand(), nonce = rand();
+    try { sessionStorage.setItem("axstudy.kakao", JSON.stringify({ state, nonce })); } catch (e) {}
+    const u = new URL("https://kauth.kakao.com/oauth/authorize");
+    u.search = new URLSearchParams({
+      client_id: SITE.kakaoRestKey, redirect_uri: KAKAO_BACK(), response_type: "code",
+      scope: "openid profile_nickname profile_image", state, nonce: await sha256hex(nonce)
     });
-    if (error) toast("카카오 로그인을 시작하지 못했습니다: " + error.message);
+    location.assign(u.href);
+  }
+  async function finishKakao(q) {
+    let saved = {};
+    try { saved = JSON.parse(sessionStorage.getItem("axstudy.kakao") || "{}"); sessionStorage.removeItem("axstudy.kakao"); } catch (e) {}
+    if (q.get("error")) throw new Error(q.get("error_description") || q.get("error"));
+    if (!saved.state || saved.state !== q.get("state")) throw new Error("로그인 요청이 만료됐습니다. 다시 시도하세요.");
+    const r = await fetch(SITE.supabaseUrl + "/functions/v1/kakao-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: SITE.supabaseKey },
+      body: JSON.stringify({ code: q.get("code"), redirect_uri: KAKAO_BACK() })
+    });
+    const t = await r.json().catch(() => ({}));
+    if (!r.ok || !t.id_token) throw new Error(t.message || "카카오 토큰을 받지 못했습니다");
+    const { data, error } = await auth.sb.auth.signInWithIdToken({ provider: "kakao", token: t.id_token, nonce: saved.nonce });
+    if (error) throw new Error(error.message);
+    return data.session;
   }
   async function logout() {
     if (auth.sb) await auth.sb.auth.signOut();
@@ -146,10 +168,11 @@
     try {
       const { data } = await auth.sb.auth.getSession();
       auth.session = data.session;
-      if (/[?&](code|error)=/.test(location.search)) {      // 카카오에서 돌아온 직후
-        const err = new URLSearchParams(location.search).get("error_description");
+      const q = new URLSearchParams(location.search);
+      if (q.has("state") && (q.has("code") || q.has("error"))) {      // 카카오에서 돌아온 직후
         const back = store.get("axstudy.after", "me.html"); store.del("axstudy.after");
-        if (err) store.set("axstudy.toast", "카카오 로그인 실패: " + err);
+        try { await finishKakao(q); store.set("axstudy.toast", "카카오로 로그인했습니다"); }
+        catch (e) { store.set("axstudy.toast", "카카오 로그인 실패: " + e.message); }
         location.replace(back || "me.html");
         return;
       }

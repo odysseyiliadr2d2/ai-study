@@ -163,8 +163,13 @@ node tools/og/build.cjs
 
 ## 로그인 · 진도 · 대시보드
 
-- **로그인**: Supabase Auth의 카카오 로그인(PKCE). 돌아오는 주소는 사이트 첫 화면 하나로 고정되어 있어
-  Supabase **Authentication → URL Configuration**의 Redirect URL 목록을 바꿀 필요가 없습니다.
+- **로그인**: 카카오 OpenID Connect. Supabase 기본 카카오 로그인은 이메일(`account_email`) 동의를 항상 요청해서(비즈 앱 필요) 쓰지 않습니다.
+  1. 브라우저가 카카오 인가 화면으로 이동 (동의항목: 닉네임 · 프로필 사진, `openid`)
+  2. 사이트 첫 화면으로 돌아온 `code`를 Edge Function `kakao-token`(`supabase/functions/kakao-token`)이 ID 토큰으로 교환
+  3. `supabase.auth.signInWithIdToken({ provider: "kakao" })`로 로그인 (nonce 확인)
+  - 카카오: 카카오 로그인 ON, **OpenID Connect ON**, Redirect URI에 `https://odysseyiliadr2d2.github.io/ai-study/`
+  - Supabase: Kakao provider ON(Client ID = REST API 키), **Allow users without an email ON**
+  - Edge Function 비밀값: `KAKAO_REST_API_KEY`, `KAKAO_CLIENT_SECRET` / `config.js`의 `kakaoRestKey`에 REST API 키
 - **가입 · 승인**: 로그인 후 '내 진도'에서 가입 신청 → 운영자(`study_members.is_admin`)가 같은 화면에서 승인합니다.
 - **진도**: 세션 화면의 '개념·이론 학습 완료', '실습 완료' 버튼과 퀴즈 점수(최고 점수)를 저장합니다.
   로그인 전·승인 전에는 브라우저에만 저장되고, 승인되면 서버로 옮겨집니다.
