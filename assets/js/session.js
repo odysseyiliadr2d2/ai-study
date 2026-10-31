@@ -179,11 +179,21 @@
       b.setAttribute("aria-selected", on); b.tabIndex = on ? 0 : -1;
       document.getElementById(b.getAttribute("aria-controls")).hidden = !on;
       if (on && focus) b.focus();
+      if (on) { const row = b.parentElement; row.scrollTo({ left: b.offsetLeft - row.offsetLeft - 16, behavior: "smooth" }); }
     });
     history.replaceState(null, "", "#" + key);
   }
+  const tabsBox = main.querySelector(".tabs");
   tabs.forEach((b, i) => {
-    b.addEventListener("click", () => show(b.id.slice(4)));
+    b.addEventListener("click", () => {
+      const key = b.id.slice(4);
+      show(key);
+      // 내용 중간까지 내려와 있었다면 새 탭의 처음으로 올려 줍니다 (고정된 상단 바 + 탭 줄 높이만큼 아래)
+      const panel = document.getElementById("panel-" + key);
+      const stuck = (parseInt(getComputedStyle(tabsBox).top) || 0) + tabsBox.offsetHeight;
+      const top = panel.getBoundingClientRect().top + scrollY - stuck - 8;
+      if (scrollY > top) scrollTo({ top, behavior: "smooth" });
+    });
     b.addEventListener("keydown", (e) => {
       if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
       const j = (i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;

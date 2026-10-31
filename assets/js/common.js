@@ -226,6 +226,21 @@
         </nav>
       </div>`;
     document.body.prepend(el);
+    // 휴대폰: 상단 메뉴 대신 하단 탭바 (CSS에서 760px 이하만 보임)
+    const I = {
+      home: '<path d="M3 4.5h6.5v15H3zM14.5 4.5H21v6.5h-6.5zM14.5 13H21v6.5h-6.5z"/>',
+      dashboard: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+      me: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+      roadmap: '<path d="M4 6h10a3 3 0 0 1 0 6H10a3 3 0 0 0 0 6h10"/><circle cx="4" cy="6" r="1.6"/><circle cx="20" cy="18" r="1.6"/>',
+      glossary: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/>'
+    };
+    const t = (href, key, label, ext) => `<a href="${href}" class="${active === key ? "active" : ""}" ${active === key ? 'aria-current="page"' : ""} ${ext ? 'target="_blank" rel="noopener"' : ""}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[key]}</svg><span>${label}</span></a>`;
+    const bar = document.createElement("nav");
+    bar.className = "tabbar"; bar.setAttribute("aria-label", "주 메뉴 (모바일)");
+    bar.innerHTML = t("index.html", "home", "커리큘럼") + t("dashboard.html", "dashboard", "대시보드") + t("me.html", "me", "내 진도")
+      + t("roadmap.html", "roadmap", "로드맵") + t(esc(SITE.glossaryUrl), "glossary", "용어집", true);
+    document.body.append(bar);
     el.querySelector(".theme-btn").addEventListener("click", () => {
       const cur = document.documentElement.getAttribute("data-theme");
       const dark = cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;

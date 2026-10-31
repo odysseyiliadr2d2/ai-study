@@ -26,6 +26,7 @@
 
   // 필터
   const filters = document.getElementById("filters");
+  const chiprow = document.createElement("div"); chiprow.className = "chiprow"; filters.append(chiprow);
   const state = { part: 0, q: "" };
   const btns = [{ id: 0, title: "전체" }, ...cur.parts].map((p) => {
     const b = document.createElement("button");
@@ -38,7 +39,7 @@
       b.setAttribute("aria-pressed", "true");
       render();
     });
-    filters.append(b);
+    chiprow.append(b);
     return b;
   });
   const search = document.createElement("input");

@@ -22,6 +22,7 @@
     hs.forEach((h, i) => { if (!h.id) h.id = "sec-" + i; });
     document.getElementById("toc").innerHTML = hs.map((h) => `<a href="#${esc(h.id)}">${esc(h.textContent)}</a>`).join("")
       + `<a href="#versions">버전 기록</a>`;
+    doc.querySelectorAll(".rm-fig > svg").forEach((svg) => { const w = document.createElement("div"); w.className = "rm-scroll"; svg.before(w); w.append(svg); });
     doc.querySelectorAll("table").forEach((t) => { const w = document.createElement("div"); w.className = "grid-scroll"; t.before(w); w.append(t); });
   } catch (e) {
     doc.innerHTML = `<div class="empty">로드맵 문서를 불러오지 못했습니다. 파일을 직접 열었다면 <code>python3 -m http.server</code>로 띄워 주세요.</div>`;
