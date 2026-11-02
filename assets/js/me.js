@@ -101,9 +101,9 @@
       ${rows.map((r) => { const d = new Date(r.created_at); const mine = auth.me && r.member_id === auth.me.id;
         return `<tr><td>${esc(r.name)}${r.is_admin ? " <small>(운영자)</small>" : ""}</td><td>${esc(r.org || "")}</td><td>${d.getMonth() + 1}/${d.getDate()}</td>
         <td><span class="badge ${esc(r.status)}">${label[r.status] || esc(r.status)}</span></td>
-        <td class="acts">${mine ? "" : r.status === "approved"
+        <td class="acts"><div class="acts-in">${mine ? '<span class="small muted">본인</span>' : r.status === "approved"
           ? `<button class="btn ghost sm" data-set="pending" data-id="${esc(r.member_id)}">승인 취소</button>`
-          : `<button class="btn sm" data-set="approved" data-id="${esc(r.member_id)}">승인</button>${r.status === "pending" ? `<button class="btn ghost sm" data-set="rejected" data-id="${esc(r.member_id)}">거절</button>` : ""}`}</td></tr>`; }).join("")}
+          : `<button class="btn sm" data-set="approved" data-id="${esc(r.member_id)}">승인</button>${r.status === "pending" ? `<button class="btn ghost sm" data-set="rejected" data-id="${esc(r.member_id)}">거절</button>` : ""}`}</div></td></tr>`; }).join("")}
       </tbody></table></div>`;
     el.querySelectorAll("[data-set]").forEach((b) => b.addEventListener("click", async () => {
       b.disabled = true;
