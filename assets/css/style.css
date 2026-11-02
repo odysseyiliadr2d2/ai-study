@@ -282,7 +282,9 @@ footer { border-top: 1px solid var(--line); padding: var(--space-6) 0 var(--spac
 .admin { width: 100%; border-collapse: collapse; font-size: 14px; }
 .admin th, .admin td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .admin th { color: var(--ink-muted); font-weight: 600; font-size: 13px; }
-.admin .acts { display: flex; gap: 6px; }
+.admin td { vertical-align: middle; height: 52px; }
+.admin .acts { text-align: right; }
+.admin .acts-in { display: inline-flex; gap: 6px; align-items: center; justify-content: flex-end; }
 .badge { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--surface-200); color: var(--ink-muted); }
 .badge.pending { background: var(--orange-tint); color: var(--ink); }
 .badge.approved { color: var(--success); }
