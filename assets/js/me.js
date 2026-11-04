@@ -53,11 +53,11 @@
     } else if (me.status === "pending") {
       head = `<h1 class="display">승인 대기 중</h1>
         <p class="lead">${esc(me.name)} 님의 가입 신청이 접수됐습니다. 운영자가 승인하면 진도가 대시보드에 저장됩니다. 그동안 학습 기록은 이 브라우저에 저장되고, 승인 후 자동으로 옮겨집니다.</p>
-        <div class="qbar"><button class="btn" type="button" id="recheck">승인 여부 다시 확인</button><button class="btn ghost" type="button" data-logout>로그아웃</button></div>`;
+        <div class="qbar"><button class="btn" type="button" id="recheck">승인 여부 다시 확인</button><button class="btn ghost" type="button" data-edit>내 정보 수정</button><button class="btn ghost" type="button" data-logout>로그아웃</button></div>${profileForm(me)}`;
     } else {
       head = `<h1 class="display">${esc(me.name)} 님</h1>
         <p class="lead">${me.org ? esc(me.org) + " · " : ""}진도는 대시보드에 함께 저장됩니다.</p>
-        <div class="qbar"><a class="btn" href="index.html">커리큘럼으로</a><a class="btn ghost" href="dashboard.html">대시보드</a><button class="btn ghost" type="button" data-logout>로그아웃</button></div>`;
+        <div class="qbar"><a class="btn" href="index.html">커리큘럼으로</a><a class="btn ghost" href="dashboard.html">대시보드</a><button class="btn ghost" type="button" data-edit>내 정보 수정</button><button class="btn ghost" type="button" data-logout>로그아웃</button></div>${profileForm(me)}`;
     }
     main.innerHTML = `<section class="hero"><div class="eyebrow">MY PROGRESS</div>${head}</section>
       ${myGrid()}
@@ -65,7 +65,41 @@
     bind();
   }
 
+  // 내 정보(이름·소속) 수정 — 서버 함수 study_update_profile 이 같은 규칙으로 다시 검사합니다
+  const BAD = /[\u0000-\u001f\u007f<>"`]/;
+  function profileForm(me) {
+    return `<form class="form profile" id="profileForm" hidden>
+      <label>이름 <small>1~20자 · 대시보드에 표시됩니다</small><input name="name" required maxlength="20" value="${esc(me.name)}" autocomplete="name"></label>
+      <label>소속 <small>선택 · 30자 이내</small><input name="org" maxlength="30" value="${esc(me.org || "")}" autocomplete="organization"></label>
+      <p class="msg" aria-live="polite"></p>
+      <div class="qbar"><button class="btn" type="submit">저장</button><button class="btn ghost" type="button" data-cancel>취소</button></div>
+    </form>`;
+  }
+  function checkProfile(name, org) {
+    if (name.length < 1 || name.length > 20) return "이름은 1~20자로 입력하세요";
+    if (org.length > 30) return "소속은 30자 이내로 입력하세요";
+    if (BAD.test(name) || BAD.test(org)) return '이름·소속에는 < > " ` 를 쓸 수 없습니다';
+    return "";
+  }
+
   function bind() {
+    const pf = document.getElementById("profileForm");
+    main.querySelectorAll("[data-edit]").forEach((b) => b.addEventListener("click", () => { pf.hidden = !pf.hidden; if (!pf.hidden) pf.name.focus(); }));
+    if (pf) {
+      pf.querySelector("[data-cancel]").addEventListener("click", () => { pf.reset(); pf.hidden = true; });
+      pf.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const msg = pf.querySelector(".msg"), btn = pf.querySelector("[type=submit]");
+        const name = pf.name.value.trim(), org = pf.org.value.trim();
+        const err = checkProfile(name, org);
+        if (err) { msg.className = "msg err"; msg.textContent = err; return; }
+        btn.disabled = true;
+        try {
+          await rpc("study_update_profile", { p_name: name, p_org: org || null });
+          await AX.loadMe(); AX.renderWho(); toast("내 정보를 바꿨습니다"); view();
+        } catch (er) { msg.className = "msg err"; msg.textContent = er.message; btn.disabled = false; }
+      });
+    }
     bindKakao(main);
     main.querySelectorAll("[data-logout]").forEach((b) => b.addEventListener("click", AX.logout));
     const rc = document.getElementById("recheck");
@@ -80,6 +114,8 @@
     if (form) form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const msg = form.querySelector(".msg"), btn = form.querySelector("[type=submit]");
+      const err = checkProfile(form.name.value.trim(), form.org.value.trim());
+      if (err) { msg.className = "msg err"; msg.textContent = err; return; }
       btn.disabled = true;
       try {
         await rpc("study_join", { p_name: form.name.value.trim(), p_org: form.org.value.trim() || null });

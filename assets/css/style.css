@@ -274,6 +274,8 @@ footer { border-top: 1px solid var(--line); padding: var(--space-6) 0 var(--spac
 .legend span { display: inline-flex; gap: 6px; align-items: center; }
 .legend .sq { width: 10px; height: 10px; border-radius: 2px; background: var(--c); display: inline-block; }
 .form { display: grid; gap: var(--space-4); max-width: 420px; margin-top: var(--space-6); }
+.form[hidden] { display: none; }
+.form.profile { background: var(--surface-000); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-4) var(--space-6); }
 .form label { display: grid; gap: 6px; font-weight: 600; font-size: 14px; }
 .form label small { font-weight: 400; color: var(--ink-muted); }
 .form input { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-000); color: var(--ink); }

@@ -93,13 +93,15 @@ function inject(file, t) {
 <html lang="ko">
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://keqatughczjqhnubkydy.supabase.co wss://keqatughczjqhnubkydy.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="../assets/icon/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="../assets/icon/favicon-32.png" sizes="32x32" type="image/png">
   ${tags({ title: `${pad(s.id)}. ${s.title} · AX Study`, desc: s.summary, url: `${SITE}s/${pad(s.id)}.html`, image: `${SITE}assets/og/s${pad(s.id)}.png?v=${ver}` })}
   <title>${esc(`${pad(s.id)}. ${s.title} · AX Study`)}</title>
   <meta http-equiv="refresh" content="0; url=${target}">
-  <script>location.replace("${target}" + location.hash);</script>
+  <script src="../assets/js/go.js" data-to="${target}" data-keep-hash></script>
 </head>
 <body><p><a href="${target}">${esc(`${pad(s.id)}. ${s.title}`)} 세션으로 이동</a></p></body>
 </html>

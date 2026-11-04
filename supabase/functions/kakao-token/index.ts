@@ -28,12 +28,15 @@ function cors(origin: string | null) {
   };
 }
 const json = (body: unknown, status: number, h: Record<string, string>) =>
-  new Response(JSON.stringify(body), { status, headers: { ...h, "Content-Type": "application/json" } });
+  new Response(JSON.stringify(body), { status, headers: { ...h, "Content-Type": "application/json", "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store" } });
 
 Deno.serve(async (req) => {
   const h = cors(req.headers.get("Origin"));
   if (req.method === "OPTIONS") return new Response("ok", { headers: h });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405, h);
+  // 허용한 사이트에서 온 요청만 처리 (브라우저 밖에서 마구 호출하는 것 줄이기)
+  const origin = req.headers.get("Origin");
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) return json({ error: "forbidden_origin" }, 403, h);
 
   const clientId = Deno.env.get("KAKAO_REST_API_KEY");
   if (!clientId) return json({ error: "not_configured", message: "KAKAO_REST_API_KEY 비밀값이 없습니다" }, 500, h);
@@ -41,7 +44,7 @@ Deno.serve(async (req) => {
   let body: { code?: string; redirect_uri?: string };
   try { body = await req.json(); } catch { return json({ error: "bad_request" }, 400, h); }
   const { code, redirect_uri } = body;
-  if (!code || typeof code !== "string" || code.length > 512) return json({ error: "bad_request", message: "code 가 없습니다" }, 400, h);
+  if (typeof code !== "string" || !/^[A-Za-z0-9._~-]{10,512}$/.test(code)) return json({ error: "bad_request", message: "code 형식이 올바르지 않습니다" }, 400, h);
   if (!redirect_uri || !ALLOWED_REDIRECTS.includes(redirect_uri)) return json({ error: "bad_redirect" }, 400, h);
 
   const form = new URLSearchParams({ grant_type: "authorization_code", client_id: clientId, redirect_uri, code });
