@@ -26,3 +26,10 @@ create table public.study_progress (
 -- study_dashboard()                승인 멤버만, 승인된 멤버 현황
 -- study_admin_members()            운영자만, 전체 신청 목록
 -- study_set_status(member, status) 운영자만, 승인·거절·승인 취소 (본인 제외)
+
+-- v1.1 (2026-11-04) 마이그레이션 study_security_hardening_and_profile
+--  · anon 테이블 권한 전부 회수, authenticated 는 SELECT 만
+--  · study_is_admin / study_is_approved RPC 실행 권한 회수
+--  · study_check_profile(name, org): 길이·금지 문자 검사 (study_join, study_update_profile 에서 사용)
+--  · study_update_profile(name, org): 본인 이름·소속 변경 (상태·운영자 여부는 그대로)
+--  · study_save: 세션 1~24, 퀴즈 1~20문항, 0 ≤ 점수 ≤ 문항 수 검사

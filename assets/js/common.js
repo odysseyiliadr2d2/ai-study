@@ -170,10 +170,12 @@
       auth.session = data.session;
       const q = new URLSearchParams(location.search);
       if (q.has("state") && (q.has("code") || q.has("error"))) {      // 카카오에서 돌아온 직후
-        const back = store.get("axstudy.after", "me.html"); store.del("axstudy.after");
+        // 돌아갈 화면은 사이트 안 페이지 이름만 허용 (외부 주소·javascript: 로 이동 방지)
+        let back = store.get("axstudy.after", "me.html"); store.del("axstudy.after");
+        if (typeof back !== "string" || !/^[\w-]+\.html(\?[\w=&%-]*)?(#[\w-]*)?$/.test(back)) back = "me.html";
         try { await finishKakao(q); store.set("axstudy.toast", "카카오로 로그인했습니다"); }
         catch (e) { store.set("axstudy.toast", "카카오 로그인 실패: " + e.message); }
-        location.replace(back || "me.html");
+        location.replace(back);
         return;
       }
       await loadMe();
