@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://keqatughczjqhnubkydy.supabase.co wss://keqatughczjqhnubkydy.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- og:start (tools/og/build.cjs 가 다시 씀) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="AX Study">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:title" content="실습 환경 구성 · AX Study">
+  <meta property="og:description" content="Python·Java 실습 환경을 개인 PC와 사내 폐쇄망에 준비하는 방법. PDF·Markdown 가이드.">
+  <meta property="og:url" content="https://odysseyiliadr2d2.github.io/ai-study/setup.html">
+  <meta property="og:image" content="https://odysseyiliadr2d2.github.io/ai-study/assets/og/setup.png?v=v1.2">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="실습 환경 구성 · AX Study">
+  <meta name="twitter:card" content="summary_large_image">
+  <!-- og:end -->
+  <link rel="icon" href="assets/icon/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/icon/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icon/apple-touch-icon.png">
+  <meta name="theme-color" content="#1f1f1f">
+  <title>실습 환경 구성 · AX Study</title>
+  <meta name="description" content="Python·Java 실습을 개인 PC와 사내 폐쇄망에서 준비하는 방법">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261112-1">
+  <link rel="stylesheet" href="assets/vendor/prism/prism-tomorrow.css?v=20261112-1">
+  <script src="assets/vendor/supabase/supabase.js"></script>
+  <script src="config.js?v=20261112-1"></script>
+  <script src="assets/js/common.js?v=20261112-1"></script>
+</head>
+<body>
+
+  <main class="wrap narrow setup" id="main">
+    <section class="hero">
+      <div class="eyebrow">SETUP</div>
+      <h1 class="display">실습 환경 구성</h1>
+      <p class="lead">모든 세션의 실습은 Python 트랙과 Java 트랙으로 제공합니다. 개인 PC에 한 번 설치해 두면 24세션을 그대로 따라 할 수 있고, 사내 폐쇄망으로 옮기는 방법도 함께 정리했습니다.</p>
+      <div class="rm-dl" id="dl"></div>
+      <div class="os-pick" role="tablist" aria-label="운영체제">
+        <button type="button" class="lang-btn" data-os-btn="win" aria-selected="true">Windows</button>
+        <button type="button" class="lang-btn" data-os-btn="mac" aria-selected="false">macOS</button>
+      </div>
+      <nav class="rm-toc" aria-label="목차">
+        <a href="#overview">한눈에 보기</a><a href="#common">공통 도구</a><a href="#python">Python</a><a href="#java">Java</a>
+        <a href="#keys">API 키</a><a href="#offline">폐쇄망 반입</a><a href="#check">점검</a><a href="#trouble">문제 해결</a>
+      </nav>
+    </section>
+
+    <article class="panel rm-doc">
+      <h2 id="overview">한눈에 보기</h2>
+      <p>Python과 Java 중 하나만 골라도 됩니다. 둘 다 설치하면 같은 실습을 두 언어로 비교해 볼 수 있습니다. 버전은 2026년 11월 기준입니다.</p>
+      <table>
+        <thead><tr><th>구분</th><th>도구</th><th>버전</th><th>필요한 세션</th></tr></thead>
+        <tbody>
+          <tr><td>필수</td><td>Git</td><td>최신</td><td>전체</td></tr>
+          <tr><td>Python 트랙</td><td>Python</td><td>3.13 권장 (3.11 이상)</td><td>전체</td></tr>
+          <tr><td>Java 트랙</td><td>JDK (Eclipse Temurin)</td><td>21 LTS</td><td>전체</td></tr>
+          <tr><td>Java 트랙</td><td>Maven</td><td>프로젝트의 Maven Wrapper(<code>mvnw</code>)가 내려받음</td><td>전체</td></tr>
+          <tr><td>편집기</td><td>VS Code 또는 IntelliJ IDEA · PyCharm</td><td>최신</td><td>전체</td></tr>
+          <tr><td>선택</td><td>Docker (또는 Rancher Desktop · Podman)</td><td>최신</td><td>5·7(n8n), 8(pgvector), 11·12(Oracle Free), 16, 21</td></tr>
+          <tr><td>선택</td><td>Node.js</td><td>24 LTS</td><td>13(코딩 에이전트 CLI), 14~16(Next.js 트랙), 18(MCP Inspector)</td></tr>
+          <tr><td>선택</td><td>Ollama</td><td>최신</td><td>2·4(로컬 모델 비교), 21(폐쇄망 LLM)</td></tr>
+          <tr><td>선택</td><td>NVIDIA GPU</td><td>16~24GB 이상</td><td>21(vLLM), 22(파인튜닝)</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">Python 3.14 도 나와 있지만 vLLM 같은 일부 패키지는 지원이 늦습니다. 실습은 3.13 으로 맞추는 것을 권합니다.</div>
+
+      <h2 id="common">공통 도구</h2>
+      <h3>Git · 편집기 · Node.js · Ollama</h3>
+      <div data-os="win"><div class="code"><div class="bar"><span>PowerShell</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash">winget install --id Git.Git -e
+winget install --id Microsoft.VisualStudioCode -e
+winget install --id OpenJS.NodeJS.LTS -e     # 세션 13~16, 18
+winget install --id Ollama.Ollama -e         # 세션 2, 4, 21</code></pre></div></div><div data-os="mac" hidden><div class="code"><div class="bar"><span>터미널 (zsh)</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash"># Homebrew 가 없으면 https://brew.sh 의 설치 명령을 먼저 실행합니다
+brew install git node@24
+brew install --cask visual-studio-code
+brew install --cask ollama                  # 세션 2, 4, 21</code></pre></div></div>
+      <ul>
+        <li>winget 은 Windows 10·11 의 기본 패키지 관리자입니다. 회사 PC에서 막혀 있으면 각 공식 사이트의 설치 파일을 씁니다.</li>
+        <li>IntelliJ IDEA 는 2025.3 부터 Community·Ultimate 가 하나로 합쳐졌고, 체험 기간이 끝나도 Java·Kotlin 핵심 기능은 무료입니다. <a href="https://www.jetbrains.com/help/idea/intellij-idea-single-distribution.html">JetBrains 안내</a></li>
+      </ul>
+      <h3>Docker</h3>
+      <p>Docker Desktop 은 직원 250명 초과 또는 연매출 1,000만 달러 초과 기업에서 업무용으로 쓰려면 유료 구독이 필요합니다. 회사 PC라면 사내 정책을 먼저 확인하고, 필요하면 Rancher Desktop 이나 Podman Desktop 을 씁니다. 개인 PC 학습용은 무료입니다.</p>
+
+      <h2 id="python">Python 트랙</h2>
+      <h3>1. Python 설치</h3>
+      <div data-os="win"><div class="code"><div class="bar"><span>PowerShell</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash">winget install --id Python.Python.3.13 -e
+# 설치 후 새 PowerShell 창에서
+py -3.13 --version</code></pre></div><p class="small muted">python.org 설치 파일을 쓸 때는 첫 화면의 <b>Add python.exe to PATH</b> 를 꼭 체크합니다.</p></div><div data-os="mac" hidden><div class="code"><div class="bar"><span>터미널 (zsh)</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash">brew install python@3.13
+python3.13 --version</code></pre></div></div>
+      <h3>2. 세션마다 가상환경 만들기</h3>
+      <p>세션 폴더마다 <code>.venv</code> 를 만들어 패키지 버전이 서로 섞이지 않게 합니다.</p>
+      <div data-os="win"><div class="code"><div class="bar"><span>PowerShell</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash">cd labs\s06
+py -3.13 -m venv .venv
+.venv\Scripts\Activate.ps1          # 막히면 아래 &#x27;문제 해결&#x27;의 실행 정책 참고
+pip install -r requirements.txt
+python first_call.py</code></pre></div></div><div data-os="mac" hidden><div class="code"><div class="bar"><span>터미널 (zsh)</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash">cd labs/s06
+python3.13 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python first_call.py</code></pre></div></div>
+      <p class="small muted">파일 이름은 세션마다 다릅니다. 실행 명령은 각 세션 '실습 코드' 탭의 Python 트랙에 있습니다.</p>
+      <h3>3. 편집기</h3>
+      <ul>
+        <li>VS Code: 확장 <b>Python</b>(Microsoft) 설치 → 명령 팔레트 <code>Python: Select Interpreter</code> 에서 <code>.venv</code> 선택</li>
+        <li>PyCharm: 폴더 열기 → 인터프리터를 <code>.venv</code> 로 지정</li>
+      </ul>
+
+      <h2 id="java">Java 트랙</h2>
+      <h3>1. JDK 21 설치 (Eclipse Temurin)</h3>
+      <div data-os="win"><div class="code"><div class="bar"><span>PowerShell</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash">winget install --id EclipseAdoptium.Temurin.21.JDK -e
+# 새 PowerShell 창에서
+java -version
+echo $env:JAVA_HOME</code></pre></div><p class="small muted">설치 파일(.msi)을 쓸 때는 <b>Set JAVA_HOME variable</b> 항목을 켭니다.</p></div><div data-os="mac" hidden><div class="code"><div class="bar"><span>터미널 (zsh)</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash">brew install --cask temurin@21
+java -version
+# JAVA_HOME 지정 (~/.zshrc 에 추가)
+echo &#x27;export JAVA_HOME=$(/usr/libexec/java_home -v 21)&#x27; &gt;&gt; ~/.zshrc
+source ~/.zshrc</code></pre></div></div>
+      <h3>2. Maven Wrapper 로 빌드·실행</h3>
+      <p>Java 실습은 모두 Maven 프로젝트입니다. 전역 Maven 을 설치하지 않아도 프로젝트에 들어 있는 Maven Wrapper(<code>mvnw</code>)가 맞는 Maven 을 내려받습니다.</p>
+      <div data-os="win"><div class="code"><div class="bar"><span>PowerShell</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash">cd labs\s06\java
+.\mvnw.cmd -v
+.\mvnw.cmd -q compile exec:java &quot;-Dexec.mainClass=study.s06.FirstCall&quot;</code></pre></div></div><div data-os="mac" hidden><div class="code"><div class="bar"><span>터미널 (zsh)</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash">cd labs/s06/java
+./mvnw -v
+./mvnw -q compile exec:java -Dexec.mainClass=study.s06.FirstCall</code></pre></div></div>
+      <p>모든 Java 실습 폴더에 <code>mvnw</code>·<code>mvnw.cmd</code> 가 들어 있습니다 (Maven Wrapper 3.3.4, Maven 3.9.16). 처음 실행할 때 Maven 을 <code>~/.m2/wrapper</code> 에 한 번 내려받고, 이후에는 그대로 씁니다.</p>
+      <h3>3. 편집기</h3>
+      <ul>
+        <li>IntelliJ IDEA: <code>pom.xml</code> 이 있는 폴더를 열면 Maven 프로젝트로 인식합니다. Project SDK 를 Temurin 21 로 지정합니다.</li>
+        <li>VS Code: 확장 <b>Extension Pack for Java</b>(Microsoft) 설치. Spring 세션(14~16, 18)은 <b>Spring Boot Extension Pack</b> 도 설치합니다.</li>
+      </ul>
+
+      <h2 id="keys">API 키와 환경변수</h2>
+      <p>실습 코드는 키를 코드에 넣지 않고 환경변수에서 읽습니다. 실습용 개인 키를 쓰고, 사내 적용은 승인된 모델·게이트웨이 주소로 바꿉니다.</p>
+      <div data-os="win"><div class="code"><div class="bar"><span>PowerShell</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash"># 현재 사용자에게 영구 저장 (새 창부터 적용)
+setx ANTHROPIC_API_KEY &quot;sk-ant-...&quot;
+setx CLAUDE_MODEL &quot;claude-sonnet-5-5&quot;
+# 지금 창에서만 쓸 때
+$env:ANTHROPIC_API_KEY = &quot;sk-ant-...&quot;</code></pre></div></div><div data-os="mac" hidden><div class="code"><div class="bar"><span>터미널 (zsh)</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash">echo &#x27;export ANTHROPIC_API_KEY=&quot;sk-ant-...&quot;&#x27; &gt;&gt; ~/.zshrc
+echo &#x27;export CLAUDE_MODEL=&quot;claude-sonnet-5-5&quot;&#x27; &gt;&gt; ~/.zshrc
+source ~/.zshrc</code></pre></div></div>
+      <ul>
+        <li><code>.env</code> 파일을 쓰면 <code>.gitignore</code> 에 꼭 넣습니다. 키가 담긴 파일을 저장소에 올리지 않습니다.</li>
+        <li>OpenAI 비교 실습(선택)은 <code>OPENAI_API_KEY</code>, Oracle 실습은 <code>ORA_USER · ORA_PASSWORD · ORA_DSN</code> 을 같은 방법으로 지정합니다.</li>
+      </ul>
+
+      <h2 id="offline">사내 폐쇄망으로 옮기기</h2>
+      <div class="callout">반입은 회사의 자료 반입 절차와 보안 검토를 따릅니다. 아래는 인터넷 PC에서 미리 받아 두는 기술적인 방법입니다.</div>
+      <h3>Python 패키지 (wheel 묶음)</h3>
+      <div class="code"><div class="bar"><span>pip</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash"># 인터넷 PC: 사내 PC와 같은 OS · Python 버전으로 내려받기
+pip download -r requirements.txt -d wheels --only-binary=:all: \
+    --platform win_amd64 --python-version 3.13
+# 사내 PC: 인터넷 없이 설치
+pip install --no-index --find-links wheels -r requirements.txt</code></pre></div>
+      <p>사내에 Nexus · Artifactory 같은 PyPI 미러가 있으면 <code>pip config set global.index-url https://사내미러/simple</code> 로 지정하는 편이 관리가 쉽습니다.</p>
+      <h3>Maven 의존성</h3>
+      <div class="code"><div class="bar"><span>settings.xml</span><button type="button" data-copy>복사</button></div><pre><code class="language-xml">&lt;!-- ~/.m2/settings.xml : 사내 Maven 저장소를 mirror 로 지정 --&gt;
+&lt;settings&gt;
+  &lt;mirrors&gt;
+    &lt;mirror&gt;
+      &lt;id&gt;company-nexus&lt;/id&gt;
+      &lt;mirrorOf&gt;*&lt;/mirrorOf&gt;
+      &lt;url&gt;https://nexus.사내도메인/repository/maven-public/&lt;/url&gt;
+    &lt;/mirror&gt;
+  &lt;/mirrors&gt;
+&lt;/settings&gt;</code></pre></div>
+      <div class="code"><div class="bar"><span>Maven</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash"># 사내 저장소가 없을 때: 인터넷 PC에서 의존성을 모두 받아 ~/.m2/repository 를 통째로 옮깁니다
+./mvnw dependency:go-offline
+# 사내 PC: 오프라인 모드로 빌드
+./mvnw -o -q compile</code></pre></div>
+      <p>Maven Wrapper 도 처음 실행할 때 Maven 배포본을 내려받습니다. 사내에서는 환경변수 <code>MVNW_REPOURL</code> 에 사내 저장소 주소를 지정하거나, <code>.mvn/wrapper/maven-wrapper.properties</code> 의 <code>distributionUrl</code> 을 바꿉니다. 인터넷 PC의 <code>~/.m2/wrapper</code> 폴더를 그대로 옮겨도 됩니다.</p>
+      <h3>모델 · 컨테이너 이미지</h3>
+      <div class="code"><div class="bar"><span>bash</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash"># Docker 이미지 반입
+docker pull pgvector/pgvector:pg17
+docker save -o pgvector.tar pgvector/pgvector:pg17
+docker load -i pgvector.tar          # 사내 PC
+# 임베딩 모델(Hugging Face)은 인터넷 PC에서 한 번 실행해 캐시를 만든 뒤
+# ~/.cache/huggingface 폴더를 옮기고 HF_HUB_OFFLINE=1 로 실행합니다</code></pre></div>
+
+      <h2 id="check">설치 점검</h2>
+      <p>아래 스크립트는 버전과 키 설정 여부만 확인하고, 외부로 요청을 보내지 않습니다. 저장소의 <code>labs/setup/</code> 폴더에 있습니다.</p>
+      <div class="code"><div class="bar"><span>labs/setup/check_env.py</span><button type="button" data-copy>복사</button></div><pre><code class="language-python">&quot;&quot;&quot;실습 환경 점검 (Python 트랙)
+
+    python labs/setup/check_env.py
+
+설치한 도구의 버전과 API 키 설정 여부를 한 번에 보여 줍니다. 네트워크 호출은 하지 않습니다.
+&quot;&quot;&quot;
+import os
+import platform
+import shutil
+import subprocess
+import sys
+
+
+def ver(cmd):
+    exe = shutil.which(cmd[0])
+    if not exe:
+        return None
+    try:
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        return (out.stdout or out.stderr).strip().splitlines()[0]
+    except Exception as e:  # 실행은 되지만 버전 출력이 이상한 경우
+        return f&quot;(확인 실패: {e})&quot;
+
+
+def row(name, value, need):
+    mark = &quot;OK &quot; if value else (&quot;-- &quot; if not need else &quot;없음&quot;)
+    print(f&quot;[{mark}] {name:&lt;22} {value or (&#x27;선택&#x27; if not need else &#x27;설치 필요&#x27;)}&quot;)
+
+
+print(f&quot;OS: {platform.system()} {platform.release()} / Python {platform.python_version()} ({sys.executable})&quot;)
+ok = sys.version_info &gt;= (3, 11)
+row(&quot;Python 3.11 이상&quot;, platform.python_version() if ok else None, True)
+row(&quot;가상환경(venv)&quot;, sys.prefix if sys.prefix != sys.base_prefix else None, False)
+row(&quot;pip&quot;, ver([sys.executable, &quot;-m&quot;, &quot;pip&quot;, &quot;--version&quot;]), True)
+row(&quot;Git&quot;, ver([&quot;git&quot;, &quot;--version&quot;]), True)
+row(&quot;Java (JDK 21)&quot;, ver([&quot;java&quot;, &quot;-version&quot;]), False)
+row(&quot;Node.js&quot;, ver([&quot;node&quot;, &quot;--version&quot;]), False)
+row(&quot;Docker&quot;, ver([&quot;docker&quot;, &quot;--version&quot;]), False)
+row(&quot;Ollama&quot;, ver([&quot;ollama&quot;, &quot;--version&quot;]), False)
+
+for pkg in (&quot;anthropic&quot;, &quot;openai&quot;, &quot;pydantic&quot;, &quot;sentence_transformers&quot;, &quot;fastapi&quot;):
+    try:
+        mod = __import__(pkg)
+        row(f&quot;패키지 {pkg}&quot;, getattr(mod, &quot;__version__&quot;, &quot;설치됨&quot;), False)
+    except ImportError:
+        row(f&quot;패키지 {pkg}&quot;, None, False)
+
+for key in (&quot;ANTHROPIC_API_KEY&quot;, &quot;OPENAI_API_KEY&quot;):
+    v = os.getenv(key)
+    row(key, f&quot;설정됨 ({v[:7]}…)&quot; if v else None, key == &quot;ANTHROPIC_API_KEY&quot;)</code></pre></div>
+      <div class="code"><div class="bar"><span>labs/setup/java/CheckEnv.java</span><button type="button" data-copy>복사</button></div><pre><code class="language-java">// 실습 환경 점검 (Java 트랙) — 의존성 없이 단일 파일로 실행합니다.
+//   java labs/setup/java/CheckEnv.java
+// JDK 버전, JAVA_HOME, Maven Wrapper, API 키 설정 여부를 보여 줍니다. 네트워크 호출은 하지 않습니다.
+import java.nio.file.*;
+import java.util.*;
+
+public class CheckEnv {
+    static void row(String name, String value, boolean need) {
+        String mark = value != null ? &quot;OK &quot; : (need ? &quot;없음&quot; : &quot;-- &quot;);
+        System.out.printf(&quot;[%s] %-22s %s%n&quot;, mark, name, value != null ? value : (need ? &quot;설치 필요&quot; : &quot;선택&quot;));
+    }
+
+    static String run(String... cmd) {
+        try {
+            Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
+            String out = new String(p.getInputStream().readAllBytes()).strip();
+            p.waitFor();
+            return out.isEmpty() ? null : out.lines().findFirst().orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public static void main(String[] args) {
+        boolean win = System.getProperty(&quot;os.name&quot;).toLowerCase().contains(&quot;win&quot;);
+        int feature = Runtime.version().feature();
+        System.out.println(&quot;OS: &quot; + System.getProperty(&quot;os.name&quot;) + &quot; / JDK &quot; + Runtime.version()
+                + &quot; (&quot; + System.getProperty(&quot;java.vendor&quot;) + &quot;)&quot;);
+        row(&quot;JDK 21 이상&quot;, feature &gt;= 21 ? String.valueOf(Runtime.version()) : null, true);
+        row(&quot;JAVA_HOME&quot;, System.getenv(&quot;JAVA_HOME&quot;), false);
+        Path wrapper = Path.of(win ? &quot;mvnw.cmd&quot; : &quot;mvnw&quot;);
+        row(&quot;Maven Wrapper(현재 폴더)&quot;, Files.exists(wrapper) ? wrapper.toAbsolutePath().toString() : null, false);
+        row(&quot;Maven(전역)&quot;, run(win ? &quot;mvn.cmd&quot; : &quot;mvn&quot;, &quot;-v&quot;), false);
+        row(&quot;Git&quot;, run(&quot;git&quot;, &quot;--version&quot;), true);
+        row(&quot;Python&quot;, run(win ? &quot;python&quot; : &quot;python3&quot;, &quot;--version&quot;), false);
+        row(&quot;Docker&quot;, run(&quot;docker&quot;, &quot;--version&quot;), false);
+        for (String key : List.of(&quot;ANTHROPIC_API_KEY&quot;, &quot;OPENAI_API_KEY&quot;)) {
+            String v = System.getenv(key);
+            row(key, v != null &amp;&amp; !v.isBlank() ? &quot;설정됨 (&quot; + v.substring(0, Math.min(7, v.length())) + &quot;…)&quot; : null,
+                    key.equals(&quot;ANTHROPIC_API_KEY&quot;));
+        }
+    }
+}</code></pre></div>
+      <div class="code"><div class="bar"><span>실행</span><button type="button" data-copy>복사</button></div><pre><code class="language-bash">python labs/setup/check_env.py
+java labs/setup/java/CheckEnv.java     # JDK 11 이상은 단일 파일을 바로 실행할 수 있습니다</code></pre></div>
+
+      <h2 id="trouble">자주 막히는 문제</h2>
+      <table>
+        <thead><tr><th>증상</th><th>원인</th><th>해결</th></tr></thead>
+        <tbody>
+          <tr><td><code>Activate.ps1</code> 실행이 막힘</td><td>PowerShell 실행 정책</td><td><code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> 한 번 실행</td></tr>
+          <tr><td><code>python</code> 을 치면 스토어가 열림</td><td>Windows 앱 실행 별칭</td><td><code>py -3.13</code> 으로 실행하거나 설정 → 앱 실행 별칭에서 python 끄기</td></tr>
+          <tr><td>pip · Maven 에서 SSL 인증서 오류</td><td>회사 프록시가 인증서를 바꿔 끼움</td><td>사내 루트 인증서를 받아 pip 는 <code>pip config set global.cert 경로.pem</code>, Java 는 <code>keytool -importcert -cacerts -file 경로.cer -alias company</code></td></tr>
+          <tr><td><code>java -version</code> 이 예전 버전</td><td>PATH 에 다른 JDK 가 먼저 있음</td><td><code>JAVA_HOME</code> 을 Temurin 21 로 바꾸고 PATH 의 <code>%JAVA_HOME%\bin</code> 을 맨 앞으로</td></tr>
+          <tr><td>모델 다운로드 · 빌드 경로 오류</td><td>Windows 사용자 폴더 이름이 한글</td><td>실습 폴더를 <code>C:\study</code> 처럼 영문 경로에 두고, <code>HF_HOME</code> 도 영문 경로로 지정</td></tr>
+          <tr><td>포트 사용 중 (8080, 5678, 5432)</td><td>다른 프로그램이 같은 포트 사용</td><td>Spring 은 <code>--server.port=8081</code>, Docker 는 <code>-p 15432:5432</code> 처럼 바꿔서 실행</td></tr>
+        </tbody>
+      </table>
+    </article>
+  </main>
+  <script src="assets/vendor/prism/prism.js?v=20261112-1"></script>
+  <script src="assets/js/setup.js?v=20261112-1"></script>
+</body>
+</html>

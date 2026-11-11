@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- labs/s17/java/pom.xml — 도구 호출 루프 (Java 21 + Anthropic Java SDK, Spring 없이) -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>study</groupId>
+  <artifactId>s17-agent-loop</artifactId>
+  <version>1.0.0</version>
+
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <anthropic.version>3.8.0</anthropic.version>
+  </properties>
+
+  <dependencies>
+    <!-- Claude API. jackson-databind 2.x 도 함께 들어오므로 JSON 처리에 그대로 씁니다 -->
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java</artifactId>
+      <version>${anthropic.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.7.0</version>
+        <configuration>
+          <mainClass>study.s17.AgentLoop</mainClass>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

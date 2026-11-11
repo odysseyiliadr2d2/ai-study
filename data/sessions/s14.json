@@ -96,7 +96,7 @@
     ],
     "code": {
      "lang": "java",
-     "file": "labs/s14/api/src/main/java/com/example/ticketdesk/request/WorkRequestService.java",
+     "file": "labs/s14/java/src/main/java/com/example/ticketdesk/request/WorkRequestService.java",
      "src": "// src/main/java/com/example/ticketdesk/request/WorkRequestService.java\n// 업무 규칙을 모으는 서비스 계층. 오늘은 메모리 Map, 세션 15에서 JPA 저장소로 바꿉니다.\npackage com.example.ticketdesk.request;\n\nimport com.example.ticketdesk.request.WorkRequestDtos.CreateRequest;\nimport java.util.Comparator;\nimport java.util.List;\nimport java.util.Map;\nimport java.util.concurrent.ConcurrentHashMap;\nimport java.util.concurrent.atomic.AtomicLong;\nimport org.springframework.http.HttpStatus;\nimport org.springframework.stereotype.Service;\nimport org.springframework.web.bind.annotation.ResponseStatus;\n\n@Service\npublic class WorkRequestService {\n\n    @ResponseStatus(HttpStatus.NOT_FOUND)\n    public static class NotFound extends RuntimeException {\n        public NotFound(Long id) { super(\"요청을 찾을 수 없습니다: \" + id); }\n    }\n\n    private final Map<Long, WorkRequest> store = new ConcurrentHashMap<>();\n    private final AtomicLong seq = new AtomicLong();\n\n    public WorkRequest create(CreateRequest in, String requesterId) {\n        WorkRequest w = new WorkRequest(in.title().strip(), in.body().strip(), in.dueDate(), requesterId);\n        w.assignId(seq.incrementAndGet());\n        store.put(w.getId(), w);\n        return w;\n    }\n\n    public List<WorkRequest> list(WorkRequest.Status status) {\n        return store.values().stream()\n                .filter(w -> status == null || w.getStatus() == status)\n                .sorted(Comparator.comparing(WorkRequest::getCreatedAt).reversed())\n                .toList();\n    }\n\n    public WorkRequest get(Long id) {\n        WorkRequest w = store.get(id);\n        if (w == null) throw new NotFound(id);\n        return w;\n    }\n\n    public WorkRequest changeStatus(Long id, WorkRequest.Status next) {\n        WorkRequest w = get(id);\n        w.changeStatus(next);\n        return w;\n    }\n}\n"
     }
    },
@@ -109,7 +109,7 @@
     ],
     "code": {
      "lang": "java",
-     "file": "labs/s14/api/src/main/java/com/example/ticketdesk/request/WorkRequestPageController.java",
+     "file": "labs/s14/java/src/main/java/com/example/ticketdesk/request/WorkRequestPageController.java",
      "src": "// src/main/java/com/example/ticketdesk/request/WorkRequestPageController.java\n// 화면용 컨트롤러는 HTML 만 돌려줍니다. 등록은 화면의 JavaScript 가 REST API 로 보냅니다.\npackage com.example.ticketdesk.request;\n\nimport org.springframework.stereotype.Controller;\nimport org.springframework.ui.Model;\nimport org.springframework.web.bind.annotation.GetMapping;\n\n@Controller\npublic class WorkRequestPageController {\n\n    private final WorkRequestService service;\n\n    public WorkRequestPageController(WorkRequestService service) {\n        this.service = service;\n    }\n\n    @GetMapping(\"/requests\")\n    public String list(Model model) {\n        model.addAttribute(\"items\", service.list(null));\n        return \"requests\";   // src/main/resources/templates/requests.html\n    }\n}\n"
     }
    },
@@ -126,7 +126,7 @@
     ],
     "code": {
      "lang": "java",
-     "file": "labs/s14/api/src/main/java/com/example/ticketdesk/request/WorkRequestDtos.java",
+     "file": "labs/s14/java/src/main/java/com/example/ticketdesk/request/WorkRequestDtos.java",
      "src": "// src/main/java/com/example/ticketdesk/request/WorkRequestDtos.java\n// API 입출력 DTO 를 record 로 모아 둡니다. 도메인 객체를 그대로 내보내지 않습니다.\npackage com.example.ticketdesk.request;\n\nimport jakarta.validation.constraints.FutureOrPresent;\nimport jakarta.validation.constraints.NotBlank;\nimport jakarta.validation.constraints.NotNull;\nimport jakarta.validation.constraints.Size;\nimport java.time.Instant;\nimport java.time.LocalDate;\n\npublic final class WorkRequestDtos {\n\n    private WorkRequestDtos() { }\n\n    /** 등록 입력 — 기본 트랙의 zod 스키마와 같은 규칙 */\n    public record CreateRequest(\n            @NotBlank(message = \"제목을 입력하세요\")\n            @Size(min = 5, max = 100, message = \"제목은 5~100자로 입력하세요\")\n            String title,\n\n            @NotBlank(message = \"내용을 입력하세요\")\n            @Size(min = 10, max = 4000, message = \"내용은 10~4000자로 입력하세요\")\n            String body,\n\n            @FutureOrPresent(message = \"마감일은 오늘 이후여야 합니다\")\n            LocalDate dueDate) { }\n\n    /** 상태 변경 입력 */\n    public record StatusChange(@NotNull(message = \"상태를 선택하세요\") WorkRequest.Status status) { }\n\n    /** 응답 — 필요한 필드만 골라 내보냅니다 */\n    public record Response(\n            Long id, String title, String body, LocalDate dueDate,\n            WorkRequest.Status status, WorkRequest.Category category,\n            WorkRequest.Priority priority, String summary,\n            String requesterId, Instant createdAt) {\n\n        public static Response from(WorkRequest w) {\n            return new Response(w.getId(), w.getTitle(), w.getBody(), w.getDueDate(),\n                    w.getStatus(), w.getCategory(), w.getPriority(), w.getSummary(),\n                    w.getRequesterId(), w.getCreatedAt());\n        }\n    }\n}\n"
     }
    }
@@ -134,26 +134,25 @@
  },
  "lab": {
   "title": "업무 요청 목록 · 등록 화면과 REST API 만들기",
-  "lead": "같은 API 규격(이론 1절)을 두 트랙으로 구현합니다. 저장소는 오늘은 메모리이고, 세션 15에서 Supabase 와 Oracle 로 바꿉니다. 보조 파일(상세 API, 목록 페이지, 서비스, 화면 컨트롤러, DTO)은 이론 1~5절 코드에 파일 경로와 함께 있습니다.",
+  "lead": "같은 API 규격(이론 1절)을 Next.js 로 구현합니다. Python(FastAPI) · Java(Spring Boot) 트랙은 같은 규격을 각 언어로 만듭니다. 저장소는 오늘은 메모리이고, 세션 15에서 Supabase 로 바꿉니다. 보조 파일(상세 API, 목록 페이지)은 이론 1 · 2절 코드에 파일 경로와 함께 있습니다.",
   "env": [
-   "기본 트랙: Node.js 24 LTS 기준 (Next.js 16 최소 요구는 20.9), Next.js 16, zod 4",
-   "Java 트랙: JDK 21, Spring Boot 4.1.x (start.spring.io 에서 현재 버전 확인), Maven Wrapper",
+   "Node.js 24 LTS 기준 (Next.js 16 최소 요구는 20.9), Next.js 16, zod 4",
    "curl 또는 브라우저 개발자 도구"
   ],
   "steps": [
    {
-    "title": "프로젝트 만들기 (두 트랙)",
+    "title": "프로젝트 만들기",
     "body": [
-     "기본 트랙은 <code>create-next-app</code> 기본값(TypeScript · App Router)으로, Java 트랙은 Spring Initializr 로 web · validation · thymeleaf · actuator 의존성을 넣어 만듭니다. 마지막에 curl 로 API 를 확인하는 명령도 함께 둡니다."
+     "<code>create-next-app</code> 기본값(TypeScript · App Router)으로 프로젝트를 만들고 zod 를 설치합니다. 마지막에 curl 로 API 를 확인하는 명령도 함께 둡니다. 같은 curl 을 포트만 바꿔 Python(8000) · Java(8080) 트랙에도 그대로 씁니다."
     ],
     "code": {
      "lang": "bash",
      "file": "labs/s14/setup.sh",
-     "src": "# 기본 트랙 — Next.js 프로젝트 (Node.js 24 LTS 기준, Next.js 16 최소 요구 20.9)\nnpx create-next-app@latest ticket-desk-web --yes   # TypeScript · App Router 기본값\ncd ticket-desk-web\nnpm install zod\nnpm run dev                                        # http://localhost:3000/requests\n\n# API 확인\ncurl -s -X POST localhost:3000/api/requests -H 'Content-Type: application/json' \\\n  -d '{\"title\":\"월말 잔고 추출 요청\",\"body\":\"11월 말 기준 상품별 잔고를 엑셀로 받고 싶습니다\"}'\ncurl -s 'localhost:3000/api/requests?status=RECEIVED'\ncurl -s -X POST localhost:3000/api/requests -H 'Content-Type: application/json' -d '{\"title\":\"짧\"}'   # 400\n\n# Java 트랙 — Spring Initializr 로 프로젝트 생성 (Java 21, Maven)\ncurl -s https://start.spring.io/starter.zip \\\n  -d type=maven-project -d language=java -d javaVersion=21 \\\n  -d groupId=com.example -d artifactId=ticket-desk-api -d name=ticket-desk-api \\\n  -d packageName=com.example.ticketdesk \\\n  -d dependencies=web,validation,thymeleaf,actuator \\\n  -o ticket-desk-api.zip\nunzip ticket-desk-api.zip -d ticket-desk-api && cd ticket-desk-api\n./mvnw spring-boot:run                              # http://localhost:8080/requests\n"
+     "src": "# 기본 트랙 — Next.js 프로젝트 (Node.js 24 LTS 기준, Next.js 16 최소 요구 20.9)\nnpx create-next-app@latest ticket-desk-web --yes   # TypeScript · App Router 기본값\ncd ticket-desk-web\nnpm install zod\nnpm run dev                                        # http://localhost:3000/requests\n\n# API 확인\ncurl -s -X POST localhost:3000/api/requests -H 'Content-Type: application/json' \\\n  -d '{\"title\":\"월말 잔고 추출 요청\",\"body\":\"11월 말 기준 상품별 잔고를 엑셀로 받고 싶습니다\"}'\ncurl -s 'localhost:3000/api/requests?status=RECEIVED'\ncurl -s -X POST localhost:3000/api/requests -H 'Content-Type: application/json' -d '{\"title\":\"짧\"}'   # 400\n"
     }
    },
    {
-    "title": "기본 트랙 ① 타입 · 스키마 · 저장소",
+    "title": "① 타입 · 스키마 · 저장소",
     "body": [
      "상태 · 분류 · 우선순위 값 목록을 상수로 두고 타입과 zod 스키마를 거기서 만듭니다. 값 목록이 한곳에 있어야 화면 · API · DB 제약이 어긋나지 않습니다. 메모리 저장소는 <code>globalThis</code> 에 둬서 개발 서버가 파일을 다시 읽어도 데이터가 남게 합니다."
     ],
@@ -164,7 +163,7 @@
     }
    },
    {
-    "title": "기본 트랙 ② Route Handler — 목록과 등록",
+    "title": "② Route Handler — 목록과 등록",
     "body": [
      "<code>app/api/requests/route.ts</code> 에 GET 과 POST 를 내보냅니다. 본문이 JSON 이 아니면 400, 스키마 검증에 실패하면 400 과 <code>z.flattenError</code> 의 필드별 메시지를 돌려줍니다. 등록 성공은 201 과 <code>Location</code> 헤더입니다."
     ],
@@ -175,7 +174,7 @@
     }
    },
    {
-    "title": "기본 트랙 ③ 등록 폼 (클라이언트 컴포넌트)",
+    "title": "③ 등록 폼 (클라이언트 컴포넌트)",
     "body": [
      "폼은 <code>\"use client\"</code> 컴포넌트로 만들고 API 를 fetch 로 부릅니다. 400 이면 필드별 메시지를 입력칸 아래에 보여 주고, 성공하면 <code>router.refresh()</code> 로 서버 컴포넌트 목록을 다시 그립니다. 목록 페이지(<code>app/requests/page.tsx</code>)는 이론 2절, 상세 API 는 이론 1절 코드를 씁니다."
     ],
@@ -184,46 +183,14 @@
      "file": "labs/s14/web/app/requests/request-form.tsx",
      "src": "// app/requests/request-form.tsx — 등록 폼 (클라이언트 컴포넌트)\n// 화면은 API 만 부릅니다. 같은 API 를 n8n 이나 다른 시스템도 그대로 씁니다.\n\"use client\";\n\nimport { useRouter } from \"next/navigation\";\nimport { useState, type FormEvent } from \"react\";\n\ntype FieldErrors = Record<string, string[] | undefined>;\n\nexport function RequestForm() {\n  const router = useRouter();\n  const [errors, setErrors] = useState<FieldErrors>({});\n  const [message, setMessage] = useState(\"\");\n  const [pending, setPending] = useState(false);\n\n  async function onSubmit(e: FormEvent<HTMLFormElement>) {\n    e.preventDefault();\n    const form = e.currentTarget;\n    const data = Object.fromEntries(new FormData(form));\n    if (!data.dueDate) delete data.dueDate; // 빈 날짜는 보내지 않음\n\n    setPending(true);\n    const res = await fetch(\"/api/requests\", {\n      method: \"POST\",\n      headers: { \"Content-Type\": \"application/json\" },\n      body: JSON.stringify(data),\n    });\n    setPending(false);\n\n    if (res.status === 400) {\n      const body = await res.json();\n      setErrors(body.errors ?? {});\n      setMessage(body.message ?? \"입력값을 확인하세요\");\n      return;\n    }\n    if (!res.ok) {\n      setMessage(\"저장하지 못했습니다. 잠시 후 다시 시도하세요.\");\n      return;\n    }\n    form.reset();\n    setErrors({});\n    setMessage(\"접수되었습니다.\");\n    router.refresh(); // 서버 컴포넌트 목록 다시 그리기\n  }\n\n  return (\n    <form onSubmit={onSubmit} style={{ display: \"grid\", gap: 8 }}>\n      <label>제목 <input name=\"title\" required minLength={5} maxLength={100} /></label>\n      {errors.title && <small style={{ color: \"crimson\" }}>{errors.title.join(\", \")}</small>}\n\n      <label>내용 <textarea name=\"body\" rows={5} required minLength={10} maxLength={4000} /></label>\n      {errors.body && <small style={{ color: \"crimson\" }}>{errors.body.join(\", \")}</small>}\n\n      <label>마감일 <input name=\"dueDate\" type=\"date\" /></label>\n      {errors.dueDate && <small style={{ color: \"crimson\" }}>{errors.dueDate.join(\", \")}</small>}\n\n      <button type=\"submit\" disabled={pending}>{pending ? \"저장 중…\" : \"접수\"}</button>\n      {message && <p role=\"status\">{message}</p>}\n    </form>\n  );\n}\n"
     }
-   },
-   {
-    "title": "Java 트랙 ① 도메인 클래스",
-    "body": [
-     "업무 요청 도메인 <code>WorkRequest</code> 는 상태 · 분류 · 우선순위를 안쪽 enum 으로 가집니다. 상태 변경과 AI 분석 결과 반영은 메서드로만 하게 해서 규칙이 흩어지지 않게 합니다. 세션 15에서 이 클래스에 JPA 어노테이션을 붙여 Oracle 테이블과 연결합니다. 입출력 DTO(<code>WorkRequestDtos.java</code>)는 이론 5절, 서비스는 이론 3절 코드를 같은 패키지에 둡니다."
-    ],
-    "code": {
-     "lang": "java",
-     "file": "labs/s14/api/src/main/java/com/example/ticketdesk/request/WorkRequest.java",
-     "src": "// src/main/java/com/example/ticketdesk/request/WorkRequest.java\n// 업무 요청 도메인. 세션 15에서 이 클래스에 JPA 어노테이션을 붙여 Oracle 테이블과 연결합니다.\npackage com.example.ticketdesk.request;\n\nimport java.time.Instant;\nimport java.time.LocalDate;\n\npublic class WorkRequest {\n\n    public enum Status { RECEIVED, IN_PROGRESS, DONE }\n    public enum Category { DATA_EXTRACT, BATCH_ISSUE, ACCESS, REPORT, ETC }\n    public enum Priority { LOW, MEDIUM, HIGH }\n\n    private Long id;\n    private String title;\n    private String body;\n    private LocalDate dueDate;\n    private Status status = Status.RECEIVED;\n    private Category category;     // 세션 15에서 AI 가 채움\n    private Priority priority;\n    private String summary;\n    private String requesterId;\n    private Instant createdAt = Instant.now();\n\n    protected WorkRequest() { }\n\n    public WorkRequest(String title, String body, LocalDate dueDate, String requesterId) {\n        this.title = title;\n        this.body = body;\n        this.dueDate = dueDate;\n        this.requesterId = requesterId;\n    }\n\n    public void changeStatus(Status next) { this.status = next; }\n\n    public void applyAnalysis(String summary, Category category, Priority priority) {\n        this.summary = summary;\n        this.category = category;\n        this.priority = priority;\n    }\n\n    void assignId(Long id) { this.id = id; }   // 메모리 저장소 전용 (세션 15에서 삭제)\n\n    public Long getId() { return id; }\n    public String getTitle() { return title; }\n    public String getBody() { return body; }\n    public LocalDate getDueDate() { return dueDate; }\n    public Status getStatus() { return status; }\n    public Category getCategory() { return category; }\n    public Priority getPriority() { return priority; }\n    public String getSummary() { return summary; }\n    public String getRequesterId() { return requesterId; }\n    public Instant getCreatedAt() { return createdAt; }\n}\n"
-    }
-   },
-   {
-    "title": "Java 트랙 ② REST 컨트롤러",
-    "body": [
-     "컨트롤러는 얇게 두고 <code>@Valid @RequestBody</code> 로 검증합니다. 검증이 실패하면 메서드에 들어오기 전에 400 이 나갑니다. 등록 성공은 <code>ResponseEntity.created()</code> 로 201 과 <code>Location</code> 헤더를 돌려줍니다. 화면 컨트롤러(이론 4절)는 별도 파일입니다."
-    ],
-    "code": {
-     "lang": "java",
-     "file": "labs/s14/api/src/main/java/com/example/ticketdesk/request/WorkRequestApiController.java",
-     "src": "// src/main/java/com/example/ticketdesk/request/WorkRequestApiController.java\npackage com.example.ticketdesk.request;\n\nimport com.example.ticketdesk.request.WorkRequestDtos.CreateRequest;\nimport com.example.ticketdesk.request.WorkRequestDtos.Response;\nimport com.example.ticketdesk.request.WorkRequestDtos.StatusChange;\nimport jakarta.validation.Valid;\nimport java.net.URI;\nimport java.util.List;\nimport org.springframework.http.ResponseEntity;\nimport org.springframework.web.bind.annotation.GetMapping;\nimport org.springframework.web.bind.annotation.PatchMapping;\nimport org.springframework.web.bind.annotation.PathVariable;\nimport org.springframework.web.bind.annotation.PostMapping;\nimport org.springframework.web.bind.annotation.RequestBody;\nimport org.springframework.web.bind.annotation.RequestMapping;\nimport org.springframework.web.bind.annotation.RequestParam;\nimport org.springframework.web.bind.annotation.RestController;\n\n@RestController\n@RequestMapping(\"/api/requests\")\npublic class WorkRequestApiController {\n\n    private final WorkRequestService service;\n\n    public WorkRequestApiController(WorkRequestService service) {\n        this.service = service;\n    }\n\n    /** GET /api/requests?status=RECEIVED — 잘못된 status 값은 스프링이 400 으로 돌려줍니다 */\n    @GetMapping\n    public List<Response> list(@RequestParam(required = false) WorkRequest.Status status) {\n        return service.list(status).stream().map(Response::from).toList();\n    }\n\n    @GetMapping(\"/{id}\")\n    public Response get(@PathVariable Long id) {\n        return Response.from(service.get(id));\n    }\n\n    /** POST /api/requests — @Valid 가 실패하면 컨트롤러에 들어오기 전에 400 */\n    @PostMapping\n    public ResponseEntity<Response> create(@Valid @RequestBody CreateRequest body) {\n        WorkRequest created = service.create(body, \"demo-user\");   // 세션 15에서 로그인 사용자로\n        return ResponseEntity.created(URI.create(\"/api/requests/\" + created.getId()))\n                .body(Response.from(created));\n    }\n\n    @PatchMapping(\"/{id}\")\n    public Response changeStatus(@PathVariable Long id, @Valid @RequestBody StatusChange body) {\n        return Response.from(service.changeStatus(id, body.status()));\n    }\n}\n"
-    }
-   },
-   {
-    "title": "Java 트랙 ③ Thymeleaf 화면",
-    "body": [
-     "목록은 서버에서 그리고, 등록은 JavaScript 가 <code>/api/requests</code> 로 JSON 을 보냅니다. CSRF 메타 태그는 지금은 비어 있고, 세션 15에서 Spring Security 를 켜면 자동으로 채워져 그대로 동작합니다. 필드별 메시지(<code>errors</code>)는 실무 예제의 공통 오류 처리기(<code>ApiErrorHandler</code>)가 만들어 주므로 그 파일도 함께 넣습니다. <code>./mvnw spring-boot:run</code> 후 <code>http://localhost:8080/requests</code> 에서 확인합니다."
-    ],
-    "code": {
-     "lang": "xml",
-     "file": "labs/s14/api/src/main/resources/templates/requests.html",
-     "src": "<!DOCTYPE html>\n<!-- src/main/resources/templates/requests.html -->\n<html lang=\"ko\" xmlns:th=\"http://www.thymeleaf.org\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>업무 요청</title>\n  <!-- 세션 15에서 Spring Security 를 켜면 CSRF 토큰이 채워집니다 (지금은 비어 있음) -->\n  <meta name=\"_csrf\" th:content=\"${_csrf?.token}\">\n  <meta name=\"_csrf_header\" th:content=\"${_csrf?.headerName}\">\n</head>\n<body style=\"max-width: 960px; margin: 0 auto; padding: 24px\">\n<h1>업무 요청</h1>\n\n<form id=\"request-form\" style=\"display: grid; gap: 8px\">\n  <label>제목 <input name=\"title\" required minlength=\"5\" maxlength=\"100\"></label>\n  <small class=\"err\" data-field=\"title\"></small>\n  <label>내용 <textarea name=\"body\" rows=\"5\" required minlength=\"10\" maxlength=\"4000\"></textarea></label>\n  <small class=\"err\" data-field=\"body\"></small>\n  <label>마감일 <input name=\"dueDate\" type=\"date\"></label>\n  <small class=\"err\" data-field=\"dueDate\"></small>\n  <button type=\"submit\">접수</button>\n  <p id=\"message\" role=\"status\"></p>\n</form>\n\n<table style=\"width: 100%; margin-top: 24px\">\n  <thead><tr><th>번호</th><th>제목</th><th>상태</th><th>분류</th><th>요약</th><th>접수일시</th></tr></thead>\n  <tbody>\n  <tr th:each=\"r : ${items}\">\n    <td th:text=\"${r.id}\">1</td>\n    <td th:text=\"${r.title}\">제목</td>\n    <td th:text=\"${r.status}\">RECEIVED</td>\n    <td th:text=\"${r.category} ?: '-'\">-</td>\n    <td th:text=\"${r.summary} ?: '-'\">-</td>\n    <td th:text=\"${r.createdAt}\">2026-11-02T00:00:00Z</td>\n  </tr>\n  <tr th:if=\"${#lists.isEmpty(items)}\"><td colspan=\"6\">등록된 요청이 없습니다.</td></tr>\n  </tbody>\n</table>\n\n<script>\n  const form = document.getElementById('request-form');\n  form.addEventListener('submit', async (e) => {\n    e.preventDefault();\n    document.querySelectorAll('.err').forEach((el) => (el.textContent = ''));\n    const data = Object.fromEntries(new FormData(form));\n    if (!data.dueDate) delete data.dueDate;\n\n    const headers = { 'Content-Type': 'application/json' };\n    const token = document.querySelector('meta[name=\"_csrf\"]').content;\n    const header = document.querySelector('meta[name=\"_csrf_header\"]').content;\n    if (token && header) headers[header] = token;\n\n    const res = await fetch('/api/requests', { method: 'POST', headers, body: JSON.stringify(data) });\n    const msg = document.getElementById('message');\n    if (res.status === 400) {\n      const body = await res.json().catch(() => ({}));\n      Object.entries(body.errors || {}).forEach(([field, list]) => {\n        const el = document.querySelector('.err[data-field=\"' + field + '\"]');\n        if (el) el.textContent = [].concat(list).join(', ');\n      });\n      msg.textContent = body.detail || '입력값을 확인하세요';\n      return;\n    }\n    if (!res.ok) { msg.textContent = '저장하지 못했습니다. 잠시 후 다시 시도하세요.'; return; }\n    location.reload();\n  });\n</script>\n</body>\n</html>\n"
-    }
    }
   ],
   "check": [
-   "두 트랙 모두 제목 2자 요청에 400 과 '제목은 5자 이상' 메시지가 오고, 화면 입력칸 아래에 표시되는가",
+   "제목 2자 요청에 400 과 '제목은 5자 이상' 메시지가 오고, 화면 입력칸 아래에 표시되는가",
    "잘못된 상태 값(<code>?status=WRONG</code>)과 없는 id 조회가 각각 400 · 404 로 응답하는가",
-   "기본 트랙 화면에서 Java 트랙 API 를 부르는 식으로 규격이 같은지 팀원과 교차 확인했는가 (주소만 바꿔 curl 로 비교해도 됨)"
-  ]
+   "Python · Java 트랙 API 에 같은 curl 을 포트만 바꿔 보내 상태 코드 · 필드 이름 · errors 모양이 같은지 팀원과 교차 확인했는가"
+  ],
+  "track": "Next.js"
  },
  "example": {
   "title": "사내 표준 오류 응답 규격 맞추기",
@@ -241,7 +208,7 @@
   ],
   "code": {
    "lang": "java",
-   "file": "labs/s14/api/src/main/java/com/example/ticketdesk/common/ApiErrorHandler.java",
+   "file": "labs/s14/java/src/main/java/com/example/ticketdesk/common/ApiErrorHandler.java",
    "src": "// src/main/java/com/example/ticketdesk/common/ApiErrorHandler.java\n// 사내 표준 오류 응답: RFC 9457 ProblemDetail + 업무 코드 + traceId\npackage com.example.ticketdesk.common;\n\nimport com.example.ticketdesk.request.WorkRequestService;\nimport java.util.ArrayList;\nimport java.util.LinkedHashMap;\nimport java.util.List;\nimport java.util.Map;\nimport java.util.UUID;\nimport org.slf4j.Logger;\nimport org.slf4j.LoggerFactory;\nimport org.springframework.http.HttpHeaders;\nimport org.springframework.http.HttpStatus;\nimport org.springframework.http.HttpStatusCode;\nimport org.springframework.http.ProblemDetail;\nimport org.springframework.http.ResponseEntity;\nimport org.springframework.web.bind.MethodArgumentNotValidException;\nimport org.springframework.web.bind.annotation.ExceptionHandler;\nimport org.springframework.web.bind.annotation.RestControllerAdvice;\nimport org.springframework.web.context.request.WebRequest;\nimport org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;\n\n@RestControllerAdvice(basePackages = \"com.example.ticketdesk\")\npublic class ApiErrorHandler extends ResponseEntityExceptionHandler {\n\n    private static final Logger log = LoggerFactory.getLogger(ApiErrorHandler.class);\n\n    /** 400 — 필드별 메시지를 errors 에 담아 화면이 입력칸 옆에 보여 줄 수 있게 */\n    @Override\n    protected ResponseEntity<Object> handleMethodArgumentNotValid(\n            MethodArgumentNotValidException ex, HttpHeaders headers,\n            HttpStatusCode status, WebRequest request) {\n        Map<String, List<String>> errors = new LinkedHashMap<>();\n        ex.getBindingResult().getFieldErrors().forEach(fe ->\n                errors.computeIfAbsent(fe.getField(), k -> new ArrayList<>()).add(fe.getDefaultMessage()));\n\n        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, \"입력값을 확인하세요\");\n        body.setProperty(\"code\", \"REQ-400-VALIDATION\");\n        body.setProperty(\"errors\", errors);\n        return handleExceptionInternal(ex, body, headers, status, request);\n    }\n\n    /** 404 — 업무 코드만 붙여서 */\n    @ExceptionHandler(WorkRequestService.NotFound.class)\n    public ProblemDetail notFound(WorkRequestService.NotFound ex) {\n        ProblemDetail body = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());\n        body.setProperty(\"code\", \"REQ-404\");\n        return body;\n    }\n\n    /** 500 — 내부 정보(스택 트레이스, SQL)는 응답에 넣지 않고 traceId 로 로그와 연결 */\n    @ExceptionHandler(Exception.class)\n    public ProblemDetail unexpected(Exception ex) {\n        String traceId = UUID.randomUUID().toString();\n        log.error(\"처리 중 오류 traceId={}\", traceId, ex);\n        ProblemDetail body = ProblemDetail.forStatusAndDetail(\n                HttpStatus.INTERNAL_SERVER_ERROR, \"일시적인 오류입니다. 문의 시 추적 번호를 알려 주세요.\");\n        body.setProperty(\"code\", \"SYS-500\");\n        body.setProperty(\"traceId\", traceId);\n        return body;\n    }\n}\n"
   },
   "tips": [
@@ -276,5 +243,177 @@
    "label": "Zod 4 오류 포맷 (flattenError)",
    "url": "https://zod.dev/error-formatting"
   }
- ]
+ ],
+ "lab_python": {
+  "title": "FastAPI 로 같은 화면과 REST API 만들기",
+  "lead": "Next.js 트랙과 같은 API 규격(이론 1절: 경로 · 상태 코드 · 필드 이름 · 오류 모양)을 FastAPI 로 만듭니다. 입력 검증은 pydantic, 목록 화면은 Jinja2 템플릿, 등록은 화면의 JavaScript 가 API 를 부릅니다. 저장소는 오늘은 메모리이고 세션 15에서 Oracle 로 바꿉니다.",
+  "env": [
+   "Python 3.11+ · 가상환경(<code>python -m venv .venv</code>)",
+   "FastAPI · uvicorn[standard] · pydantic 2 · Jinja2",
+   "pytest (테스트), curl 또는 브라우저 개발자 도구"
+  ],
+  "steps": [
+   {
+    "title": "프로젝트와 requirements.txt",
+    "body": [
+     "<code>labs/s14/python</code> 폴더를 만들고 <code>python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt</code> 로 설치합니다 (Windows 는 <code>.venv\\Scripts\\activate</code>). 폴더 구조는 <code>app/</code>(코드) · <code>app/templates/</code>(화면) · <code>tests/</code> 입니다. <code>app/__init__.py</code> 는 빈 파일로 둡니다.",
+     "실행은 <code>uvicorn app.main:app --reload --port 8000</code>, 화면은 <code>http://localhost:8000/requests</code>, 자동 생성 API 문서는 <code>/docs</code> 입니다. 사내 폐쇄망에서는 pip 이 사내 PyPI 미러(<code>pip config set global.index-url ...</code>)를 보게 합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s14/python/requirements.txt",
+     "src": "# labs/s14/python/requirements.txt — Python 3.11+\nfastapi>=0.115\nuvicorn[standard]>=0.30\npydantic>=2\njinja2>=3.1          # 목록 화면 템플릿\npytest>=8\nhttpx2               # FastAPI TestClient 가 쓰는 HTTP 클라이언트 (테스트용)\n"
+    }
+   },
+   {
+    "title": "값 목록 · 입력 검증 · 응답 모양 (pydantic)",
+    "body": [
+     "상태 · 분류 · 우선순위는 <code>Literal</code> 로 한곳에 둡니다. 검증 메시지는 <code>PydanticCustomError</code> 로 던져 Next.js 트랙의 zod 메시지와 글자까지 같게 만듭니다 (<code>ValueError</code> 로 던지면 앞에 'Value error,' 가 붙습니다).",
+     "응답 모델은 <code>alias_generator=to_camel</code> 로 <code>dueDate</code> · <code>createdAt</code> 처럼 camelCase 로 내보냅니다. 입력의 <code>dueDate</code> 도 alias 로 받으므로 화면 코드는 세 트랙이 같습니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s14/python/app/schemas.py",
+     "src": "\"\"\"app/schemas.py — 업무 요청의 값 목록 · 입력 검증 · 응답 모양.\n\nNext.js 트랙의 zod 스키마와 같은 규칙 · 같은 메시지를 씁니다 (제목 5~100자, 내용 10~4000자, 마감일 오늘 이후).\n응답 필드 이름은 camelCase(dueDate, createdAt)로 맞춥니다.\n\"\"\"\nimport re\nfrom datetime import date, datetime\nfrom typing import Literal\n\nfrom pydantic import BaseModel, ConfigDict, Field, field_validator\nfrom pydantic.alias_generators import to_camel\nfrom pydantic_core import PydanticCustomError\n\nStatus = Literal[\"RECEIVED\", \"IN_PROGRESS\", \"DONE\"]\nCategory = Literal[\"DATA_EXTRACT\", \"BATCH_ISSUE\", \"ACCESS\", \"REPORT\", \"ETC\"]\nPriority = Literal[\"LOW\", \"MEDIUM\", \"HIGH\"]\n\nDATE_RE = re.compile(r\"^\\d{4}-\\d{2}-\\d{2}$\")\n\n\ndef _length(value: str, lo: int, hi: int, label: str) -> str:\n    v = value.strip()\n    if len(v) < lo:\n        raise PydanticCustomError(\"too_short\", f\"{label}은 {lo}자 이상 입력하세요\")\n    if len(v) > hi:\n        raise PydanticCustomError(\"too_long\", f\"{label}은 {hi}자 이하로 입력하세요\")\n    return v\n\n\nclass CreateRequest(BaseModel):\n    \"\"\"등록 입력 — 화면이 무엇을 보내든 서버에서 다시 검증합니다.\"\"\"\n\n    title: str\n    body: str\n    due_date: date | None = Field(default=None, alias=\"dueDate\")\n\n    @field_validator(\"title\")\n    @classmethod\n    def check_title(cls, v: str) -> str:\n        return _length(v, 5, 100, \"제목\")\n\n    @field_validator(\"body\")\n    @classmethod\n    def check_body(cls, v: str) -> str:\n        return _length(v, 10, 4000, \"내용\")\n\n    @field_validator(\"due_date\", mode=\"before\")\n    @classmethod\n    def check_due_date(cls, v: object) -> date | None:\n        if v is None or v == \"\":\n            return None\n        if not isinstance(v, str) or not DATE_RE.match(v):\n            raise PydanticCustomError(\"date_format\", \"날짜 형식은 YYYY-MM-DD 입니다\")\n        try:\n            d = date.fromisoformat(v)\n        except ValueError:\n            raise PydanticCustomError(\"date_format\", \"날짜 형식은 YYYY-MM-DD 입니다\") from None\n        if d < date.today():\n            raise PydanticCustomError(\"date_past\", \"마감일은 오늘 이후여야 합니다\")\n        return d\n\n\nclass StatusChange(BaseModel):\n    status: Status\n\n\nclass WorkRequestOut(BaseModel):\n    \"\"\"응답 — 필드 이름은 camelCase 로 내보냅니다 (FastAPI 는 response_model 을 alias 로 직렬화).\"\"\"\n\n    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)\n\n    id: str\n    title: str\n    body: str\n    due_date: date | None\n    status: Status\n    category: Category | None\n    priority: Priority | None\n    summary: str | None\n    requester_id: str\n    created_at: datetime\n"
+    }
+   },
+   {
+    "title": "메모리 저장소",
+    "body": [
+     "Next.js 트랙의 <code>lib/requests.ts</code> 와 같은 함수 네 개(<code>list · get · create · update_status</code>)를 둡니다. id 는 UUID 문자열, 접수 시각은 UTC 입니다. 세션 15에서 이 파일만 SQLAlchemy 로 바꾸고 API 코드는 거의 그대로 둡니다.",
+     "<code>uvicorn --workers 2</code> 처럼 프로세스를 여러 개 띄우면 저장소가 프로세스마다 따로 생깁니다. 오늘은 워커 하나로만 실행합니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s14/python/app/store.py",
+     "src": "\"\"\"app/store.py — (오늘만) 메모리 저장소. 세션 15에서 Oracle(SQLAlchemy)로 바꾸고 함수 이름은 그대로 둡니다.\"\"\"\nimport threading\nimport uuid\nfrom dataclasses import dataclass, field, replace\nfrom datetime import date, datetime, timezone\n\nfrom app.schemas import CreateRequest, Status\n\n\n@dataclass(frozen=True)\nclass WorkRequest:\n    id: str\n    title: str\n    body: str\n    due_date: date | None\n    requester_id: str\n    status: Status = \"RECEIVED\"\n    category: str | None = None        # 세션 15에서 AI 가 채움\n    priority: str | None = None\n    summary: str | None = None\n    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))\n\n\n_lock = threading.Lock()                 # uvicorn 워커 하나 안의 동시 요청 보호\n_store: dict[str, WorkRequest] = {}\n\n\ndef list_requests(status: Status | None = None) -> list[WorkRequest]:\n    items = [r for r in _store.values() if status is None or r.status == status]\n    return sorted(items, key=lambda r: r.created_at, reverse=True)\n\n\ndef get_request(request_id: str) -> WorkRequest | None:\n    return _store.get(request_id)\n\n\ndef create_request(data: CreateRequest, requester_id: str) -> WorkRequest:\n    item = WorkRequest(id=str(uuid.uuid4()), title=data.title, body=data.body,\n                       due_date=data.due_date, requester_id=requester_id)\n    with _lock:\n        _store[item.id] = item\n    return item\n\n\ndef update_status(request_id: str, status: Status) -> WorkRequest | None:\n    with _lock:\n        item = _store.get(request_id)\n        if item is None:\n            return None\n        _store[request_id] = updated = replace(item, status=status)\n    return updated\n\n\ndef clear() -> None:\n    \"\"\"테스트용\"\"\"\n    _store.clear()\n"
+    }
+   },
+   {
+    "title": "REST API 와 오류 응답 규격",
+    "body": [
+     "FastAPI 는 검증 실패를 기본 <b>422</b> 로 돌려줍니다. 팀 규격은 400 이므로 <code>RequestValidationError</code> 처리기에서 400 과 <code>{\"message\", \"errors\": {필드: [메시지]}}</code> 모양으로 바꿉니다. 잘못된 JSON 은 오류 종류 <code>json_invalid</code> 로 구분해 'JSON 형식이 아닙니다' 를 돌려줍니다.",
+     "등록 성공은 <code>status_code=201</code> 과 <code>Location</code> 헤더, 없는 id 는 404 입니다. <code>?status=WRONG</code> 은 <code>Literal</code> 검사에 걸려 400 이 됩니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s14/python/app/main.py",
+     "src": "\"\"\"app/main.py — REST API(/api/requests)와 목록 화면(/requests).\n\n    uvicorn app.main:app --reload --port 8000     # http://localhost:8000/requests · 문서 /docs\n\nFastAPI 는 검증 실패를 기본 422 로 돌려주지만, 팀 규격(이론 1절)에 맞춰 400 과\n{\"message\": ..., \"errors\": {\"필드\": [\"메시지\"]}} 모양으로 바꿉니다.\n\"\"\"\nfrom pathlib import Path\nfrom typing import Annotated\n\nfrom fastapi import FastAPI, HTTPException, Query, Request, Response\nfrom fastapi.exceptions import RequestValidationError\nfrom fastapi.responses import JSONResponse\nfrom fastapi.templating import Jinja2Templates\n\nfrom app import store\nfrom app.schemas import CreateRequest, Status, StatusChange, WorkRequestOut\n\napp = FastAPI(title=\"ticket-desk-py\")\ntemplates = Jinja2Templates(directory=Path(__file__).parent / \"templates\")\n\n# pydantic 기본 메시지(영문)를 사용자 문장으로 바꾸는 표 (사용자 정의 오류는 메시지를 그대로 씀)\nMESSAGES = {\n    \"missing\": \"필수 항목입니다\",\n    \"string_type\": \"문자열로 보내야 합니다\",\n    \"literal_error\": \"허용하지 않는 값입니다\",\n}\n\n\n@app.exception_handler(RequestValidationError)\nasync def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:\n    errs = exc.errors()\n    if any(e[\"type\"] == \"json_invalid\" for e in errs):\n        return JSONResponse({\"message\": \"JSON 형식이 아닙니다\"}, status_code=400)\n    fields: dict[str, list[str]] = {}\n    for e in errs:\n        name = str(e[\"loc\"][-1]) if len(e[\"loc\"]) > 1 else \"body\"\n        msg = MESSAGES.get(e[\"type\"], e[\"msg\"])\n        if e[\"type\"] == \"literal_error\":\n            msg = f\"{msg}. 허용: {e['ctx']['expected']}\"\n        fields.setdefault(name, []).append(msg)\n    where = {e[\"loc\"][0] for e in errs}\n    message = (\"조회 조건을 확인하세요\" if \"query\" in where\n               else \"상태 값을 확인하세요\" if request.method == \"PATCH\" else \"입력값을 확인하세요\")\n    return JSONResponse({\"message\": message, \"errors\": fields}, status_code=400)\n\n\ndef not_found() -> HTTPException:\n    return HTTPException(status_code=404, detail=\"요청을 찾을 수 없습니다\")\n\n\n@app.exception_handler(HTTPException)\nasync def http_error(_request: Request, exc: HTTPException) -> JSONResponse:\n    return JSONResponse({\"message\": exc.detail}, status_code=exc.status_code)\n\n\n@app.get(\"/api/requests\", response_model=list[WorkRequestOut])\ndef list_api(status: Annotated[Status | None, Query()] = None):\n    return store.list_requests(status)\n\n\n@app.post(\"/api/requests\", response_model=WorkRequestOut, status_code=201)\ndef create_api(body: CreateRequest, response: Response):\n    created = store.create_request(body, requester_id=\"demo-user\")   # 로그인은 세션 15에서\n    response.headers[\"Location\"] = f\"/api/requests/{created.id}\"\n    return created\n\n\n@app.get(\"/api/requests/{request_id}\", response_model=WorkRequestOut)\ndef get_api(request_id: str):\n    item = store.get_request(request_id)\n    if item is None:\n        raise not_found()\n    return item\n\n\n@app.patch(\"/api/requests/{request_id}\", response_model=WorkRequestOut)\ndef change_status_api(request_id: str, body: StatusChange):\n    updated = store.update_status(request_id, body.status)\n    if updated is None:\n        raise not_found()\n    return updated\n\n\n@app.get(\"/requests\", include_in_schema=False)\ndef requests_page(request: Request):\n    \"\"\"목록은 서버에서 그리고, 등록은 화면의 JavaScript 가 /api/requests 로 보냅니다.\"\"\"\n    return templates.TemplateResponse(request, \"requests.html\", {\"items\": store.list_requests()})\n"
+    }
+   },
+   {
+    "title": "목록 화면 (Jinja2 템플릿)",
+    "body": [
+     "목록은 서버가 템플릿으로 그리고, 등록은 화면의 JavaScript 가 <code>/api/requests</code> 로 JSON 을 보냅니다. Java 트랙의 Thymeleaf 화면과 같은 구조라 400 응답의 <code>errors</code> 를 입력칸 아래에 그대로 보여 줍니다.",
+     "Jinja2 는 <code>{{ }}</code> 출력을 HTML 이스케이프하므로 제목에 꺾쇠 문자가 들어가도 화면이 깨지지 않습니다."
+    ],
+    "code": {
+     "lang": "xml",
+     "file": "labs/s14/python/app/templates/requests.html",
+     "src": "<!DOCTYPE html>\n<!-- app/templates/requests.html — Jinja2 목록 화면 + 등록 폼 (등록은 REST API 로) -->\n<html lang=\"ko\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>업무 요청</title>\n</head>\n<body style=\"max-width: 960px; margin: 0 auto; padding: 24px\">\n<h1>업무 요청</h1>\n\n<form id=\"request-form\" style=\"display: grid; gap: 8px\">\n  <label>제목 <input name=\"title\" required minlength=\"5\" maxlength=\"100\"></label>\n  <small class=\"err\" data-field=\"title\"></small>\n  <label>내용 <textarea name=\"body\" rows=\"5\" required minlength=\"10\" maxlength=\"4000\"></textarea></label>\n  <small class=\"err\" data-field=\"body\"></small>\n  <label>마감일 <input name=\"dueDate\" type=\"date\"></label>\n  <small class=\"err\" data-field=\"dueDate\"></small>\n  <button type=\"submit\">접수</button>\n  <p id=\"message\" role=\"status\"></p>\n</form>\n\n<table style=\"width: 100%; margin-top: 24px\">\n  <thead><tr><th>제목</th><th>상태</th><th>분류</th><th>요약</th><th>접수일시</th></tr></thead>\n  <tbody>\n  {% for r in items %}\n  <tr>\n    <td>{{ r.title }}</td>\n    <td>{{ {\"RECEIVED\": \"접수\", \"IN_PROGRESS\": \"처리 중\", \"DONE\": \"완료\"}[r.status] }}</td>\n    <td>{{ r.category or \"-\" }}</td>\n    <td>{{ r.summary or \"-\" }}</td>\n    <td>{{ r.created_at.strftime(\"%Y-%m-%d %H:%M\") }}</td>\n  </tr>\n  {% else %}\n  <tr><td colspan=\"5\">등록된 요청이 없습니다.</td></tr>\n  {% endfor %}\n  </tbody>\n</table>\n\n<script>\n  const form = document.getElementById('request-form');\n  form.addEventListener('submit', async (e) => {\n    e.preventDefault();\n    document.querySelectorAll('.err').forEach((el) => (el.textContent = ''));\n    const data = Object.fromEntries(new FormData(form));\n    if (!data.dueDate) delete data.dueDate;   // 빈 날짜는 보내지 않음\n\n    const res = await fetch('/api/requests', {\n      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),\n    });\n    const msg = document.getElementById('message');\n    if (res.status === 400) {\n      const body = await res.json().catch(() => ({}));\n      Object.entries(body.errors || {}).forEach(([field, list]) => {\n        const el = document.querySelector('.err[data-field=\"' + field + '\"]');\n        if (el) el.textContent = [].concat(list).join(', ');\n      });\n      msg.textContent = body.message || '입력값을 확인하세요';\n      return;\n    }\n    if (!res.ok) { msg.textContent = '저장하지 못했습니다. 잠시 후 다시 시도하세요.'; return; }\n    location.reload();\n  });\n</script>\n</body>\n</html>\n"
+    }
+   },
+   {
+    "title": "API 규격 테스트 (pytest + TestClient)",
+    "body": [
+     "<code>pytest -q</code> 로 규격(201 · Location · 400 메시지 · 404 · 상태 필터 · 화면)을 한 번에 확인합니다. 서버를 띄우지 않고 <code>TestClient</code> 가 앱을 직접 부릅니다.",
+     "같은 시나리오를 curl 로도 확인합니다: <code>curl -s -X POST localhost:8000/api/requests -H 'Content-Type: application/json' -d '{\"title\":\"짧\"}'</code> → 400 과 '제목은 5자 이상 입력하세요'."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s14/python/tests/test_api.py",
+     "src": "\"\"\"tests/test_api.py — API 규격(이론 1절) 회귀 시험: pytest -q\"\"\"\nimport pytest\nfrom fastapi.testclient import TestClient\n\nfrom app import store\nfrom app.main import app\n\nclient = TestClient(app)\nVALID = {\"title\": \"월말 잔고 추출 요청\", \"body\": \"11월 말 기준 상품별 잔고를 엑셀로 받고 싶습니다\"}\n\n\n@pytest.fixture(autouse=True)\ndef empty_store():\n    store.clear()\n\n\ndef test_create_returns_201_and_location():\n    res = client.post(\"/api/requests\", json=VALID)\n    assert res.status_code == 201\n    body = res.json()\n    assert res.headers[\"location\"] == f\"/api/requests/{body['id']}\"\n    assert body[\"status\"] == \"RECEIVED\" and body[\"dueDate\"] is None and \"createdAt\" in body\n\n\ndef test_short_title_is_400_with_field_message():\n    res = client.post(\"/api/requests\", json={\"title\": \"짧\"})\n    assert res.status_code == 400\n    body = res.json()\n    assert body[\"message\"] == \"입력값을 확인하세요\"\n    assert body[\"errors\"][\"title\"] == [\"제목은 5자 이상 입력하세요\"]\n    assert body[\"errors\"][\"body\"] == [\"필수 항목입니다\"]\n\n\ndef test_past_due_date_and_bad_json():\n    res = client.post(\"/api/requests\", json={**VALID, \"dueDate\": \"2020-01-01\"})\n    assert res.json()[\"errors\"][\"dueDate\"] == [\"마감일은 오늘 이후여야 합니다\"]\n    res = client.post(\"/api/requests\", content=\"{not json\", headers={\"Content-Type\": \"application/json\"})\n    assert res.status_code == 400 and res.json() == {\"message\": \"JSON 형식이 아닙니다\"}\n\n\ndef test_wrong_status_400_and_unknown_id_404():\n    assert client.get(\"/api/requests?status=WRONG\").status_code == 400\n    assert client.get(\"/api/requests/nope\").status_code == 404\n    assert client.patch(\"/api/requests/nope\", json={\"status\": \"DONE\"}).status_code == 404\n\n\ndef test_status_change_and_filter():\n    created = client.post(\"/api/requests\", json=VALID).json()\n    res = client.patch(f\"/api/requests/{created['id']}\", json={\"status\": \"IN_PROGRESS\"})\n    assert res.status_code == 200 and res.json()[\"status\"] == \"IN_PROGRESS\"\n    assert [r[\"id\"] for r in client.get(\"/api/requests?status=IN_PROGRESS\").json()] == [created[\"id\"]]\n    assert client.get(\"/api/requests?status=RECEIVED\").json() == []\n\n\ndef test_page_renders():\n    client.post(\"/api/requests\", json=VALID)\n    res = client.get(\"/requests\")\n    assert res.status_code == 200 and \"월말 잔고 추출 요청\" in res.text\n"
+    }
+   }
+  ],
+  "check": [
+   "<code>pytest -q</code> 6개가 모두 통과하고, 제목 2자 요청에 400 과 '제목은 5자 이상 입력하세요' 가 화면 입력칸 아래에 표시되는가",
+   "<code>?status=WRONG</code> 과 없는 id 조회가 각각 400 · 404 로 응답하는가 (422 가 아니라 400 인지 확인)",
+   "Next.js 트랙과 같은 curl 명령을 포트만 바꿔 실행했을 때 상태 코드 · 필드 이름(camelCase) · errors 모양이 같은가"
+  ]
+ },
+ "lab_java": {
+  "title": "Spring Boot 로 같은 화면과 REST API 만들기",
+  "lead": "같은 API 규격을 Spring Boot 4.1 로 구현합니다. 화면은 Thymeleaf, 등록은 화면의 JavaScript 가 REST API 를 부릅니다. 서비스(이론 3절), 화면 컨트롤러(이론 4절), DTO(이론 5절), 공통 오류 처리기(실무 예제)는 같은 <code>labs/s14/java</code> 프로젝트의 파일로 함께 넣습니다.",
+  "env": [
+   "JDK 21 LTS (Eclipse Temurin 권장), Maven Wrapper(<code>./mvnw</code>)",
+   "Spring Boot 4.1.2 (webmvc · validation · thymeleaf · actuator)",
+   "curl 또는 브라우저 개발자 도구"
+  ],
+  "steps": [
+   {
+    "title": "프로젝트와 pom.xml",
+    "body": [
+     "Spring Initializr 로 뼈대(메인 클래스 <code>TicketDeskApiApplication</code> · Maven Wrapper)를 만든 뒤 pom.xml 을 아래로 바꿉니다. 생성 명령은 6단계 스크립트 맨 위에 있습니다. Initializr 에서 <code>web</code> 을 고르면 Boot 4 의 <code>spring-boot-starter-webmvc</code> 가 들어갑니다.",
+     "실행은 <code>./mvnw spring-boot:run</code>, 테스트는 <code>./mvnw -q test</code> 입니다. 사내에서는 Nexus 같은 내부 Maven 저장소를 settings.xml 의 mirror 로 지정합니다 (자세한 내용은 실습 환경 페이지)."
+    ],
+    "code": {
+     "lang": "xml",
+     "file": "labs/s14/java/pom.xml",
+     "src": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!-- labs/s14/java/pom.xml — ticket-desk-api (Spring Boot 4.1, Java 21). 세션 15 · 16 에서 의존성을 더합니다. -->\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd\">\n  <modelVersion>4.0.0</modelVersion>\n\n  <parent>\n    <groupId>org.springframework.boot</groupId>\n    <artifactId>spring-boot-starter-parent</artifactId>\n    <version>4.1.2</version>\n    <relativePath/>\n  </parent>\n\n  <groupId>com.example</groupId>\n  <artifactId>ticket-desk-api</artifactId>\n  <version>0.0.1-SNAPSHOT</version>\n\n  <properties>\n    <java.version>21</java.version>\n    <maven.compiler.release>21</maven.compiler.release>\n    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n  </properties>\n\n  <dependencies>\n    <!-- Boot 4 에서 웹 스타터 이름이 spring-boot-starter-webmvc 로 바뀌었습니다 (Jackson 3 포함) -->\n    <dependency>\n      <groupId>org.springframework.boot</groupId>\n      <artifactId>spring-boot-starter-webmvc</artifactId>\n    </dependency>\n    <dependency>\n      <groupId>org.springframework.boot</groupId>\n      <artifactId>spring-boot-starter-validation</artifactId>\n    </dependency>\n    <dependency>\n      <groupId>org.springframework.boot</groupId>\n      <artifactId>spring-boot-starter-thymeleaf</artifactId>\n    </dependency>\n    <dependency>\n      <groupId>org.springframework.boot</groupId>\n      <artifactId>spring-boot-starter-actuator</artifactId>\n    </dependency>\n    <!-- @WebMvcTest · MockMvc · JUnit 5 -->\n    <dependency>\n      <groupId>org.springframework.boot</groupId>\n      <artifactId>spring-boot-starter-webmvc-test</artifactId>\n      <scope>test</scope>\n    </dependency>\n  </dependencies>\n\n  <build>\n    <plugins>\n      <plugin>\n        <groupId>org.springframework.boot</groupId>\n        <artifactId>spring-boot-maven-plugin</artifactId>\n      </plugin>\n    </plugins>\n  </build>\n</project>\n"
+    }
+   },
+   {
+    "title": "도메인 클래스",
+    "body": [
+     "업무 요청 도메인 <code>WorkRequest</code> 는 상태 · 분류 · 우선순위를 안쪽 enum 으로 가집니다. 상태 변경과 AI 분석 결과 반영은 메서드로만 하게 해서 규칙이 흩어지지 않게 합니다. 세션 15에서 이 클래스에 JPA 어노테이션을 붙여 Oracle 테이블과 연결합니다. 입출력 DTO(<code>WorkRequestDtos.java</code>)는 이론 5절, 서비스는 이론 3절 코드를 같은 패키지에 둡니다."
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s14/java/src/main/java/com/example/ticketdesk/request/WorkRequest.java",
+     "src": "// src/main/java/com/example/ticketdesk/request/WorkRequest.java\n// 업무 요청 도메인. 세션 15에서 이 클래스에 JPA 어노테이션을 붙여 Oracle 테이블과 연결합니다.\npackage com.example.ticketdesk.request;\n\nimport java.time.Instant;\nimport java.time.LocalDate;\n\npublic class WorkRequest {\n\n    public enum Status { RECEIVED, IN_PROGRESS, DONE }\n    public enum Category { DATA_EXTRACT, BATCH_ISSUE, ACCESS, REPORT, ETC }\n    public enum Priority { LOW, MEDIUM, HIGH }\n\n    private Long id;\n    private String title;\n    private String body;\n    private LocalDate dueDate;\n    private Status status = Status.RECEIVED;\n    private Category category;     // 세션 15에서 AI 가 채움\n    private Priority priority;\n    private String summary;\n    private String requesterId;\n    private Instant createdAt = Instant.now();\n\n    protected WorkRequest() { }\n\n    public WorkRequest(String title, String body, LocalDate dueDate, String requesterId) {\n        this.title = title;\n        this.body = body;\n        this.dueDate = dueDate;\n        this.requesterId = requesterId;\n    }\n\n    public void changeStatus(Status next) { this.status = next; }\n\n    public void applyAnalysis(String summary, Category category, Priority priority) {\n        this.summary = summary;\n        this.category = category;\n        this.priority = priority;\n    }\n\n    void assignId(Long id) { this.id = id; }   // 메모리 저장소 전용 (세션 15에서 삭제)\n\n    public Long getId() { return id; }\n    public String getTitle() { return title; }\n    public String getBody() { return body; }\n    public LocalDate getDueDate() { return dueDate; }\n    public Status getStatus() { return status; }\n    public Category getCategory() { return category; }\n    public Priority getPriority() { return priority; }\n    public String getSummary() { return summary; }\n    public String getRequesterId() { return requesterId; }\n    public Instant getCreatedAt() { return createdAt; }\n}\n"
+    }
+   },
+   {
+    "title": "REST 컨트롤러",
+    "body": [
+     "컨트롤러는 얇게 두고 <code>@Valid @RequestBody</code> 로 검증합니다. 검증이 실패하면 메서드에 들어오기 전에 400 이 나갑니다. 등록 성공은 <code>ResponseEntity.created()</code> 로 201 과 <code>Location</code> 헤더를 돌려줍니다. 화면 컨트롤러(이론 4절)는 별도 파일입니다."
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s14/java/src/main/java/com/example/ticketdesk/request/WorkRequestApiController.java",
+     "src": "// src/main/java/com/example/ticketdesk/request/WorkRequestApiController.java\npackage com.example.ticketdesk.request;\n\nimport com.example.ticketdesk.request.WorkRequestDtos.CreateRequest;\nimport com.example.ticketdesk.request.WorkRequestDtos.Response;\nimport com.example.ticketdesk.request.WorkRequestDtos.StatusChange;\nimport jakarta.validation.Valid;\nimport java.net.URI;\nimport java.util.List;\nimport org.springframework.http.ResponseEntity;\nimport org.springframework.web.bind.annotation.GetMapping;\nimport org.springframework.web.bind.annotation.PatchMapping;\nimport org.springframework.web.bind.annotation.PathVariable;\nimport org.springframework.web.bind.annotation.PostMapping;\nimport org.springframework.web.bind.annotation.RequestBody;\nimport org.springframework.web.bind.annotation.RequestMapping;\nimport org.springframework.web.bind.annotation.RequestParam;\nimport org.springframework.web.bind.annotation.RestController;\n\n@RestController\n@RequestMapping(\"/api/requests\")\npublic class WorkRequestApiController {\n\n    private final WorkRequestService service;\n\n    public WorkRequestApiController(WorkRequestService service) {\n        this.service = service;\n    }\n\n    /** GET /api/requests?status=RECEIVED — 잘못된 status 값은 스프링이 400 으로 돌려줍니다 */\n    @GetMapping\n    public List<Response> list(@RequestParam(required = false) WorkRequest.Status status) {\n        return service.list(status).stream().map(Response::from).toList();\n    }\n\n    @GetMapping(\"/{id}\")\n    public Response get(@PathVariable Long id) {\n        return Response.from(service.get(id));\n    }\n\n    /** POST /api/requests — @Valid 가 실패하면 컨트롤러에 들어오기 전에 400 */\n    @PostMapping\n    public ResponseEntity<Response> create(@Valid @RequestBody CreateRequest body) {\n        WorkRequest created = service.create(body, \"demo-user\");   // 세션 15에서 로그인 사용자로\n        return ResponseEntity.created(URI.create(\"/api/requests/\" + created.getId()))\n                .body(Response.from(created));\n    }\n\n    @PatchMapping(\"/{id}\")\n    public Response changeStatus(@PathVariable Long id, @Valid @RequestBody StatusChange body) {\n        return Response.from(service.changeStatus(id, body.status()));\n    }\n}\n"
+    }
+   },
+   {
+    "title": "Thymeleaf 화면",
+    "body": [
+     "목록은 서버에서 그리고, 등록은 JavaScript 가 <code>/api/requests</code> 로 JSON 을 보냅니다. CSRF 메타 태그는 지금은 비어 있고, 세션 15에서 Spring Security 를 켜면 자동으로 채워져 그대로 동작합니다. 필드별 메시지(<code>errors</code>)는 실무 예제의 공통 오류 처리기(<code>ApiErrorHandler</code>)가 만들어 주므로 그 파일도 함께 넣습니다. <code>./mvnw spring-boot:run</code> 후 <code>http://localhost:8080/requests</code> 에서 확인합니다."
+    ],
+    "code": {
+     "lang": "xml",
+     "file": "labs/s14/java/src/main/resources/templates/requests.html",
+     "src": "<!DOCTYPE html>\n<!-- src/main/resources/templates/requests.html -->\n<html lang=\"ko\" xmlns:th=\"http://www.thymeleaf.org\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>업무 요청</title>\n  <!-- 세션 15에서 Spring Security 를 켜면 CSRF 토큰이 채워집니다 (지금은 비어 있음) -->\n  <meta name=\"_csrf\" th:content=\"${_csrf?.token}\">\n  <meta name=\"_csrf_header\" th:content=\"${_csrf?.headerName}\">\n</head>\n<body style=\"max-width: 960px; margin: 0 auto; padding: 24px\">\n<h1>업무 요청</h1>\n\n<form id=\"request-form\" style=\"display: grid; gap: 8px\">\n  <label>제목 <input name=\"title\" required minlength=\"5\" maxlength=\"100\"></label>\n  <small class=\"err\" data-field=\"title\"></small>\n  <label>내용 <textarea name=\"body\" rows=\"5\" required minlength=\"10\" maxlength=\"4000\"></textarea></label>\n  <small class=\"err\" data-field=\"body\"></small>\n  <label>마감일 <input name=\"dueDate\" type=\"date\"></label>\n  <small class=\"err\" data-field=\"dueDate\"></small>\n  <button type=\"submit\">접수</button>\n  <p id=\"message\" role=\"status\"></p>\n</form>\n\n<table style=\"width: 100%; margin-top: 24px\">\n  <thead><tr><th>번호</th><th>제목</th><th>상태</th><th>분류</th><th>요약</th><th>접수일시</th></tr></thead>\n  <tbody>\n  <tr th:each=\"r : ${items}\">\n    <td th:text=\"${r.id}\">1</td>\n    <td th:text=\"${r.title}\">제목</td>\n    <td th:text=\"${r.status}\">RECEIVED</td>\n    <td th:text=\"${r.category} ?: '-'\">-</td>\n    <td th:text=\"${r.summary} ?: '-'\">-</td>\n    <td th:text=\"${r.createdAt}\">2026-11-02T00:00:00Z</td>\n  </tr>\n  <tr th:if=\"${#lists.isEmpty(items)}\"><td colspan=\"6\">등록된 요청이 없습니다.</td></tr>\n  </tbody>\n</table>\n\n<script>\n  const form = document.getElementById('request-form');\n  form.addEventListener('submit', async (e) => {\n    e.preventDefault();\n    document.querySelectorAll('.err').forEach((el) => (el.textContent = ''));\n    const data = Object.fromEntries(new FormData(form));\n    if (!data.dueDate) delete data.dueDate;\n\n    const headers = { 'Content-Type': 'application/json' };\n    const token = document.querySelector('meta[name=\"_csrf\"]').content;\n    const header = document.querySelector('meta[name=\"_csrf_header\"]').content;\n    if (token && header) headers[header] = token;\n\n    const res = await fetch('/api/requests', { method: 'POST', headers, body: JSON.stringify(data) });\n    const msg = document.getElementById('message');\n    if (res.status === 400) {\n      const body = await res.json().catch(() => ({}));\n      Object.entries(body.errors || {}).forEach(([field, list]) => {\n        const el = document.querySelector('.err[data-field=\"' + field + '\"]');\n        if (el) el.textContent = [].concat(list).join(', ');\n      });\n      msg.textContent = body.detail || '입력값을 확인하세요';\n      return;\n    }\n    if (!res.ok) { msg.textContent = '저장하지 못했습니다. 잠시 후 다시 시도하세요.'; return; }\n    location.reload();\n  });\n</script>\n</body>\n</html>\n"
+    }
+   },
+   {
+    "title": "API 규격 테스트 (@WebMvcTest)",
+    "body": [
+     "<code>@WebMvcTest</code> 는 컨트롤러 · <code>@RestControllerAdvice</code>(실무 예제의 <code>ApiErrorHandler</code>)만 띄우는 슬라이스 테스트입니다. Boot 4 에서 패키지가 <code>org.springframework.boot.webmvc.test.autoconfigure</code> 로 바뀌었고, 테스트 스타터는 <code>spring-boot-starter-webmvc-test</code> 입니다.",
+     "메모리 서비스는 <code>@Import</code> 로 실제 객체를 씁니다. 400 응답은 ProblemDetail 모양이라 필드별 메시지를 <code>$.errors.title[0]</code> 으로 확인합니다. Java 트랙 DTO 의 메시지는 '제목은 5~100자로 입력하세요' 입니다 (이론 5절)."
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s14/java/src/test/java/com/example/ticketdesk/request/WorkRequestApiControllerTest.java",
+     "src": "package com.example.ticketdesk.request;\n\nimport static org.hamcrest.Matchers.startsWith;\nimport static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;\nimport static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;\nimport static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;\nimport static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;\nimport static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;\n\nimport org.junit.jupiter.api.Test;\nimport org.springframework.beans.factory.annotation.Autowired;\nimport org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;\nimport org.springframework.context.annotation.Import;\nimport org.springframework.http.MediaType;\nimport org.springframework.test.web.servlet.MockMvc;\n\n/** API 규격(이론 1절) 회귀 시험 — ./mvnw -q test. 컨트롤러 · 오류 처리기만 띄우는 슬라이스 테스트입니다. */\n@WebMvcTest(WorkRequestApiController.class)\n@Import(WorkRequestService.class)          // 메모리 저장소 서비스는 실제 객체로\nclass WorkRequestApiControllerTest {\n\n    @Autowired\n    MockMvc mvc;\n\n    @Test\n    void 등록하면_201과_Location_헤더() throws Exception {\n        mvc.perform(post(\"/api/requests\").contentType(MediaType.APPLICATION_JSON).content(\"\"\"\n                        {\"title\": \"월말 잔고 추출 요청\", \"body\": \"11월 말 기준 상품별 잔고를 엑셀로 받고 싶습니다\"}\n                        \"\"\"))\n                .andExpect(status().isCreated())\n                .andExpect(header().string(\"Location\", startsWith(\"/api/requests/\")))\n                .andExpect(jsonPath(\"$.status\").value(\"RECEIVED\"));\n    }\n\n    @Test\n    void 짧은_제목은_400과_필드별_메시지() throws Exception {\n        mvc.perform(post(\"/api/requests\").contentType(MediaType.APPLICATION_JSON).content(\"\"\"\n                        {\"title\": \"짧\"}\n                        \"\"\"))\n                .andExpect(status().isBadRequest())\n                .andExpect(jsonPath(\"$.code\").value(\"REQ-400-VALIDATION\"))\n                .andExpect(jsonPath(\"$.errors.title[0]\").value(\"제목은 5~100자로 입력하세요\"))\n                .andExpect(jsonPath(\"$.errors.body[0]\").value(\"내용을 입력하세요\"));\n    }\n\n    @Test\n    void 잘못된_상태는_400_없는_id는_404() throws Exception {\n        mvc.perform(get(\"/api/requests\").param(\"status\", \"WRONG\")).andExpect(status().isBadRequest());\n        mvc.perform(get(\"/api/requests/9999\"))\n                .andExpect(status().isNotFound())\n                .andExpect(jsonPath(\"$.code\").value(\"REQ-404\"));\n    }\n}\n"
+    }
+   },
+   {
+    "title": "프로젝트 생성 · 실행 · curl 확인",
+    "body": [
+     "Initializr 로 만든 뒤 1~5단계 파일과 이론 3 · 4 · 5절, 실무 예제 파일을 넣고 <code>./mvnw -q test</code> → <code>./mvnw spring-boot:run</code> 순서로 확인합니다. curl 명령은 Next.js · Python 트랙과 같고 포트만 8080 입니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s14/java/check.sh",
+     "src": "# labs/s14/java/check.sh — 프로젝트 만들기와 API 확인 (Next.js · Python 트랙과 같은 curl, 포트만 8080)\n\n# 0) Spring Initializr 로 뼈대(메인 클래스 · Maven Wrapper) 생성 후 pom.xml 을 1단계 내용으로 교체\ncurl -s https://start.spring.io/starter.zip \\\n  -d type=maven-project -d language=java -d javaVersion=21 \\\n  -d groupId=com.example -d artifactId=ticket-desk-api -d name=ticket-desk-api \\\n  -d packageName=com.example.ticketdesk \\\n  -d dependencies=web,validation,thymeleaf,actuator \\\n  -o ticket-desk-api.zip\nunzip ticket-desk-api.zip -d ticket-desk-api && cd ticket-desk-api\n\n# 1) 테스트 → 실행\n./mvnw -q test\n./mvnw spring-boot:run                     # http://localhost:8080/requests\n\n# 2) API 확인 (다른 터미널)\ncurl -s -i -X POST localhost:8080/api/requests -H 'Content-Type: application/json' \\\n  -d '{\"title\":\"월말 잔고 추출 요청\",\"body\":\"11월 말 기준 상품별 잔고를 엑셀로 받고 싶습니다\"}'   # 201 + Location\ncurl -s 'localhost:8080/api/requests?status=RECEIVED'\ncurl -s -X POST localhost:8080/api/requests -H 'Content-Type: application/json' -d '{\"title\":\"짧\"}'   # 400\ncurl -s -o /dev/null -w '%{http_code}\\n' 'localhost:8080/api/requests?status=WRONG'                # 400\ncurl -s -o /dev/null -w '%{http_code}\\n' localhost:8080/api/requests/9999                           # 404\n"
+    }
+   }
+  ],
+  "check": [
+   "<code>./mvnw -q test</code> 의 테스트 3개가 통과하고, 제목 2자 요청에 400 과 필드별 메시지가 화면 입력칸 아래에 표시되는가",
+   "잘못된 상태 값(<code>?status=WRONG</code>)과 없는 id 조회가 각각 400 · 404 로, 404 응답에 <code>code: REQ-404</code> 가 담기는가",
+   "Next.js · Python 트랙과 같은 curl 을 보냈을 때 상태 코드와 필드 이름(camelCase)이 같은가 (오류 본문은 ProblemDetail 모양이라 <code>detail</code> 에 안내 문구)"
+  ]
+ }
 }

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>study</groupId>
+  <artifactId>s11-text-to-sql</artifactId>
+  <version>1.0.0</version>
+  <description>세션 11 Oracle DW Text-to-SQL CLI (Java 트랙)</description>
+
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <anthropic.version>3.8.0</anthropic.version>
+    <jackson.version>2.23.0</jackson.version>
+    <ojdbc.version>23.26.4.0.0</ojdbc.version>
+    <jsqlparser.version>5.3</jsqlparser.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java</artifactId>
+      <version>${anthropic.version}</version>
+    </dependency>
+    <dependency>   <!-- 2.x 최신은 Maven Central 에서 확인 -->
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+    <dependency>   <!-- oracle/ojdbc-extensions 의 jdbc.version 값. Maven Central 에서 ojdbc11 같은 버전 확인 -->
+      <groupId>com.oracle.database.jdbc</groupId>
+      <artifactId>ojdbc11</artifactId>
+      <version>${ojdbc.version}</version>
+    </dependency>
+    <dependency>   <!-- README 기준 정식판. GitHub 에 5.4 태그도 있으니 Maven Central 확인 -->
+      <groupId>com.github.jsqlparser</groupId>
+      <artifactId>jsqlparser</artifactId>
+      <version>${jsqlparser.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- ./mvnw -q compile exec:java -Dexec.mainClass=... 로 실행 -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.7.0</version>
+        <configuration>
+          <mainClass>study.s11.TextToSql</mainClass>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>실습용 기술 소식</title>
+    <link>https://example.com/</link>
+    <description>세션 5 실습용 샘플 피드 (실제 글이 아닙니다)</description>
+    <item>
+      <title>Oracle 파티션 정리 자동화 사례</title>
+      <link>https://example.com/posts/partition-cleanup</link>
+      <description><![CDATA[<p>오래된 파티션을 <b>DROP</b> 하기 전에 백업과 통계 갱신을 묶어 자동화한 사례입니다.</p>]]></description>
+      <pubDate>Thu, 12 Nov 2026 09:00:00 +0900</pubDate>
+    </item>
+    <item>
+      <title>LLM 구조화 출력으로 문의 메일 분류하기</title>
+      <link>https://example.com/posts/structured-output</link>
+      <description>JSON Schema 로 분류 결과를 고정해 업무 시스템에 바로 넣는 방법을 정리했습니다.</description>
+      <pubDate>Wed, 11 Nov 2026 14:00:00 +0900</pubDate>
+    </item>
+    <item>
+      <title>사내 Maven 저장소로 폐쇄망 빌드하기</title>
+      <link>https://example.com/posts/offline-maven</link>
+      <description>Nexus 미러를 settings.xml 에 지정해 외부망 없이 빌드하는 절차입니다.</description>
+      <pubDate>Tue, 10 Nov 2026 11:00:00 +0900</pubDate>
+    </item>
+  </channel>
+</rss>

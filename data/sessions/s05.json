@@ -203,7 +203,8 @@
    "Schedule Trigger 가 서울 시간 07:30 에 돌았는가 (Executions 의 시작 시각 확인)",
    "Gmail 이 0건인 날에도 워크플로가 실패하지 않고 '메일 0건' 브리핑을 보내는가",
    "Google Sheets 에 날짜·건수·요약이 한 줄씩 쌓이고, API 키가 워크플로 JSON 에 보이지 않는가"
-  ]
+  ],
+  "track": "n8n"
  },
  "example": {
   "title": "정보계 야간 배치 결과 아침 브리핑",
@@ -257,5 +258,165 @@
    "label": "n8n 문서 · 2.0 주요 변경 (게시, Code 노드 보안)",
    "url": "https://docs.n8n.io/changelog/v20-breaking-changes"
   }
- ]
+ ],
+ "lab_python": {
+  "title": "아침 메일·RSS 요약 브리핑을 Python 으로 만들기",
+  "lead": "n8n 실습과 같은 자동화(지난 24시간 메일 + RSS → 한 덩어리 digest → LLM 요약 → 전달 · 기록)를 Python 스크립트 두 개로 만듭니다. n8n 노드 하나가 함수 하나에 대응합니다. Gmail 대신 로컬 샘플 메일 파일을, 메일 발송 대신 Markdown 파일을, Google Sheets 대신 CSV 를 씁니다.",
+  "env": [
+   "Python 3.11+",
+   "anthropic · feedparser",
+   "ANTHROPIC_API_KEY",
+   "cron (Linux · macOS) 또는 Windows 작업 스케줄러"
+  ],
+  "steps": [
+   {
+    "title": "환경 준비",
+    "body": [
+     "<code>labs/s05/python</code> 에서 가상환경을 만들고 패키지를 설치합니다: <code>python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt</code>",
+     "샘플 메일 날짜에 맞춰 기준 시각을 고정하고 실행합니다: <code>export BRIEF_NOW=2026-11-13T07:30:00+09:00</code> → <code>python collect.py</code> → <code>python briefing.py</code>. 실제로 돌릴 때는 BRIEF_NOW 를 지웁니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s05/python/requirements.txt",
+     "src": "anthropic>=2.3\nfeedparser>=6.0     # RSS · Atom 읽기 (주소와 로컬 파일 모두)\n"
+    }
+   },
+   {
+    "title": "샘플 메일 (Gmail 노드 출력 대신)",
+    "body": [
+     "n8n Gmail 노드(Simplify 켬)가 내주는 보낸 사람 · 제목 · 미리보기 · 받은 시각을 JSON 으로 흉내 냅니다. 6통 중 1통은 프로모션, 1통은 24시간보다 오래된 메일이라 걸러져야 합니다. 실제 메일을 읽으려면 표준 라이브러리 <code>imaplib</code> 으로 이 함수만 바꿉니다. 회사 메일은 연결하지 않습니다."
+    ],
+    "code": {
+     "lang": "json",
+     "file": "labs/s05/python/data/mails.json",
+     "src": "[\n {\"from\": \"배치운영팀 <batch-ops@example.com>\", \"subject\": \"[장애] JOB_STG_TRD 02:11 실패, 재처리 필요\",\n  \"snippet\": \"어제 새벽 STG 적재가 ORA-01653 으로 실패했습니다. 오전 9시 전까지 재처리 여부를 회신 부탁드립니다.\",\n  \"received\": \"2026-11-13T02:20:00+09:00\", \"category\": \"primary\"},\n {\"from\": \"PMO <pmo@example.com>\", \"subject\": \"주간 회의 자료 제출 (금 15시까지)\",\n  \"snippet\": \"정보계 차세대 주간 회의 자료를 금요일 15시까지 공유 폴더에 올려 주세요. 양식은 지난주와 같습니다.\",\n  \"received\": \"2026-11-12T18:05:00+09:00\", \"category\": \"primary\"},\n {\"from\": \"리스크팀 담당자 <risk@example.com>\", \"subject\": \"VaR 리포트 컬럼 추가 문의\",\n  \"snippet\": \"분기 리스크 보고서에 VaR 추이 그래프를 넣고 싶은데 가능한 일정 알려 주실 수 있을까요?\",\n  \"received\": \"2026-11-12T16:40:00+09:00\", \"category\": \"primary\"},\n {\"from\": \"사내 공지 <notice@example.com>\", \"subject\": \"11월 보안 교육 안내\",\n  \"snippet\": \"11월 보안 교육은 온라인으로 진행합니다. 이번 달 말까지 수강해 주세요.\",\n  \"received\": \"2026-11-12T10:00:00+09:00\", \"category\": \"updates\"},\n {\"from\": \"쇼핑몰 <ad@example.com>\", \"subject\": \"주말 특가 안내\",\n  \"snippet\": \"이번 주말 최대 50% 할인\",\n  \"received\": \"2026-11-12T21:00:00+09:00\", \"category\": \"promotions\"},\n {\"from\": \"DBA 팀 <dba@example.com>\", \"subject\": \"테이블스페이스 증설 완료\",\n  \"snippet\": \"TS_STG 테이블스페이스를 20GB 증설했습니다.\",\n  \"received\": \"2026-11-11T09:00:00+09:00\", \"category\": \"primary\"}\n]\n"
+    }
+   },
+   {
+    "title": "샘플 RSS 피드",
+    "body": [
+     "RSS 2.0 형식의 로컬 파일입니다. <code>BRIEF_FEED</code> 에 실제 RSS 주소를 넣으면 같은 코드로 읽습니다. 설명에 HTML 태그가 섞인 항목도 하나 넣었습니다."
+    ],
+    "code": {
+     "lang": "xml",
+     "file": "labs/s05/python/data/feed.xml",
+     "src": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\">\n  <channel>\n    <title>실습용 기술 소식</title>\n    <link>https://example.com/</link>\n    <description>세션 5 실습용 샘플 피드 (실제 글이 아닙니다)</description>\n    <item>\n      <title>Oracle 파티션 정리 자동화 사례</title>\n      <link>https://example.com/posts/partition-cleanup</link>\n      <description><![CDATA[<p>오래된 파티션을 <b>DROP</b> 하기 전에 백업과 통계 갱신을 묶어 자동화한 사례입니다.</p>]]></description>\n      <pubDate>Thu, 12 Nov 2026 09:00:00 +0900</pubDate>\n    </item>\n    <item>\n      <title>LLM 구조화 출력으로 문의 메일 분류하기</title>\n      <link>https://example.com/posts/structured-output</link>\n      <description>JSON Schema 로 분류 결과를 고정해 업무 시스템에 바로 넣는 방법을 정리했습니다.</description>\n      <pubDate>Wed, 11 Nov 2026 14:00:00 +0900</pubDate>\n    </item>\n    <item>\n      <title>사내 Maven 저장소로 폐쇄망 빌드하기</title>\n      <link>https://example.com/posts/offline-maven</link>\n      <description>Nexus 미러를 settings.xml 에 지정해 외부망 없이 빌드하는 절차입니다.</description>\n      <pubDate>Tue, 10 Nov 2026 11:00:00 +0900</pubDate>\n    </item>\n  </channel>\n</rss>\n"
+    }
+   },
+   {
+    "title": "수집 · 합치기 (Gmail · RSS Read · Merge · Code 노드)",
+    "body": [
+     "<code>build_digest()</code> 가 n8n Code 노드와 같은 모양의 digest 문자열과 건수를 돌려줍니다. 메일 본문 500자, 메일 30통 상한도 같습니다. <code>python collect.py</code> 로 이 단계만 실행해 결과를 확인합니다(n8n 의 Execute step 과 같은 역할). 메일 4건 · RSS 3건이 나오면 맞습니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s05/python/collect.py",
+     "src": "\"\"\"메일 · RSS 를 모아 LLM 에 넘길 digest 하나로 만듭니다 — python collect.py\nn8n 워크플로의 ② Gmail ③ RSS Read ④ Merge ⑤ Code(Digest) 를 코드로 옮긴 것입니다.\n\"\"\"\nimport json\nimport os\nimport re\nfrom datetime import datetime, timedelta\nfrom pathlib import Path\nfrom zoneinfo import ZoneInfo\n\nimport feedparser\n\nKST = ZoneInfo(\"Asia/Seoul\")\nMAX_BODY = 500      # 메일 한 통에서 쓸 최대 글자 수\nMAX_MAILS = 30      # 토큰 비용을 막는 상한\nDATA = Path(os.getenv(\"BRIEF_DATA\", \"data\"))\nFEED = os.getenv(\"BRIEF_FEED\", str(DATA / \"feed.xml\"))   # 실제 RSS 주소를 넣어도 됩니다\n\n\ndef now() -> datetime:\n    \"\"\"BRIEF_NOW(예: 2026-11-13T07:30:00+09:00)가 있으면 그 시각, 없으면 지금(서울 시간).\"\"\"\n    v = os.getenv(\"BRIEF_NOW\")\n    return datetime.fromisoformat(v) if v else datetime.now(KST)\n\n\ndef squash(text: str, limit: int) -> str:\n    \"\"\"HTML 태그와 연속 공백을 지우고 limit 글자로 자릅니다.\"\"\"\n    return re.sub(r\"\\s+\", \" \", re.sub(r\"<[^>]+>\", \" \", text or \"\")).strip()[:limit]\n\n\ndef load_mails(at: datetime) -> list[dict]:\n    \"\"\"② Gmail 대신: 지난 24시간에 받은 메일, 프로모션 제외 (n8n 의 Received After · -category:promotions).\"\"\"\n    mails = json.loads((DATA / \"mails.json\").read_text(encoding=\"utf-8\"))\n    since = at - timedelta(hours=24)\n    return [m for m in mails\n            if m.get(\"category\") != \"promotions\" and since <= datetime.fromisoformat(m[\"received\"]) <= at]\n\n\ndef load_feed() -> list[dict]:\n    \"\"\"③ RSS Read: 주소와 파일 경로를 모두 받습니다.\"\"\"\n    parsed = feedparser.parse(FEED)\n    return [{\"title\": e.get(\"title\", \"\"), \"link\": e.get(\"link\", \"\"), \"summary\": e.get(\"summary\", \"\")}\n            for e in parsed.entries]\n\n\ndef build_digest(at: datetime | None = None) -> dict:\n    \"\"\"④ Merge + ⑤ Code: 항목 수십 개를 문자열 하나로 합쳐 LLM 호출을 한 번으로 줄입니다.\"\"\"\n    at = at or now()\n    mails = [f\"- [{m.get('from', '')}] {m.get('subject') or '(제목 없음)'}\\n  {squash(m.get('snippet', ''), MAX_BODY)}\"\n             for m in load_mails(at)]\n    feeds = [f\"- {f['title']} ({f['link']})\\n  {squash(f['summary'], 300)}\" for f in load_feed()]\n    digest = \"\\n\".join([f\"## 받은 메일 {len(mails)}건\", *mails[:MAX_MAILS], \"\",\n                        f\"## RSS 새 글 {len(feeds)}건\", *feeds])\n    return {\"date\": at.astimezone(KST).strftime(\"%Y-%m-%d\"),\n            \"mailCount\": len(mails), \"feedCount\": len(feeds), \"digest\": digest}\n\n\nif __name__ == \"__main__\":\n    d = build_digest()\n    print(f\"{d['date']} 메일 {d['mailCount']}건 · RSS {d['feedCount']}건\\n\")\n    print(d[\"digest\"])\n"
+    }
+   },
+   {
+    "title": "요약 · 전달 · 기록 (LLM Chain · Gmail Send · Sheets 노드)",
+    "body": [
+     "n8n 실습과 같은 프롬프트로 Claude 를 한 번 부르고, 결과를 <code>out/briefing-날짜.md</code> 로 저장한 뒤 <code>out/briefing_log.csv</code> 에 날짜 · 건수 · 요약 500자를 한 줄 추가합니다. 메일로 보내야 한다면 <code>deliver()</code> 에 표준 라이브러리 <code>smtplib</code> 발송을 붙입니다."
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s05/python/briefing.py",
+     "src": "\"\"\"아침 브리핑: digest → Claude 요약 → 파일 저장 · CSV 기록 — python briefing.py\nn8n 의 ⑥ Basic LLM Chain ⑦ Gmail Send ⑧ Google Sheets Append 를 코드로 옮긴 것입니다.\n\"\"\"\nimport csv\nimport os\nfrom pathlib import Path\n\nfrom anthropic import Anthropic\n\nfrom collect import build_digest\n\nMODEL = os.getenv(\"CLAUDE_MODEL\", \"claude-sonnet-5-5\")   # 요약은 claude-haiku-5-5 로도 충분한지 비교\nOUT = Path(os.getenv(\"BRIEF_OUT\", \"out\"))\n\n# n8n 실습의 prompt.txt 와 같은 문구\nPROMPT = \"\"\"아래는 {date} 아침까지 받은 메일 {mailCount}건과\nRSS 새 글 {feedCount}건입니다.\n\n다음 형식으로 한국어 브리핑을 작성하세요.\n1. 오늘 꼭 처리할 일 (최대 3개, 보낸 사람 표시)\n2. 참고만 할 메일 (한 줄씩)\n3. 기술 소식 (RSS, 제목과 한 줄 요약)\n- 원문에 없는 내용은 쓰지 않습니다.\n- 전체 15줄 이내.\n\n---\n{digest}\"\"\"\n\n\ndef summarize(d: dict) -> str:\n    client = Anthropic()   # ANTHROPIC_API_KEY 환경변수 — 코드와 파일에는 키를 두지 않습니다\n    msg = client.messages.create(\n        model=MODEL,\n        max_tokens=2048,   # temperature · top_p 는 넣지 않습니다 (Claude 5.5 는 400 오류)\n        messages=[{\"role\": \"user\", \"content\": PROMPT.format(**d)}],\n    )\n    return \"\".join(b.text for b in msg.content if b.type == \"text\").strip()\n\n\ndef deliver(d: dict, summary: str) -> Path:\n    \"\"\"⑦ 대신 Markdown 파일, ⑧ 대신 CSV 한 줄. 엑셀에서 한글이 깨지지 않게 새 CSV 는 BOM 을 붙입니다.\"\"\"\n    OUT.mkdir(exist_ok=True)\n    md = OUT / f\"briefing-{d['date']}.md\"\n    md.write_text(f\"# [아침 브리핑] {d['date']}\\n\\n{summary}\\n\", encoding=\"utf-8\")\n    log = OUT / \"briefing_log.csv\"\n    new = not log.exists()\n    with log.open(\"a\", newline=\"\", encoding=\"utf-8-sig\" if new else \"utf-8\") as f:\n        w = csv.writer(f)\n        if new:\n            w.writerow([\"date\", \"mails\", \"feeds\", \"summary\"])\n        w.writerow([d[\"date\"], d[\"mailCount\"], d[\"feedCount\"], summary[:500]])\n    return md\n\n\nif __name__ == \"__main__\":\n    d = build_digest()\n    summary = summarize(d)          # 메일 0건이어도 '메일 0건' 브리핑을 만듭니다\n    md = deliver(d, summary)\n    print(summary)\n    print(f\"\\n저장: {md} · 기록: {OUT / 'briefing_log.csv'}\")\n"
+    }
+   },
+   {
+    "title": "매일 07:30 에 돌리기 (Schedule Trigger)",
+    "body": [
+     "운영체제 스케줄러에 등록합니다. n8n 에서 <code>GENERIC_TIMEZONE</code> 을 빼면 9시간 어긋났던 것처럼, 여기서도 서버 시간대를 먼저 확인합니다. 다음 날 아침 결과 파일과 로그를 봅니다. n8n 의 Executions 탭 역할을 <code>out/cron.log</code> 가 합니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s05/python/schedule.sh",
+     "src": "# n8n 의 ① Schedule Trigger(매일 07:30) 를 운영체제 스케줄러로 대신합니다.\n# 먼저 서버 시간대가 Asia/Seoul 인지 확인합니다 (n8n 의 GENERIC_TIMEZONE 과 같은 문제).\ntimedatectl | grep \"Time zone\"\n\n# Linux · macOS: crontab -e 에 한 줄 추가 (경로는 내 폴더로)\n30 7 * * * cd $HOME/labs/s05/python && .venv/bin/python briefing.py >> out/cron.log 2>&1\n\n# Windows: 작업 스케줄러에 매일 07:30 등록\n# schtasks /Create /SC DAILY /ST 07:30 /TN \"AI 아침 브리핑\" /TR \"C:\\labs\\s05\\python\\.venv\\Scripts\\python.exe C:\\labs\\s05\\python\\briefing.py\"\n\n# 다음 날 아침 확인: out/briefing-날짜.md 가 생겼는지, out/cron.log 에 오류가 없는지\n"
+    }
+   }
+  ],
+  "check": [
+   "BRIEF_NOW=2026-11-13T07:30:00+09:00 에서 collect.py 가 메일 4건(프로모션 · 오래된 메일 제외) · RSS 3건을 출력하는가",
+   "BRIEF_NOW 를 2026-12-01T07:30:00+09:00 으로 바꿔 메일이 0건인 날에도 briefing.py 가 실패하지 않고 '메일 0건' 브리핑을 저장하는가",
+   "out/briefing_log.csv 에 날짜 · 건수 · 요약이 한 줄씩 쌓이고, API 키가 코드와 결과 파일 어디에도 없는가"
+  ]
+ },
+ "lab_java": {
+  "title": "아침 메일·RSS 요약 브리핑을 Java 로 만들기",
+  "lead": "n8n 실습과 같은 자동화를 Java 21 로 만듭니다. Python 트랙과 같은 샘플 메일 · RSS 파일을 읽고, 같은 프롬프트로 요약해 같은 Markdown · CSV 결과를 남깁니다. n8n 노드 하나가 클래스나 메서드 하나에 대응합니다: Inbox(Gmail · RSS Read) → Digest(Merge · Code) → Briefing(LLM Chain · 발송 · 기록). RSS 는 외부 라이브러리 없이 JDK 내장 XML 파서로 읽습니다.",
+  "env": [
+   "JDK 21 (Eclipse Temurin 권장)",
+   "Maven 3.9+ 와 Maven Wrapper(./mvnw)",
+   "com.anthropic:anthropic-java 3.8.0 · jackson-databind",
+   "ANTHROPIC_API_KEY",
+   "cron (Linux · macOS) 또는 Windows 작업 스케줄러"
+  ],
+  "steps": [
+   {
+    "title": "Maven 프로젝트 준비",
+    "body": [
+     "<code>labs/s05/java</code> 에 pom.xml 을 둡니다. 샘플 데이터는 Python 트랙의 <code>labs/s05/python/data</code> 를 그대로 읽습니다(<code>-Ddata=</code> 로 바꿀 수 있음). Maven Wrapper(<code>mvnw</code>·<code>mvnw.cmd</code>)는 저장소의 실습 폴더에 들어 있습니다.",
+     "실행: <code>./mvnw -q compile exec:java -Dexec.mainClass=study.s05.Digest</code> <code>-Dnow=2026-11-13T07:30:00+09:00</code> 로 수집만 확인한 뒤, 같은 옵션으로 <code>Briefing</code> 을 실행합니다. 사내에서는 Nexus 같은 내부 Maven 저장소를 settings.xml 의 mirror 로 지정합니다 (자세한 건 실습 환경 페이지)."
+    ],
+    "code": {
+     "lang": "xml",
+     "file": "labs/s05/java/pom.xml",
+     "src": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd\">\n  <modelVersion>4.0.0</modelVersion>\n\n  <groupId>study</groupId>\n  <artifactId>s05-morning-briefing</artifactId>\n  <version>1.0.0</version>\n  <description>세션 5 실습: 아침 메일·RSS 요약 브리핑 (n8n 워크플로를 코드로)</description>\n\n  <properties>\n    <maven.compiler.release>21</maven.compiler.release>\n    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>\n    <anthropic.version>3.8.0</anthropic.version>\n    <!-- anthropic-java 3.8.0 이 쓰는 Jackson 2.x 와 맞춥니다. 새 버전은 Maven Central 에서 확인 -->\n    <jackson.version>2.19.4</jackson.version>\n  </properties>\n\n  <dependencies>\n    <dependency>\n      <groupId>com.anthropic</groupId>\n      <artifactId>anthropic-java</artifactId>\n      <version>${anthropic.version}</version>\n    </dependency>\n    <dependency>\n      <groupId>com.fasterxml.jackson.core</groupId>\n      <artifactId>jackson-databind</artifactId>\n      <version>${jackson.version}</version>\n    </dependency>\n  </dependencies>\n\n  <build>\n    <plugins>\n      <plugin>\n        <groupId>org.apache.maven.plugins</groupId>\n        <artifactId>maven-compiler-plugin</artifactId>\n        <version>3.15.0</version>\n      </plugin>\n      <plugin>\n        <!-- ./mvnw -q compile exec:java -Dexec.mainClass=study.s05.클래스이름 -->\n        <groupId>org.codehaus.mojo</groupId>\n        <artifactId>exec-maven-plugin</artifactId>\n        <version>3.6.3</version>\n        <configuration>\n          <mainClass>study.s05.Briefing</mainClass>\n        </configuration>\n      </plugin>\n    </plugins>\n  </build>\n</project>\n"
+    }
+   },
+   {
+    "title": "메일 · RSS 읽기 (Gmail · RSS Read 노드)",
+    "body": [
+     "메일은 Jackson 으로 record 목록에 읽고, 받은 시각이 24시간 안이고 프로모션이 아닌 것만 남깁니다. RSS 는 <code>DocumentBuilderFactory</code> 로 읽되 DOCTYPE 을 막아 외부 엔터티 공격(XXE)을 차단합니다. 실제 메일함은 Jakarta Mail(IMAP)로 이 클래스만 바꾸면 됩니다."
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s05/java/src/main/java/study/s05/Inbox.java",
+     "src": "package study.s05;\n\nimport com.fasterxml.jackson.annotation.JsonIgnoreProperties;\nimport com.fasterxml.jackson.core.type.TypeReference;\nimport com.fasterxml.jackson.databind.ObjectMapper;\nimport java.io.File;\nimport java.io.IOException;\nimport java.nio.file.Path;\nimport java.time.OffsetDateTime;\nimport java.util.ArrayList;\nimport java.util.List;\nimport javax.xml.parsers.DocumentBuilder;\nimport javax.xml.parsers.DocumentBuilderFactory;\nimport org.w3c.dom.Document;\nimport org.w3c.dom.Element;\nimport org.w3c.dom.NodeList;\n\n/** n8n 의 ② Gmail · ③ RSS Read 노드 대신: 메일과 RSS 항목을 읽어 옵니다. */\npublic final class Inbox {\n\n    /** Gmail 노드(Simplify 켬) 출력과 같은 필드 */\n    @JsonIgnoreProperties(ignoreUnknown = true)\n    public record Mail(String from, String subject, String snippet, String received, String category) {}\n\n    public record FeedItem(String title, String link, String summary) {}\n\n    private static final ObjectMapper JSON = new ObjectMapper();\n\n    private Inbox() {}\n\n    /** 지난 24시간에 받은 메일, 프로모션 제외 (n8n 의 Received After · -category:promotions). */\n    public static List<Mail> mails(Path file, OffsetDateTime at) throws IOException {\n        List<Mail> all = JSON.readValue(file.toFile(), new TypeReference<List<Mail>>() {});\n        OffsetDateTime since = at.minusHours(24);\n        return all.stream()\n                .filter(m -> !\"promotions\".equals(m.category()))\n                .filter(m -> {\n                    OffsetDateTime t = OffsetDateTime.parse(m.received());\n                    return !t.isBefore(since) && !t.isAfter(at);\n                })\n                .toList();\n    }\n\n    /** RSS 2.0 을 JDK 내장 XML 파서로 읽습니다. 주소(http…)와 파일 경로를 모두 받습니다. Atom 까지 다뤄야 하면 Rome 라이브러리를 씁니다. */\n    public static List<FeedItem> feed(String source) throws Exception {\n        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();\n        factory.setFeature(\"http://apache.org/xml/features/disallow-doctype-decl\", true);   // 외부 엔터티(XXE) 차단\n        DocumentBuilder builder = factory.newDocumentBuilder();\n        Document doc = source.startsWith(\"http\") ? builder.parse(source) : builder.parse(new File(source));\n\n        List<FeedItem> items = new ArrayList<>();\n        NodeList nodes = doc.getElementsByTagName(\"item\");\n        for (int i = 0; i < nodes.getLength(); i++) {\n            Element e = (Element) nodes.item(i);\n            items.add(new FeedItem(child(e, \"title\"), child(e, \"link\"), child(e, \"description\")));\n        }\n        return items;\n    }\n\n    private static String child(Element e, String tag) {\n        NodeList n = e.getElementsByTagName(tag);\n        return n.getLength() == 0 ? \"\" : n.item(0).getTextContent().strip();\n    }\n}\n"
+    }
+   },
+   {
+    "title": "digest 하나로 합치기 (Merge · Code 노드)",
+    "body": [
+     "n8n Code 노드의 JavaScript 와 같은 규칙(메일 본문 500자, 메일 30통 상한, HTML 태그 제거)으로 문자열 하나를 만듭니다. 결과는 <code>Digest</code> record 입니다. <code>main</code> 으로 이 단계만 실행해 메일 4건 · RSS 3건이 나오는지 봅니다(n8n 의 Execute step 과 같은 역할).",
+     "실행: <code>./mvnw -q compile exec:java -Dexec.mainClass=study.s05.Digest</code> <code>-Dnow=2026-11-13T07:30:00+09:00</code>"
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s05/java/src/main/java/study/s05/Digest.java",
+     "src": "package study.s05;\n\nimport java.nio.file.Path;\nimport java.time.OffsetDateTime;\nimport java.time.ZoneId;\nimport java.time.format.DateTimeFormatter;\nimport java.util.ArrayList;\nimport java.util.List;\n\n/**\n * n8n 의 ④ Merge + ⑤ Code(Digest) 노드: 메일 · RSS 항목 수십 개를 문자열 하나로 합쳐 LLM 호출을 한 번으로 줄입니다.\n * ./mvnw -q compile exec:java -Dexec.mainClass=study.s05.Digest   (이 단계만 실행해 결과 확인)\n */\npublic record Digest(String date, int mailCount, int feedCount, String digest) {\n    static final ZoneId KST = ZoneId.of(\"Asia/Seoul\");\n    static final int MAX_BODY = 500;    // 메일 한 통에서 쓸 최대 글자 수\n    static final int MAX_MAILS = 30;    // 토큰 비용을 막는 상한\n    static final Path DATA = Path.of(System.getProperty(\"data\", \"../python/data\"));   // Python 트랙과 같은 샘플\n    static final String FEED = System.getProperty(\"feed\", DATA.resolve(\"feed.xml\").toString());\n\n    /** -Dnow=2026-11-13T07:30:00+09:00 이 있으면 그 시각, 없으면 지금(서울 시간). */\n    static OffsetDateTime now() {\n        String v = System.getProperty(\"now\", System.getenv(\"BRIEF_NOW\"));\n        return v != null ? OffsetDateTime.parse(v) : OffsetDateTime.now(KST);\n    }\n\n    /** HTML 태그와 연속 공백을 지우고 limit 글자로 자릅니다. */\n    static String squash(String text, int limit) {\n        String s = (text == null ? \"\" : text).replaceAll(\"<[^>]+>\", \" \").replaceAll(\"\\\\s+\", \" \").strip();\n        return s.length() <= limit ? s : s.substring(0, limit);\n    }\n\n    public static Digest build(OffsetDateTime at) throws Exception {\n        List<String> mails = new ArrayList<>();\n        for (Inbox.Mail m : Inbox.mails(DATA.resolve(\"mails.json\"), at)) {\n            String subject = m.subject() == null || m.subject().isEmpty() ? \"(제목 없음)\" : m.subject();\n            mails.add(\"- [\" + m.from() + \"] \" + subject + \"\\n  \" + squash(m.snippet(), MAX_BODY));\n        }\n        List<String> feeds = new ArrayList<>();\n        for (Inbox.FeedItem f : Inbox.feed(FEED)) {\n            feeds.add(\"- \" + f.title() + \" (\" + f.link() + \")\\n  \" + squash(f.summary(), 300));\n        }\n        List<String> lines = new ArrayList<>();\n        lines.add(\"## 받은 메일 \" + mails.size() + \"건\");\n        lines.addAll(mails.subList(0, Math.min(MAX_MAILS, mails.size())));\n        lines.add(\"\");\n        lines.add(\"## RSS 새 글 \" + feeds.size() + \"건\");\n        lines.addAll(feeds);\n        String date = at.atZoneSameInstant(KST).format(DateTimeFormatter.ISO_LOCAL_DATE);\n        return new Digest(date, mails.size(), feeds.size(), String.join(\"\\n\", lines));\n    }\n\n    public static void main(String[] args) throws Exception {\n        Digest d = build(now());\n        System.out.printf(\"%s 메일 %d건 · RSS %d건%n%n%s%n\", d.date(), d.mailCount(), d.feedCount(), d.digest());\n    }\n}\n"
+    }
+   },
+   {
+    "title": "요약 · 전달 · 기록 (LLM Chain · Gmail Send · Sheets 노드)",
+    "body": [
+     "프롬프트는 text block 과 <code>formatted()</code> 로 채웁니다. 결과를 <code>out/briefing-날짜.md</code> 로 저장하고 <code>out/briefing_log.csv</code> 에 한 줄 추가합니다. CSV 칸은 따옴표로 감싸 요약 안의 쉼표 · 줄바꿈이 칸을 깨지 않게 합니다.",
+     "실행: <code>./mvnw -q compile exec:java -Dexec.mainClass=study.s05.Briefing</code> <code>-Dnow=2026-11-13T07:30:00+09:00</code>"
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s05/java/src/main/java/study/s05/Briefing.java",
+     "src": "package study.s05;\n\nimport com.anthropic.client.AnthropicClient;\nimport com.anthropic.client.okhttp.AnthropicOkHttpClient;\nimport com.anthropic.models.messages.Message;\nimport com.anthropic.models.messages.MessageCreateParams;\nimport com.anthropic.models.messages.TextBlock;\nimport java.nio.charset.StandardCharsets;\nimport java.nio.file.Files;\nimport java.nio.file.Path;\nimport java.nio.file.StandardOpenOption;\nimport java.util.stream.Collectors;\nimport java.util.stream.Stream;\n\n/**\n * 아침 브리핑: digest → Claude 요약 → 파일 저장 · CSV 기록.\n * n8n 의 ⑥ Basic LLM Chain ⑦ Gmail Send ⑧ Google Sheets Append 를 코드로 옮긴 것입니다.\n * ./mvnw -q compile exec:java -Dexec.mainClass=study.s05.Briefing -Dnow=2026-11-13T07:30:00+09:00\n */\npublic class Briefing {\n    // 요약은 claude-haiku-5-5 로도 충분한지 비교해 보세요\n    static final String MODEL = System.getenv().getOrDefault(\"CLAUDE_MODEL\", \"claude-sonnet-5-5\");\n    static final Path OUT = Path.of(System.getProperty(\"out\", \"out\"));\n\n    // n8n 실습의 prompt.txt 와 같은 문구 (%s · %d 자리에 값이 들어갑니다)\n    static final String PROMPT = \"\"\"\n            아래는 %s 아침까지 받은 메일 %d건과\n            RSS 새 글 %d건입니다.\n\n            다음 형식으로 한국어 브리핑을 작성하세요.\n            1. 오늘 꼭 처리할 일 (최대 3개, 보낸 사람 표시)\n            2. 참고만 할 메일 (한 줄씩)\n            3. 기술 소식 (RSS, 제목과 한 줄 요약)\n            - 원문에 없는 내용은 쓰지 않습니다.\n            - 전체 15줄 이내.\n\n            ---\n            %s\"\"\";\n\n    static String summarize(Digest d) {\n        AnthropicClient client = AnthropicOkHttpClient.fromEnv();   // ANTHROPIC_API_KEY — 코드와 파일에는 키를 두지 않습니다\n        MessageCreateParams params = MessageCreateParams.builder()\n                .model(MODEL)\n                .maxTokens(2048)                 // temperature · top_p 는 넣지 않습니다 (Claude 5.5 는 400 오류)\n                .addUserMessage(PROMPT.formatted(d.date(), d.mailCount(), d.feedCount(), d.digest()))\n                .build();\n        Message msg = client.messages().create(params);\n        return msg.content().stream().flatMap(b -> b.text().stream())   // thinking 블록 건너뛰기\n                .map(TextBlock::text).collect(Collectors.joining()).strip();\n    }\n\n    /** CSV 한 칸: 따옴표로 감싸고 안의 따옴표는 두 번 씁니다 (쉼표 · 줄바꿈이 있어도 한 칸). */\n    static String csv(Object v) {\n        return \"\\\"\" + String.valueOf(v).replace(\"\\\"\", \"\\\"\\\"\") + \"\\\"\";\n    }\n\n    /** ⑦ 대신 Markdown 파일, ⑧ 대신 CSV 한 줄. 엑셀에서 한글이 깨지지 않게 새 CSV 는 BOM 을 붙입니다. */\n    static Path deliver(Digest d, String summary) throws Exception {\n        Files.createDirectories(OUT);\n        Path md = OUT.resolve(\"briefing-\" + d.date() + \".md\");\n        Files.writeString(md, \"# [아침 브리핑] \" + d.date() + \"\\n\\n\" + summary + \"\\n\", StandardCharsets.UTF_8);\n\n        Path log = OUT.resolve(\"briefing_log.csv\");\n        String row = Stream.of(d.date(), d.mailCount(), d.feedCount(), summary.substring(0, Math.min(500, summary.length())))\n                .map(Briefing::csv).collect(Collectors.joining(\",\")) + \"\\r\\n\";\n        if (Files.notExists(log)) row = \"\\uFEFFdate,mails,feeds,summary\\r\\n\" + row;\n        Files.writeString(log, row, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);\n        return md;\n    }\n\n    public static void main(String[] args) throws Exception {\n        Digest d = Digest.build(Digest.now());\n        String summary = summarize(d);     // 메일 0건이어도 '메일 0건' 브리핑을 만듭니다\n        Path md = deliver(d, summary);\n        System.out.println(summary);\n        System.out.println(\"\\n저장: \" + md + \" · 기록: \" + OUT.resolve(\"briefing_log.csv\"));\n    }\n}\n"
+    }
+   },
+   {
+    "title": "매일 07:30 에 돌리기 (Schedule Trigger)",
+    "body": [
+     "스케줄러에서 매번 Maven 을 띄우면 느리므로, 클래스 경로를 파일로 만들어 두고 <code>java -cp</code> 로 바로 실행합니다. 서버 시간대를 먼저 확인하고, 다음 날 아침 결과 파일과 <code>out/cron.log</code> 를 봅니다. 사내 서버라면 Jenkins 나 기존 배치 스케줄러에 같은 명령을 등록해도 됩니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s05/java/schedule.sh",
+     "src": "# n8n 의 ① Schedule Trigger(매일 07:30) 를 운영체제 스케줄러로 대신합니다.\n# 먼저 서버 시간대가 Asia/Seoul 인지 확인합니다 (n8n 의 GENERIC_TIMEZONE 과 같은 문제).\ntimedatectl | grep \"Time zone\"\n\n# 매번 Maven 을 띄우지 않도록 실행 가능한 클래스 경로를 한 번 만들어 둡니다\n./mvnw -q package dependency:build-classpath -Dmdep.outputFile=cp.txt\n\n# Linux · macOS: crontab -e 에 한 줄 추가 (경로는 내 폴더로)\n30 7 * * * cd $HOME/labs/s05/java && java -cp \"target/classes:$(cat cp.txt)\" study.s05.Briefing >> out/cron.log 2>&1\n\n# Windows: 작업 스케줄러 (여기서는 간단히 Maven Wrapper 로 실행)\n# schtasks /Create /SC DAILY /ST 07:30 /TN \"AI 아침 브리핑\" /TR \"cmd /c cd /d C:\\labs\\s05\\java && mvnw.cmd -q compile exec:java -Dexec.mainClass=study.s05.Briefing >> out\\cron.log 2>&1\"\n\n# 다음 날 아침 확인: out/briefing-날짜.md 가 생겼는지, out/cron.log 에 오류가 없는지\n"
+    }
+   }
+  ],
+  "check": [
+   "-Dnow=2026-11-13T07:30:00+09:00 에서 Digest 가 Python 트랙과 같은 digest(메일 4건 · RSS 3건)를 출력하는가",
+   "-Dnow=2026-12-01T07:30:00+09:00 처럼 메일이 0건인 날에도 Briefing 이 실패하지 않고 '메일 0건' 브리핑을 저장하는가",
+   "out/briefing_log.csv 를 엑셀로 열어 한글이 깨지지 않고, API 키가 코드와 결과 파일 어디에도 없는가"
+  ]
+ }
 }

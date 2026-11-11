@@ -219,9 +219,11 @@
         <span class="chip-version" title="로드맵 문서 버전">${esc(version || "")}</span>
         <nav class="nav" aria-label="주 메뉴">
           ${a("index.html", "home", "커리큘럼")}
+          ${a("setup.html", "setup", "실습 환경")}
+          ${a("resources.html", "resources", "자료실")}
+          ${a("roadmap.html", "roadmap", "로드맵")}
           ${a("dashboard.html", "dashboard", "대시보드")}
           ${a("me.html", "me", "내 진도")}
-          ${a("roadmap.html", "roadmap", "로드맵")}
           <a href="${esc(SITE.glossaryUrl)}" target="_blank" rel="noopener">용어집</a>
           <span id="who" class="who"></span>
           <button class="theme-btn" type="button" aria-label="화면 테마 바꾸기">테마</button>
@@ -234,14 +236,19 @@
       dashboard: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
       me: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
       roadmap: '<path d="M4 6h10a3 3 0 0 1 0 6H10a3 3 0 0 0 0 6h10"/><circle cx="4" cy="6" r="1.6"/><circle cx="20" cy="18" r="1.6"/>',
-      glossary: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/>'
+      glossary: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/>',
+      setup: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/>',
+      resources: '<path d="M4 5h6v15H4zM10 5h4v15h-4zM15.5 5.5l3.8-1 3.6 14.2-3.8 1z"/>'
     };
     const t = (href, key, label, ext) => `<a href="${href}" class="${active === key ? "active" : ""}" ${active === key ? 'aria-current="page"' : ""} ${ext ? 'target="_blank" rel="noopener"' : ""}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[key]}</svg><span>${label}</span></a>`;
     const bar = document.createElement("nav");
     bar.className = "tabbar"; bar.setAttribute("aria-label", "주 메뉴 (모바일)");
-    bar.innerHTML = t("index.html", "home", "커리큘럼") + t("dashboard.html", "dashboard", "대시보드") + t("me.html", "me", "내 진도")
-      + t("roadmap.html", "roadmap", "로드맵") + t(esc(SITE.glossaryUrl), "glossary", "용어집", true);
+    // 하단 탭바는 5칸: 로드맵·용어집은 자료실 안에서 엽니다
+    const tabActive = active === "roadmap" ? "resources" : active;
+    const t2 = (href, key, label) => t(href, key, label).replace(`class="${active === key ? "active" : ""}"`, `class="${tabActive === key ? "active" : ""}"`);
+    bar.innerHTML = t2("index.html", "home", "커리큘럼") + t2("setup.html", "setup", "실습 환경") + t2("resources.html", "resources", "자료실")
+      + t2("dashboard.html", "dashboard", "대시보드") + t2("me.html", "me", "내 진도");
     document.body.append(bar);
     el.querySelector(".theme-btn").addEventListener("click", () => {
       const cur = document.documentElement.getAttribute("data-theme");

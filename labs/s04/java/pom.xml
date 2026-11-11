@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>study</groupId>
+  <artifactId>s04-cost-and-models</artifactId>
+  <version>1.0.0</version>
+  <description>세션 4 실습: 토큰 비용 계산기와 세 모델 나란히 호출</description>
+
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <anthropic.version>3.8.0</anthropic.version>
+    <!-- anthropic-java 3.8.0 이 쓰는 Jackson 2.x 와 맞춥니다. 새 버전은 Maven Central 에서 확인 -->
+    <jackson.version>2.19.4</jackson.version>
+    <!-- openai-java: GitHub README 기준 값. Maven Central 에서 최신 버전 확인 -->
+    <openai.version>4.103.0</openai.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java</artifactId>
+      <version>${anthropic.version}</version>
+    </dependency>
+    <dependency>
+      <!-- OpenAI 호출과 로컬 Ollama(OpenAI 호환) 호출에 함께 씁니다 -->
+      <groupId>com.openai</groupId>
+      <artifactId>openai-java</artifactId>
+      <version>${openai.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.15.0</version>
+      </plugin>
+      <plugin>
+        <!-- ./mvnw -q compile exec:java -Dexec.mainClass=study.s04.클래스이름 -->
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.6.3</version>
+        <configuration>
+          <mainClass>study.s04.CostCalc</mainClass>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

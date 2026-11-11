@@ -180,6 +180,92 @@
    "청크 크기를 300자와 1,000자로 바꿔 보고 답변 차이를 팀원과 비교했는가"
   ]
  },
+ "lab_java": {
+  "title": "사내 문서 Q&A 미니 RAG 를 Java 로 만들기",
+  "lead": "Python 트랙과 같은 <code>docs/</code> 마크다운 폴더로 청크 → 색인 → 검색 → 답변 전체 흐름을 Java 에서 만듭니다. 임베딩은 LangChain4j in-process ONNX 모델에 같은 multilingual-e5-small 을 넣어 JVM 안에서 돌리고, 답변은 Anthropic Java SDK 로 받습니다. 벡터DB 없이 색인을 JSON 파일 하나(<code>index-java.json</code>)에 두고 전수 비교합니다. 저장소를 pgvector 로 바꾸려면 세션 8 Java 트랙의 LoadMeta·SearchMeta 를 붙입니다.",
+  "env": [
+   "JDK 21 · Maven Wrapper (./mvnw)",
+   "com.anthropic:anthropic-java 3.8.0",
+   "dev.langchain4j:langchain4j-embeddings 1.23.0-beta33",
+   "Jackson databind 2.x",
+   "multilingual-e5-small ONNX 파일 (model.onnx · tokenizer.json)",
+   "ANTHROPIC_API_KEY"
+  ],
+  "steps": [
+   {
+    "title": "Maven 프로젝트",
+    "body": [
+     "<code>pom.xml</code> 을 둡니다. Maven Wrapper(<code>mvnw</code>·<code>mvnw.cmd</code>)는 저장소의 실습 폴더에 들어 있습니다. 소스는 <code>src/main/java/study/s09/</code> 에 둡니다. 사내에서는 Nexus 같은 내부 Maven 저장소를 settings.xml 의 mirror 로 지정합니다.",
+     "LangChain4j 는 임베딩 모듈만 씁니다. Claude 호출은 LangChain4j 의 래퍼 대신 Anthropic Java SDK 를 직접 써서 Python 트랙과 같은 요청 형태를 유지합니다."
+    ],
+    "code": {
+     "lang": "xml",
+     "file": "labs/s09/java/pom.xml",
+     "src": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd\">\n  <modelVersion>4.0.0</modelVersion>\n\n  <groupId>study</groupId>\n  <artifactId>s09-mini-rag</artifactId>\n  <version>1.0.0</version>\n  <description>세션 9 사내 문서 Q&amp;A 미니 RAG (Java 트랙)</description>\n\n  <properties>\n    <maven.compiler.release>21</maven.compiler.release>\n    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n    <anthropic.version>3.8.0</anthropic.version>\n    <jackson.version>2.23.0</jackson.version>\n    <langchain4j-embeddings.version>1.23.0-beta33</langchain4j-embeddings.version>\n  </properties>\n\n  <dependencies>\n    <dependency>\n      <groupId>com.anthropic</groupId>\n      <artifactId>anthropic-java</artifactId>\n      <version>${anthropic.version}</version>\n    </dependency>\n    <dependency>   <!-- 2.x 최신은 Maven Central 에서 확인 -->\n      <groupId>com.fasterxml.jackson.core</groupId>\n      <artifactId>jackson-databind</artifactId>\n      <version>${jackson.version}</version>\n    </dependency>\n    <dependency>   <!-- beta 꼬리가 붙는 버전은 Maven Central 에서 확인 -->\n      <groupId>dev.langchain4j</groupId>\n      <artifactId>langchain4j-embeddings</artifactId>\n      <version>${langchain4j-embeddings.version}</version>\n    </dependency>\n  </dependencies>\n\n  <build>\n    <plugins>\n      <!-- ./mvnw -q compile exec:java -Dexec.mainClass=... 로 실행 -->\n      <plugin>\n        <groupId>org.codehaus.mojo</groupId>\n        <artifactId>exec-maven-plugin</artifactId>\n        <version>3.7.0</version>\n        <configuration>\n          <mainClass>study.s09.Ask</mainClass>\n        </configuration>\n      </plugin>\n    </plugins>\n  </build>\n</project>\n"
+    }
+   },
+   {
+    "title": "모델 파일 · 키 · 실행 순서",
+    "body": [
+     "세션 8 Java 트랙에서 받은 ONNX 파일이 있으면 <code>E5_DIR</code> 만 그 폴더로 지정합니다. 마지막 세 줄이 이 실습의 실행 순서입니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s09/java/setup.sh",
+     "src": "# 1) 임베딩 모델: Python 트랙과 같은 multilingual-e5-small 의 ONNX 파일 (세션 8 Java 트랙에서 받았다면 재사용)\nmkdir -p models/multilingual-e5-small\nfor f in model.onnx tokenizer.json; do\n  curl -L -o models/multilingual-e5-small/$f \\\n    https://huggingface.co/intfloat/multilingual-e5-small/resolve/main/onnx/$f\ndone\nexport E5_DIR=models/multilingual-e5-small\n\n# 2) 실습용 키와 문서\nexport ANTHROPIC_API_KEY=sk-ant-...      # 실습용 키\nmkdir -p docs && cp sample/*.md docs/\n\n# 3) 세 단계 실행\nJ=\"./mvnw -q compile exec:java\"\n$J -Dexec.mainClass=study.s09.Chunker -Dexec.args=docs > chunks.jsonl\n$J -Dexec.mainClass=study.s09.Indexer -Dexec.args=chunks.jsonl\n$J -Dexec.mainClass=study.s09.Ask -Dexec.args=\"야간 배치가 실패하면 누구에게 연락하나요?\"\n"
+    }
+   },
+   {
+    "title": "샘플 문서",
+    "body": [
+     "Python 트랙과 같은 문서입니다. 팀의 실제 매뉴얼로 바꿔 넣어도 되며, 개인정보나 계좌번호가 들어 있는 문서는 넣지 않습니다."
+    ],
+    "code": {
+     "lang": "markdown",
+     "file": "labs/s09/java/sample/batch-manual.md",
+     "src": "# 야간 배치 운영 매뉴얼\n\n## 실패 시 연락 체계\n야간 배치(02:00~05:00)가 실패하면 1차로 정보계 운영 당직자에게 메신저로 알립니다.\n30분 안에 복구되지 않으면 데이터팀 팀장에게 전화합니다.\n\n## 재처리 절차\n실패한 작업은 Terrastream 콘솔에서 해당 블록부터 재실행합니다.\n원천 파일이 늦게 도착한 경우 수신 확인 후 STG 적재부터 다시 시작합니다.\n"
+    }
+   },
+   {
+    "title": "청크로 자르기",
+    "body": [
+     "Python 트랙 chunk.py 와 같은 규칙입니다. 제목(#) 단위로 나누고, 긴 섹션만 600자·겹침 100자로 다시 자르며, 청크 앞에 <code>[문서명 &gt; 섹션명]</code> 을 붙입니다. 출력도 같은 <code>chunks.jsonl</code> 형식이라 두 트랙의 청크를 줄 단위로 비교할 수 있습니다. 실행 후 <code>mvn</code> 로그가 섞이지 않게 <code>-q</code> 를 꼭 붙입니다."
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s09/java/src/main/java/study/s09/Chunker.java",
+     "src": "package study.s09;\n\nimport com.fasterxml.jackson.databind.ObjectMapper;\n\nimport java.io.IOException;\nimport java.nio.charset.StandardCharsets;\nimport java.nio.file.Files;\nimport java.nio.file.Path;\nimport java.util.ArrayList;\nimport java.util.LinkedHashMap;\nimport java.util.List;\nimport java.util.Map;\nimport java.util.regex.Matcher;\nimport java.util.regex.Pattern;\nimport java.util.stream.Stream;\n\n/** 1단계: 문서를 청크로 자르기 — ... -Dexec.mainClass=study.s09.Chunker -Dexec.args=docs > chunks.jsonl */\npublic final class Chunker {\n\n    static final int MAX_CHARS = 600;   // 청크 최대 길이\n    static final int OVERLAP = 100;     // 앞 청크와 겹치는 글자 수\n    static final Pattern HEADING = Pattern.compile(\"^#{1,3} (.+)$\");\n\n    record Section(String title, String body) {}\n\n    /** 마크다운 제목(#) 기준으로 큰 덩어리를 나눕니다. */\n    static List<Section> splitSections(String text) {\n        List<Section> out = new ArrayList<>();\n        String title = \"\";\n        StringBuilder buf = new StringBuilder();\n        for (String line : text.split(\"\\n\", -1)) {\n            Matcher m = HEADING.matcher(line);\n            if (m.matches()) {\n                if (!buf.toString().isBlank()) out.add(new Section(title, buf.toString().strip()));\n                title = m.group(1).strip();\n                buf.setLength(0);\n            } else {\n                buf.append(line).append('\\n');\n            }\n        }\n        if (!buf.toString().isBlank()) out.add(new Section(title, buf.toString().strip()));\n        return out;\n    }\n\n    /** 긴 덩어리는 MAX_CHARS 단위로 자르되 OVERLAP 만큼 겹칩니다. */\n    static List<String> chunk(String text) {\n        List<String> out = new ArrayList<>();\n        int start = 0;\n        while (start < text.length()) {\n            int end = Math.min(start + MAX_CHARS, text.length());\n            out.add(text.substring(start, end));\n            if (end == text.length()) break;\n            start = end - OVERLAP;\n        }\n        return out;\n    }\n\n    public static void main(String[] args) throws IOException {\n        Path folder = Path.of(args.length > 0 ? args[0] : \"docs\");\n        ObjectMapper json = new ObjectMapper();\n        List<Path> files;\n        try (Stream<Path> s = Files.walk(folder)) {\n            files = s.filter(p -> p.toString().endsWith(\".md\")).sorted().toList();\n        }\n        for (Path path : files) {\n            String name = path.getFileName().toString();\n            String stem = name.substring(0, name.length() - 3);\n            for (Section sec : splitSections(Files.readString(path, StandardCharsets.UTF_8))) {\n                List<String> pieces = chunk(sec.body());\n                for (int i = 0; i < pieces.size(); i++) {\n                    Map<String, Object> rec = new LinkedHashMap<>();\n                    rec.put(\"doc\", name);\n                    rec.put(\"section\", sec.title());\n                    rec.put(\"part\", i);\n                    // 제목을 본문 앞에 붙이면 검색이 훨씬 잘 됩니다\n                    rec.put(\"text\", \"[\" + stem + \" > \" + sec.title() + \"] \" + pieces.get(i));\n                    System.out.println(json.writeValueAsString(rec));\n                }\n            }\n        }\n    }\n}\n"
+    }
+   },
+   {
+    "title": "임베딩해서 색인하기",
+    "body": [
+     "<code>embedAll</code> 로 청크를 한 번에 벡터로 바꾸고, 원문·출처·벡터를 <code>index-java.json</code> 에 저장합니다. 문서에는 <code>passage:</code>, 질문에는 <code>query:</code> 접두어를 붙이는 e5 규칙은 그대로입니다."
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s09/java/src/main/java/study/s09/Indexer.java",
+     "src": "package study.s09;\n\nimport com.fasterxml.jackson.annotation.JsonIgnoreProperties;\nimport com.fasterxml.jackson.core.type.TypeReference;\nimport com.fasterxml.jackson.databind.ObjectMapper;\nimport dev.langchain4j.data.embedding.Embedding;\nimport dev.langchain4j.data.segment.TextSegment;\nimport dev.langchain4j.model.embedding.EmbeddingModel;\nimport dev.langchain4j.model.embedding.onnx.OnnxEmbeddingModel;\nimport dev.langchain4j.model.embedding.onnx.PoolingMode;\n\nimport java.io.IOException;\nimport java.nio.charset.StandardCharsets;\nimport java.nio.file.Files;\nimport java.nio.file.Path;\nimport java.util.ArrayList;\nimport java.util.List;\n\n/** 2단계: 청크를 임베딩해 저장 — ... -Dexec.mainClass=study.s09.Indexer -Dexec.args=chunks.jsonl → index-java.json */\npublic final class Indexer {\n\n    @JsonIgnoreProperties(ignoreUnknown = true)\n    public record Chunk(String doc, String section, int part, String text, float[] vector) {\n        Chunk withVector(float[] v) {\n            return new Chunk(doc, section, part, text, v);\n        }\n    }\n\n    public static final Path INDEX = Path.of(\"index-java.json\");\n    static final ObjectMapper JSON = new ObjectMapper();\n\n    /** Python 트랙과 같은 multilingual-e5-small (ONNX). 결과 벡터는 길이 1 로 정규화되어 나옵니다. */\n    public static EmbeddingModel model() {\n        Path dir = Path.of(System.getenv().getOrDefault(\"E5_DIR\", \"models/multilingual-e5-small\"));\n        return new OnnxEmbeddingModel(dir.resolve(\"model.onnx\"), dir.resolve(\"tokenizer.json\"), PoolingMode.MEAN);\n    }\n\n    public static List<Chunk> load() throws IOException {\n        return JSON.readValue(INDEX.toFile(), new TypeReference<List<Chunk>>() {});\n    }\n\n    public static void main(String[] args) throws IOException {\n        Path in = Path.of(args.length > 0 ? args[0] : \"chunks.jsonl\");\n        List<Chunk> chunks = new ArrayList<>();\n        for (String line : Files.readAllLines(in, StandardCharsets.UTF_8)) {\n            if (!line.isBlank()) chunks.add(JSON.readValue(line, Chunk.class));\n        }\n        // e5 계열은 문서 쪽에 \"passage: \" 를 붙이는 것이 규칙입니다\n        List<TextSegment> segments = chunks.stream().map(c -> TextSegment.from(\"passage: \" + c.text())).toList();\n        List<Embedding> vecs = model().embedAll(segments).content();\n        List<Chunk> indexed = new ArrayList<>();\n        for (int i = 0; i < chunks.size(); i++) indexed.add(chunks.get(i).withVector(vecs.get(i).vector()));\n        JSON.writeValue(INDEX.toFile(), indexed);       // 원문·출처·벡터를 한 파일에 (청크 수천 개까지는 충분)\n        System.out.println(indexed.size() + \"개 청크 색인 완료 → \" + INDEX);\n    }\n}\n"
+    }
+   },
+   {
+    "title": "검색하고 근거와 함께 답하기",
+    "body": [
+     "질문 벡터와 모든 청크의 내적을 계산해 상위 4개를 고르고, 번호를 붙여 프롬프트에 넣습니다. 응답은 <code>b.text()</code> 로 text 블록만 모아 읽습니다(앞에 thinking 블록이 올 수 있음). 출력 끝에 출처와 유사도를 함께 보여 줘서 사람이 바로 검증할 수 있게 합니다."
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s09/java/src/main/java/study/s09/Ask.java",
+     "src": "package study.s09;\n\nimport com.anthropic.client.AnthropicClient;\nimport com.anthropic.client.okhttp.AnthropicOkHttpClient;\nimport com.anthropic.models.messages.Message;\nimport com.anthropic.models.messages.MessageCreateParams;\nimport com.anthropic.models.messages.TextBlock;\nimport dev.langchain4j.model.embedding.EmbeddingModel;\n\nimport java.util.ArrayList;\nimport java.util.Comparator;\nimport java.util.List;\nimport java.util.stream.Collectors;\n\n/** 3·4단계: 검색하고 근거와 함께 답하기 — ... -Dexec.mainClass=study.s09.Ask -Dexec.args=\"질문\" */\npublic final class Ask {\n\n    public static final String MODEL = System.getenv().getOrDefault(\"CLAUDE_MODEL\", \"claude-sonnet-5-5\");\n    static final int TOP_K = 4;\n\n    public record Hit(double score, Indexer.Chunk chunk) {}\n\n    public static final String SYSTEM = \"\"\"\n            당신은 사내 문서 Q&A 도우미입니다.\n            - 반드시 <근거> 안의 내용만으로 답합니다.\n            - 문장 끝에 사용한 근거 번호를 [1]처럼 붙입니다.\n            - 근거로 답할 수 없으면 \"문서에서 찾지 못했습니다\"라고만 답합니다.\"\"\";\n\n    public static double dot(float[] a, float[] b) {\n        double s = 0;\n        for (int i = 0; i < a.length; i++) s += a[i] * b[i];\n        return s;\n    }\n\n    /** 정규화된 벡터이므로 내적 = 코사인 유사도. 청크 수천 개까지는 전수 비교로 충분합니다. */\n    static List<Hit> search(EmbeddingModel model, List<Indexer.Chunk> index, String question, int k) {\n        float[] q = model.embed(\"query: \" + question).content().vector();\n        return index.stream()\n                .map(c -> new Hit(dot(q, c.vector()), c))\n                .sorted(Comparator.comparingDouble(Hit::score).reversed())\n                .limit(k)\n                .toList();\n    }\n\n    public static void main(String[] args) throws Exception {\n        String question = args.length > 0 ? String.join(\" \", args) : \"야간 배치가 실패하면 누구에게 연락하나요?\";\n        List<Hit> hits = search(Indexer.model(), Indexer.load(), question, TOP_K);\n\n        List<String> blocks = new ArrayList<>();\n        for (int n = 0; n < hits.size(); n++) {\n            Indexer.Chunk c = hits.get(n).chunk();\n            blocks.add(\"[\" + (n + 1) + \"] (\" + c.doc() + \" · \" + c.section() + \")\\n\" + c.text());\n        }\n        AnthropicClient client = AnthropicOkHttpClient.fromEnv();     // ANTHROPIC_API_KEY\n        Message msg = client.messages().create(MessageCreateParams.builder()\n                .model(MODEL)\n                .maxTokens(800)\n                .system(SYSTEM)\n                .addUserMessage(\"<근거>\\n\" + String.join(\"\\n\\n\", blocks) + \"\\n</근거>\\n\\n질문: \" + question)\n                .build());\n        // thinking 블록이 앞에 올 수 있어 text 블록만 골라 읽습니다\n        System.out.println(msg.content().stream()\n                .flatMap(b -> b.text().stream()).map(TextBlock::text).collect(Collectors.joining()));\n        System.out.println(\"\\n— 출처\");\n        for (int n = 0; n < hits.size(); n++) {\n            Hit h = hits.get(n);\n            System.out.printf(\"[%d] %s › %s (유사도 %.2f)%n\", n + 1, h.chunk().doc(), h.chunk().section(), h.score());\n        }\n    }\n}\n"
+    }
+   }
+  ],
+  "check": [
+   "문서에 있는 질문은 [번호] 출처와 함께 답하고, 출처 순서가 Python 트랙 ask.py 와 같은가",
+   "문서에 없는 질문(예: '점심 메뉴 추천')에는 '찾지 못했습니다'라고 답하는가",
+   "Chunker 의 <code>MAX_CHARS</code> 를 300 과 1,000 으로 바꿔 다시 색인하고, 답변과 출처 유사도가 어떻게 달라지는지 팀원과 비교했는가"
+  ]
+ },
  "example": {
   "title": "정보계 운영 매뉴얼 Q&A 봇",
   "context": "야간 배치 장애 대응 문서, ETL 설계서, 테이블 정의서가 여러 곳에 흩어져 있어 신규 담당자가 같은 질문을 반복합니다. RAG 봇을 메신저에 붙여 <b>문서 링크와 함께</b> 답하게 하고, 근거가 약하면 당직자에게 넘깁니다.",

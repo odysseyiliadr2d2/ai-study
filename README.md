@@ -2,7 +2,7 @@
 
 AI 업무자동화부터 서비스·에이전트 개발까지 **6파트 24세션** 스터디 사이트입니다.
 16주 AI 기술 스터디 커리큘럼과 「AI 업무자동화·서비스·에이전트 개발 로드맵」을 병합했고,
-세션마다 **개념 · 이론(도식) · 실습 코드 · 실무 예제 · 퀴즈·자료** 다섯 장의 카드로 구성됩니다.
+세션마다 **개념 · 이론(도식) · 실습 코드(Python · Java) · 실무 예제 · 퀴즈·자료** 다섯 장의 카드로 구성됩니다.
 카카오 로그인 · 운영자 승인 · 진도 대시보드는 이전 16주 사이트에서 그대로 옮겨 왔습니다.
 
 - 현재 버전: **v1.1** (2026-10-29) — 변경 내역은 [CHANGELOG.md](CHANGELOG.md)와 사이트 '로드맵' 페이지 아래 '버전 기록'
@@ -27,6 +27,10 @@ index.html            홈: 파트별 세션 카드, 검색, 내 진도
 session.html          세션 상세: ?id=9#lab 처럼 탭까지 바로 열기
 me.html               내 진도: 카카오 로그인, 가입 신청, 세션별 진도, 운영자 승인 관리
 dashboard.html        대시보드: 승인 멤버의 세션별 완료 인원, 멤버 × 세션 표
+setup.html            실습 환경 구성 (Python · Java 설치, API 키, 폐쇄망 반입) — docs/SETUP.md, downloads/ 에 PDF·Markdown
+resources.html        자료실: 사례 · 타임라인 · 로드맵 · 용어집 모음
+cases.html            AI 도입 사례 (data/cases.json, ?id= 로 기사 보기)
+guidelines.html       금융 AI 가이드라인 · 망분리 타임라인 (data/timelines.json, #ai / #netsep)
 roadmap.html          로드맵: 로드맵 문서 본문(도식 포함) + 아래에 버전 기록
 changelog.html        예전 주소 → roadmap.html#versions 로 이동
 config.js             용어집 · 저장소 · Supabase 주소
@@ -41,7 +45,8 @@ data/
   terms.json          세션별 용어집 연결 (glossary.json의 id)
   glossary.json       실무 AI 용어집 사본 (용어 이름·한 줄 설명)
 diagrams/             세션 도식 SVG (생성물)
-labs/sNN/             실습 코드 파일 (세션 JSON에서 꺼낸 생성물)
+labs/sNN/             실습 코드 (세션 JSON에서 꺼낸 생성물). Python 은 labs/sNN/ 또는 labs/sNN/python/, Java 는 labs/sNN/java/ (Maven + Wrapper)
+labs/setup/           설치 점검 스크립트 (check_env.py, java/CheckEnv.java)
 assets/               CSS·JS·글꼴·Prism
 tools/
   diagram.py          도식 생성기 (tools/diagrams/*.json → diagrams/*.svg)
@@ -82,6 +87,8 @@ python3 -m http.server 8000
                "terms": [{"term": "...", "desc": "..."}] },
   "theory":  { "lead": "...", "diagram": {...}, "sections": [{"title": "...", "body": ["..."], "bullets": ["..."], "code": {"lang": "python", "src": "..."}}] },
   "lab":     { "title": "...", "lead": "...", "env": ["Python 3.11+"], "steps": [{"title": "...", "body": ["..."], "code": {"lang": "python", "file": "labs/s09/ask.py", "src": "..."}}], "check": ["..."] },
+  "lab_java":   { 같은 형식, 파일은 labs/sNN/java/... },
+  "lab_python": { lab 이 Python 이 아닐 때만 (lab.track = "n8n" · "Next.js" · "코딩 에이전트") },
   "example": { "title": "...", "context": "...", "diagram": {...}, "flow": ["..."], "code": {...}, "tips": ["..."], "pitfalls": ["..."] },
   "refs":    [{"label": "...", "url": "https://..."}]
 }
@@ -95,7 +102,8 @@ python3 -m http.server 8000
 
 ```bash
 python3 tools/diagram.py          # 도식 사양을 바꿨다면
-python3 tools/export_labs.py      # 실습 코드를 바꿨다면
+rm -rf labs/s[0-9][0-9] && python3 tools/export_labs.py   # 실습 코드를 바꿨다면 (Maven Wrapper 도 함께 넣음)
+java tools/JavaSyntax.java $(find labs -name '*.java')     # Java 문법 검사 (의존성 없이)
 python3 tools/validate.py         # 오류 0건 확인
 ```
 

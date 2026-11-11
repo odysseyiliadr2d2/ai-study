@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>study</groupId>
+  <artifactId>s20-agent-eval</artifactId>
+  <version>1.0.0</version>
+  <name>s20 agent eval harness (JUnit 5)</name>
+
+  <!-- 버전은 2026-11 GitHub 릴리스 태그로 확인한 값입니다. 받기 전에 Maven Central(또는 사내 Nexus)에서 최신 버전을 확인하세요. -->
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <exec.mainClass>study.s20.TracedAgent</exec.mainClass>
+    <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
+    <anthropic.version>3.8.0</anthropic.version>
+    <mcp.version>2.1.0</mcp.version>
+    <jackson.version>2.22.4</jackson.version>
+    <snakeyaml.version>2.7</snakeyaml.version>
+    <junit.version>5.14.4</junit.version>
+    <!-- 평가 실행 스위치: ./mvnw test -Deval=true -Deval.repeat=3 -Deval.only=I01,I02 -->
+    <eval>false</eval>
+    <eval.repeat>1</eval.repeat>
+    <eval.only></eval.only>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.modelcontextprotocol.sdk</groupId>
+        <artifactId>mcp-bom</artifactId>
+        <version>${mcp.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.anthropic</groupId>
+      <artifactId>anthropic-java</artifactId>
+      <version>${anthropic.version}</version>
+    </dependency>
+    <!-- MCP Java SDK: 핵심 모듈 + Jackson 2 매퍼 (anthropic-java 와 같은 Jackson 2 계열로 맞춤) -->
+    <dependency>
+      <groupId>io.modelcontextprotocol.sdk</groupId>
+      <artifactId>mcp-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.modelcontextprotocol.sdk</groupId>
+      <artifactId>mcp-json-jackson2</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <version>${snakeyaml.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.6.4</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.6.1</version>
+        <configuration>
+          <systemPropertyVariables>
+            <eval>${eval}</eval>
+            <eval.repeat>${eval.repeat}</eval.repeat>
+            <eval.only>${eval.only}</eval.only>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

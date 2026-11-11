@@ -35,7 +35,18 @@ def main():
             src = c["src"] if c["src"].endswith("\n") else c["src"] + "\n"
             out.write_text(src, encoding="utf-8")
             n += 1
-    print(f"실습 파일 {n}개 → labs/")
+    # Java 트랙: pom.xml 이 있는 폴더마다 Maven Wrapper(mvnw, mvnw.cmd, .mvn/wrapper) 를 넣습니다
+    import shutil
+    mw = ROOT / "tools" / "maven-wrapper"
+    w = 0
+    for pom in sorted((ROOT / "labs").glob("s[0-9][0-9]/**/pom.xml")):
+        d = pom.parent
+        for name in ("mvnw", "mvnw.cmd"):
+            shutil.copy2(mw / name, d / name)
+        (d / ".mvn" / "wrapper").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(mw / ".mvn" / "wrapper" / "maven-wrapper.properties", d / ".mvn" / "wrapper" / "maven-wrapper.properties")
+        w += 1
+    print(f"실습 파일 {n}개 → labs/, Maven Wrapper {w}곳")
 
 
 if __name__ == "__main__":

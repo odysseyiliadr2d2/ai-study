@@ -1,0 +1,4 @@
+{"id": "m001", "thread_id": "t001", "from": "kim.ops@example.com", "received_at": "2026-11-10T09:12:00+09:00", "subject": "월별 정산 보고서 조회 오류", "body": "안녕하세요. 어제부터 월별 정산 보고서 화면에서 조회 버튼을 누르면 ERR-5031 오류가 납니다. 10월 데이터만 그렇고 9월은 정상입니다. 확인 부탁드립니다."}
+{"id": "m002", "thread_id": "t002", "from": "lee.branch@example.com", "received_at": "2026-11-10T09:40:00+09:00", "subject": "비밀번호를 잊어버렸습니다", "body": "포털 비밀번호를 5번 틀려서 잠긴 것 같습니다. 어떻게 풀 수 있나요?"}
+{"id": "m003", "thread_id": "t003", "from": "park.contract@example.com", "received_at": "2026-11-10T10:05:00+09:00", "subject": "내년 유지보수 계약 단가 문의", "body": "내년 유지보수 계약을 갱신하려고 합니다. 올해와 같은 단가로 가능한지 알려 주세요."}
+{"id": "m004", "thread_id": "t004", "from": "choi.report@example.com", "received_at": "2026-11-10T10:30:00+09:00", "subject": "엑셀 다운로드에 컬럼 추가 요청", "body": "거래 현황 화면의 엑셀 다운로드에 지점명 컬럼도 함께 나오면 좋겠습니다. 가능할까요?"}

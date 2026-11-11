@@ -1,0 +1,2 @@
+anthropic>=2.3
+feedparser>=6.0     # RSS · Atom 읽기 (주소와 로컬 파일 모두)
