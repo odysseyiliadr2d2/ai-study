@@ -75,6 +75,14 @@ function inject(file, t) {
       card: { eyebrow: "ROADMAP", title: "AI 업무자동화·서비스·에이전트 개발 로드맵", sub: "6단계 흐름 · 도구 지도 · 마일스톤 · 버전 기록", chips: ["PDF", "Word", "도식 9개"], foot: ver } },
     { file: "dashboard.html", img: "dashboard", title: "대시보드 · AX Study", desc: "스터디 멤버의 세션별 개념·이론, 실습, 퀴즈 진행 현황.",
       card: { eyebrow: "DASHBOARD", title: "스터디 대시보드", sub: "멤버별 · 세션별 진행 현황을 한눈에", chips: ["카카오 로그인", "운영자 승인"], foot: ver } },
+    { file: "setup.html", img: "setup", title: "실습 환경 구성 · AX Study", desc: "Python·Java 실습 환경을 개인 PC와 사내 폐쇄망에 준비하는 방법. PDF·Markdown 가이드.",
+      card: { eyebrow: "SETUP", title: "실습 환경 구성 가이드", sub: "Python 3.13 · JDK 21 · Maven Wrapper · API 키 · 폐쇄망 반입", chips: ["Windows", "macOS", "PDF"], foot: ver } },
+    { file: "resources.html", img: "resources", title: "자료실 · AX Study", desc: "금융·공공 AI 도입 사례, 금융 AI 가이드라인·망분리 타임라인, 로드맵, 용어집.",
+      card: { eyebrow: "RESOURCES", title: "자료실", sub: "AI 도입 사례 · 금융 AI 가이드라인 · 망분리 타임라인", chips: ["은행", "증권", "보험", "공공"], foot: ver } },
+    { file: "cases.html", img: "cases", title: "AI 도입 사례 · AX Study", desc: "국내·해외 은행·증권·보험·캐피탈과 공공 분야의 AI 도입 사례 아티클.",
+      card: { eyebrow: "CASES", title: "금융·공공 AI 도입 사례", sub: "국내·해외 은행 · 증권 · 보험 · 캐피탈 · 공공", chips: ["국내", "해외", "출처 포함"], foot: ver } },
+    { file: "guidelines.html", img: "guidelines", title: "규제 타임라인 · AX Study", desc: "금융분야 AI 가이드라인과 금융권 망분리 규제의 흐름을 타임라인으로 정리했습니다.",
+      card: { eyebrow: "TIMELINE", title: "금융 AI 가이드라인 · 망분리 타임라인", sub: "AI 기본법 · 금융위 가이드라인 · EU AI Act · 망분리 개선 로드맵", chips: ["국내", "해외"], foot: ver } },
     { file: "me.html", img: "site", title: "내 진도 · AX Study", desc: "카카오로 로그인하고 스터디 가입을 신청하면 진도가 대시보드에 모입니다." },
     { file: "session.html", img: "site", title: "세션 · AX Study", desc: `AX Study ${N}세션 — 개념·이론·실습 코드·실무 예제·퀴즈.` }
   ];

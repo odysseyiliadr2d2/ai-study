@@ -1,0 +1,11 @@
+kind,table_name,column_name,title,description
+column,TB_CUST_BASE,CUST_NO,고객번호,고객을 식별하는 고유 번호. 계좌 개설 시 부여되며 변경되지 않음
+column,TB_CUST_BASE,CUST_GRD_CD,고객등급코드,월말 기준 고객 등급. 코드값 01 VIP 02 우수 03 일반
+column,TB_CUST_GRD_HIST,VLD_STRT_DT,유효시작일자,고객 등급 변경 이력의 선분 시작일
+column,TB_CUST_GRD_HIST,VLD_END_DT,유효종료일자,고객 등급 변경 이력의 선분 종료일. 현재 유효 건은 99991231
+column,TB_ACCT_DAY_BAL,BASE_DT,기준일자,잔고를 집계한 영업일
+column,TB_ACCT_DAY_BAL,EVL_AMT,평가금액,기준일 종가로 평가한 보유 자산 금액
+column,TB_BATCH_LOG,JOB_ID,작업ID,야간 배치 작업 식별자
+column,TB_BATCH_LOG,ERR_MSG,오류메시지,배치 실패 시 DB 또는 ETL 오류 원문
+term,,,선분이력,유효시작일자와 유효종료일자로 한 행의 유효 기간을 표현하는 이력 관리 방식
+term,,,영업일,휴일을 제외하고 거래가 일어나는 날. 기준일자는 영업일만 가짐

@@ -59,17 +59,38 @@
     ${fig(t.diagram)}
     ${(t.sections || []).map((x) => `<h3>${esc(x.title)}</h3>${P(x.body)}${UL(x.bullets)}${code(x.code)}`).join("")}`;
 
-  // ── 3. 실습 코드 ──
-  const l = s.lab || {};
-  const lab = `
-    <div class="eyebrow">03 · 실습 코드</div><h2>${esc(l.title || "직접 만들어 보기")}</h2>
+  // ── 3. 실습 코드 (Python · Java · 그 밖의 트랙) ──
+  const tracks = [];
+  if (s.lab_python) tracks.push({ key: "python", label: "Python", l: s.lab_python });
+  if (s.lab && !s.lab.track) tracks.push({ key: "python", label: "Python", l: s.lab });
+  if (s.lab_java) tracks.push({ key: "java", label: "Java", l: s.lab_java });
+  if (s.lab && s.lab.track) tracks.push({ key: "extra", label: s.lab.track, l: s.lab });
+  // 트랙의 파일들이 들어 있는 폴더 (예: labs/s06/java/)
+  const trackDir = (l) => {
+    const fs = (l.steps || []).map((st) => (st.code || {}).file).filter((f) => f && f.startsWith("labs/"));
+    if (!fs.length) return `labs/s${pad(s.id)}/`;
+    const parts = fs.map((f) => f.split("/").slice(0, -1));
+    let common = parts[0];
+    for (const p of parts) { let i = 0; while (i < common.length && common[i] === p[i]) i++; common = common.slice(0, i); }
+    return common.slice(0, 3).join("/") + "/";
+  };
+  const trackHtml = (t) => {
+    const l = t.l;
+    return `<h2>${esc(l.title || "직접 만들어 보기")}</h2>
     ${l.lead ? `<p>${rich(l.lead)}</p>` : ""}
     ${l.env && l.env.length ? `<div class="env">${l.env.map((e) => `<span class="tag">${esc(e)}</span>`).join("")}</div>` : ""}
     ${(l.steps || []).map((st, i) => `<div class="step">
-        <div class="step-title"><span class="no">${i + 1}</span><h3 style="margin:0">${esc(st.title)}</h3></div>
+        <div class="step-title"><span class="no">${i + 1}</span><h3>${esc(st.title)}</h3></div>
         ${P(Array.isArray(st.body) ? st.body : [st.body].filter(Boolean))}${code(st.code)}</div>`).join("")}
     ${l.check && l.check.length ? `<h3>확인 포인트</h3>${UL(l.check)}` : ""}
-    <p class="small muted">실습 파일은 저장소의 <code>labs/s${pad(s.id)}/</code> 폴더에도 있습니다.</p>`;
+    <p class="small muted">실습 파일은 저장소의 <code>${esc(trackDir(l))}</code> 폴더에도 있습니다.
+      설치가 처음이면 <a href="setup.html">실습 환경 구성</a>을 먼저 보세요.</p>`;
+  };
+  const lab = `
+    <div class="eyebrow">03 · 실습 코드</div>
+    ${tracks.length > 1 ? `<div class="langs" role="tablist" aria-label="실습 언어">${tracks.map((t) =>
+      `<button type="button" role="tab" class="lang-btn" data-track="${t.key}" aria-selected="false">${esc(t.label)}</button>`).join("")}</div>` : ""}
+    ${tracks.map((t) => `<div class="track-body" data-track-body="${t.key}">${trackHtml(t)}</div>`).join("")}`;
 
   // ── 4. 실무 예제 ──
   const x = s.example || {};
@@ -244,6 +265,16 @@
       form.querySelector(".score").textContent = "";
     });
   }
+
+  // 실습 언어 전환 (마지막 선택을 기억)
+  const langBtns = [...main.querySelectorAll(".lang-btn")];
+  function pickTrack(k) {
+    if (!tracks.some((t) => t.key === k)) k = tracks[0] && tracks[0].key;
+    langBtns.forEach((b) => b.setAttribute("aria-selected", b.dataset.track === k));
+    main.querySelectorAll("[data-track-body]").forEach((d) => (d.hidden = d.dataset.trackBody !== k));
+  }
+  langBtns.forEach((b) => b.addEventListener("click", () => { pickTrack(b.dataset.track); if (b.dataset.track !== "extra") AX.store.set("axstudy.lang", b.dataset.track); }));
+  pickTrack(AX.store.get("axstudy.lang", "python"));
 
   if (window.Prism) Prism.highlightAll();
 })();

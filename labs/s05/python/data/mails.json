@@ -1,0 +1,20 @@
+[
+ {"from": "배치운영팀 <batch-ops@example.com>", "subject": "[장애] JOB_STG_TRD 02:11 실패, 재처리 필요",
+  "snippet": "어제 새벽 STG 적재가 ORA-01653 으로 실패했습니다. 오전 9시 전까지 재처리 여부를 회신 부탁드립니다.",
+  "received": "2026-11-13T02:20:00+09:00", "category": "primary"},
+ {"from": "PMO <pmo@example.com>", "subject": "주간 회의 자료 제출 (금 15시까지)",
+  "snippet": "정보계 차세대 주간 회의 자료를 금요일 15시까지 공유 폴더에 올려 주세요. 양식은 지난주와 같습니다.",
+  "received": "2026-11-12T18:05:00+09:00", "category": "primary"},
+ {"from": "리스크팀 담당자 <risk@example.com>", "subject": "VaR 리포트 컬럼 추가 문의",
+  "snippet": "분기 리스크 보고서에 VaR 추이 그래프를 넣고 싶은데 가능한 일정 알려 주실 수 있을까요?",
+  "received": "2026-11-12T16:40:00+09:00", "category": "primary"},
+ {"from": "사내 공지 <notice@example.com>", "subject": "11월 보안 교육 안내",
+  "snippet": "11월 보안 교육은 온라인으로 진행합니다. 이번 달 말까지 수강해 주세요.",
+  "received": "2026-11-12T10:00:00+09:00", "category": "updates"},
+ {"from": "쇼핑몰 <ad@example.com>", "subject": "주말 특가 안내",
+  "snippet": "이번 주말 최대 50% 할인",
+  "received": "2026-11-12T21:00:00+09:00", "category": "promotions"},
+ {"from": "DBA 팀 <dba@example.com>", "subject": "테이블스페이스 증설 완료",
+  "snippet": "TS_STG 테이블스페이스를 20GB 증설했습니다.",
+  "received": "2026-11-11T09:00:00+09:00", "category": "primary"}
+]

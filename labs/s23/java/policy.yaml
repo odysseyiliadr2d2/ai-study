@@ -1,0 +1,26 @@
+# AI 유스케이스 등록부 정책 (예시) — 사내 AI 위험관리 기준·심의 양식에 맞게 값을 바꾸세요
+# RegisterCheck 가 이 파일을 읽어 usecases/*.yaml 신청서를 검사합니다.
+required:
+  - id
+  - name
+  - owner
+  - purpose
+  - users
+  - model.name
+  - model.deployment
+  - data.classification
+  - impact.decision_type
+  - controls.human_review
+  - controls.prompt_logging
+  - controls.log_retention_days
+id_pattern: "^UC-\\d{4}-\\d{3}$"
+allowed:
+  model.deployment: [on_prem, external_api, saas]
+  data.classification: [public, internal, confidential, personal, credit]
+  impact.decision_type: [draft, human_approved, automated]
+min_log_retention_days: 365
+rules:
+  personal_info_requires_masking: true          # 개인정보 포함이면 controls.pii_masking 필수
+  customer_facing_requires_human_review: true   # 고객 대상이면 사람 검토 필수
+  rights_impact_forbids_automated: true         # 고객 권리·의무에 영향이면 자동 결정 금지
+  external_requires_exception_doc: true         # 외부 API·SaaS·망 밖 전송이면 exception_doc(망분리 예외 근거) 필수

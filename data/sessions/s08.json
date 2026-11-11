@@ -218,6 +218,102 @@
    "같은 질문을 접두어 없이(<code>query:</code> 빼고) 검색했을 때 순위가 어떻게 바뀌는지 비교했는가"
   ]
  },
+ "lab_java": {
+  "title": "pgvector 메타데이터 의미 검색을 Java 로 만들기",
+  "lead": "Python 트랙과 같은 pgvector 컨테이너·<code>schema.sql</code>·<code>meta.csv</code> 로 같은 검색 결과를 Java 에서 만듭니다. 임베딩은 LangChain4j 의 in-process ONNX 모델(<code>OnnxEmbeddingModel</code>)에 Python 트랙과 같은 multilingual-e5-small 의 ONNX 파일을 넣어 JVM 안에서 돌립니다. API 키가 필요 없고 폐쇄망에서도 됩니다. 저장·검색은 PostgreSQL JDBC 와 pgvector-java 의 <code>PGvector</code> 타입으로 합니다.",
+  "env": [
+   "JDK 21 · Maven Wrapper (./mvnw)",
+   "Docker (pgvector/pgvector 이미지)",
+   "dev.langchain4j:langchain4j-embeddings 1.23.0-beta33",
+   "org.postgresql:postgresql 42.7.14 · com.pgvector:pgvector 0.1.6",
+   "multilingual-e5-small ONNX 파일 (model.onnx · tokenizer.json, 약 0.5GB)"
+  ],
+  "steps": [
+   {
+    "title": "Maven 프로젝트",
+    "body": [
+     "<code>pom.xml</code> 을 둡니다. Maven Wrapper(<code>mvnw</code>·<code>mvnw.cmd</code>)는 저장소의 실습 폴더에 들어 있습니다. 소스는 <code>src/main/java/study/s08/</code> 에 둡니다. 사내에서는 Nexus 같은 내부 Maven 저장소를 settings.xml 의 mirror 로 지정합니다.",
+     "LangChain4j 는 본체(1.23.0)와 임베딩 모듈의 버전 꼬리가 다릅니다. 임베딩 모듈은 <code>1.23.0-beta33</code> 처럼 <code>-betaNN</code> 이 붙으니 Maven Central 에서 짝이 맞는 값을 확인합니다. ONNX Runtime 과 토크나이저의 네이티브 라이브러리는 jar 안에 들어 있어 별도 설치가 없습니다."
+    ],
+    "code": {
+     "lang": "xml",
+     "file": "labs/s08/java/pom.xml",
+     "src": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd\">\n  <modelVersion>4.0.0</modelVersion>\n\n  <groupId>study</groupId>\n  <artifactId>s08-meta-search</artifactId>\n  <version>1.0.0</version>\n  <description>세션 8 pgvector 메타데이터 의미 검색 (Java 트랙)</description>\n\n  <properties>\n    <maven.compiler.release>21</maven.compiler.release>\n    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n    <langchain4j-embeddings.version>1.23.0-beta33</langchain4j-embeddings.version>\n    <postgresql.version>42.7.14</postgresql.version>\n    <pgvector.version>0.1.6</pgvector.version>\n  </properties>\n\n  <dependencies>\n    <dependency>   <!-- ONNX 런타임 + 토크나이저. beta 꼬리가 붙는 버전은 Maven Central 에서 확인 -->\n      <groupId>dev.langchain4j</groupId>\n      <artifactId>langchain4j-embeddings</artifactId>\n      <version>${langchain4j-embeddings.version}</version>\n    </dependency>\n    <dependency>\n      <groupId>org.postgresql</groupId>\n      <artifactId>postgresql</artifactId>\n      <version>${postgresql.version}</version>\n    </dependency>\n    <dependency>\n      <groupId>com.pgvector</groupId>\n      <artifactId>pgvector</artifactId>\n      <version>${pgvector.version}</version>\n    </dependency>\n  </dependencies>\n\n  <build>\n    <plugins>\n      <!-- ./mvnw -q compile exec:java -Dexec.mainClass=... 로 실행 -->\n      <plugin>\n        <groupId>org.codehaus.mojo</groupId>\n        <artifactId>exec-maven-plugin</artifactId>\n        <version>3.7.0</version>\n        <configuration>\n          <mainClass>study.s08.SearchMeta</mainClass>\n        </configuration>\n      </plugin>\n    </plugins>\n  </build>\n</project>\n"
+    }
+   },
+   {
+    "title": "컨테이너 · 스키마 · 모델 파일",
+    "body": [
+     "pgvector 컨테이너는 Python 트랙과 같습니다. 임베딩 모델은 Hugging Face 저장소의 <code>onnx/</code> 폴더에 있는 <code>model.onnx</code> 와 <code>tokenizer.json</code> 두 파일만 받습니다. <a href=\"https://github.com/langchain4j/langchain4j/blob/1.23.0/docs/docs/integrations/embedding-models/1-in-process.md\">LangChain4j in-process 임베딩 문서</a>의 '내 ONNX 모델 쓰기' 방식입니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s08/java/setup.sh",
+     "src": "# 1) pgvector 컨테이너 (Python 트랙과 같은 이미지 · 같은 DB)\ndocker run -d --name pgvector \\\n  -e POSTGRES_PASSWORD=study \\\n  -e POSTGRES_DB=meta \\\n  -p 5432:5432 \\\n  -v pgvector_data:/var/lib/postgresql \\\n  pgvector/pgvector:pg18-trixie\n\n# 2) 스키마 (다음 단계의 schema.sql)\ndocker exec -i pgvector psql -U postgres -d meta < schema.sql\n\n# 3) 임베딩 모델: Python 트랙과 같은 intfloat/multilingual-e5-small 의 ONNX 파일 (약 0.5GB)\n#    폐쇄망에서는 외부에서 받은 두 파일을 사내 파일 서버로 옮기고 E5_DIR 만 바꿉니다.\nmkdir -p models/multilingual-e5-small\nfor f in model.onnx tokenizer.json; do\n  curl -L -o models/multilingual-e5-small/$f \\\n    https://huggingface.co/intfloat/multilingual-e5-small/resolve/main/onnx/$f\ndone\nexport E5_DIR=models/multilingual-e5-small\nexport PGURL=\"jdbc:postgresql://localhost:5432/meta?user=postgres&password=study\"\n\n# 4) 빌드 확인\n./mvnw -q compile\n"
+    }
+   },
+   {
+    "title": "확장 · 테이블 · HNSW 인덱스",
+    "body": [
+     "Python 트랙과 같은 SQL 입니다. 차원 <code>vector(384)</code> 는 같은 모델을 쓰므로 그대로입니다. 다른 임베딩 모델(예: Ollama 의 bge-m3, 1024차원)로 바꾸면 이 숫자도 같이 바꿔야 합니다."
+    ],
+    "code": {
+     "lang": "sql",
+     "file": "labs/s08/java/schema.sql",
+     "src": "-- 2단계: 확장 · 테이블 · 인덱스  (docker exec -i pgvector psql -U postgres -d meta < schema.sql)\nCREATE EXTENSION IF NOT EXISTS vector;      -- 확장 이름은 pgvector 가 아니라 vector\n\nDROP TABLE IF EXISTS meta_chunk;\nCREATE TABLE meta_chunk (\n    id          bigserial PRIMARY KEY,\n    kind        text        NOT NULL,        -- 'column' | 'term'\n    table_name  text,                        -- 물리 테이블명 (용어는 NULL)\n    column_name text,                        -- 물리 컬럼명\n    title       text        NOT NULL,        -- 화면에 보여 줄 이름\n    content     text        NOT NULL,        -- 임베딩한 원문 문장\n    updated_at  date        NOT NULL DEFAULT current_date,\n    embedding   vector(384) NOT NULL         -- multilingual-e5-small 차원\n);\n\n-- 근사 최근접 인덱스: 코사인 거리(<=>) 로 찾을 것이므로 vector_cosine_ops\n-- m(기본 16) · ef_construction(기본 64) 는 기본값으로 시작\nCREATE INDEX meta_chunk_embedding_hnsw\n    ON meta_chunk USING hnsw (embedding vector_cosine_ops);\n\n-- 필터에 자주 쓰는 컬럼은 일반 인덱스\nCREATE INDEX meta_chunk_kind_idx ON meta_chunk (kind);\n"
+    }
+   },
+   {
+    "title": "임베딩과 코사인 유사도 감 잡기",
+    "body": [
+     "<code>E5Embedder</code> 는 e5 접두어 규칙(<code>passage:</code>/<code>query:</code>)을 한곳에 모은 클래스입니다. <code>main</code> 은 Python 트랙의 cosine_demo.py 와 같은 문장으로 유사도를 찍습니다. <code>OnnxEmbeddingModel</code> 은 BERT 계열 토크나이저를 기준으로 만든 클래스이므로, 두 트랙의 숫자가 소수 둘째 자리까지 비슷한지 한 번 비교해 둡니다. 실행: <code>./mvnw -q compile exec:java -Dexec.mainClass=study.s08.E5Embedder</code>"
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s08/java/src/main/java/study/s08/E5Embedder.java",
+     "src": "package study.s08;\n\nimport dev.langchain4j.model.embedding.EmbeddingModel;\nimport dev.langchain4j.model.embedding.onnx.OnnxEmbeddingModel;\nimport dev.langchain4j.model.embedding.onnx.PoolingMode;\n\nimport java.nio.file.Path;\nimport java.util.List;\n\n/**\n * multilingual-e5-small ONNX 모델을 같은 JVM 안에서 돌립니다 (API 키·외부 호출 없음).\n * 실행(유사도 감 잡기): ./mvnw -q compile exec:java -Dexec.mainClass=study.s08.E5Embedder\n */\npublic final class E5Embedder {\n\n    private final EmbeddingModel model;\n\n    public E5Embedder() {\n        Path dir = Path.of(System.getenv().getOrDefault(\"E5_DIR\", \"models/multilingual-e5-small\"));\n        // e5 는 평균 풀링(mean pooling). LangChain4j 가 결과 벡터를 길이 1 로 정규화해 돌려줍니다.\n        this.model = new OnnxEmbeddingModel(dir.resolve(\"model.onnx\"), dir.resolve(\"tokenizer.json\"), PoolingMode.MEAN);\n    }\n\n    /** e5 규칙: 저장할 문서는 \"passage: \" */\n    public float[] passage(String text) {\n        return model.embed(\"passage: \" + text).content().vector();\n    }\n\n    /** e5 규칙: 질문은 \"query: \" */\n    public float[] query(String text) {\n        return model.embed(\"query: \" + text).content().vector();\n    }\n\n    static double dot(float[] a, float[] b) {\n        double s = 0;\n        for (int i = 0; i < a.length; i++) s += a[i] * b[i];\n        return s;\n    }\n\n    static double cosine(float[] a, float[] b) {\n        return dot(a, b) / (Math.sqrt(dot(a, a)) * Math.sqrt(dot(b, b)));\n    }\n\n    public static void main(String[] args) {\n        E5Embedder e5 = new E5Embedder();\n        List<String> docs = List.of(\n                \"고객번호: 고객을 식별하는 고유 번호 (CUST_NO)\",\n                \"고객 식별 번호는 계좌 개설 시 부여됩니다\",\n                \"야간 배치가 실패하면 STG 적재부터 재처리합니다\",\n                \"월말 기준 고객 등급 변경 이력을 보관하는 테이블\");\n        float[] q = e5.query(\"손님을 구별하는 번호가 뭐야?\");\n        System.out.println(\"벡터 차원: \" + q.length);                 // 384\n        for (String d : docs) {\n            float[] v = e5.passage(d);\n            // 정규화된 벡터이므로 내적과 코사인 유사도가 같습니다\n            System.out.printf(\"%.3f  %.3f  %s%n\", cosine(q, v), dot(q, v), d);\n        }\n    }\n}\n"
+    }
+   },
+   {
+    "title": "메타데이터 샘플",
+    "body": [
+     "Python 트랙과 같은 <code>meta.csv</code> 입니다. 값 안에 쉼표가 없으므로 Java 쪽은 <code>split(\",\", -1)</code> 로 나눠 읽습니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s08/java/meta.csv",
+     "src": "kind,table_name,column_name,title,description\ncolumn,TB_CUST_BASE,CUST_NO,고객번호,고객을 식별하는 고유 번호. 계좌 개설 시 부여되며 변경되지 않음\ncolumn,TB_CUST_BASE,CUST_GRD_CD,고객등급코드,월말 기준 고객 등급. 코드값 01 VIP 02 우수 03 일반\ncolumn,TB_CUST_GRD_HIST,VLD_STRT_DT,유효시작일자,고객 등급 변경 이력의 선분 시작일\ncolumn,TB_CUST_GRD_HIST,VLD_END_DT,유효종료일자,고객 등급 변경 이력의 선분 종료일. 현재 유효 건은 99991231\ncolumn,TB_ACCT_DAY_BAL,BASE_DT,기준일자,잔고를 집계한 영업일\ncolumn,TB_ACCT_DAY_BAL,EVL_AMT,평가금액,기준일 종가로 평가한 보유 자산 금액\ncolumn,TB_BATCH_LOG,JOB_ID,작업ID,야간 배치 작업 식별자\ncolumn,TB_BATCH_LOG,ERR_MSG,오류메시지,배치 실패 시 DB 또는 ETL 오류 원문\nterm,,,선분이력,유효시작일자와 유효종료일자로 한 행의 유효 기간을 표현하는 이력 관리 방식\nterm,,,영업일,휴일을 제외하고 거래가 일어나는 날. 기준일자는 영업일만 가짐\n"
+    }
+   },
+   {
+    "title": "적재",
+    "body": [
+     "<code>PGvector.registerTypes(conn)</code> 로 vector 타입을 등록한 뒤 <code>ps.setObject(n, new PGvector(float[]))</code> 로 넣습니다. 한 트랜잭션에서 배치로 넣고 커밋합니다. 실행: <code>./mvnw -q compile exec:java -Dexec.mainClass=study.s08.LoadMeta -Dexec.args=meta.csv</code>"
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s08/java/src/main/java/study/s08/LoadMeta.java",
+     "src": "package study.s08;\n\nimport com.pgvector.PGvector;\n\nimport java.nio.charset.StandardCharsets;\nimport java.nio.file.Files;\nimport java.nio.file.Path;\nimport java.sql.Connection;\nimport java.sql.DriverManager;\nimport java.sql.PreparedStatement;\nimport java.sql.Statement;\nimport java.util.List;\n\n/** 메타데이터를 문장으로 풀어 임베딩하고 저장 — ./mvnw -q compile exec:java -Dexec.mainClass=study.s08.LoadMeta -Dexec.args=meta.csv */\npublic final class LoadMeta {\n\n    record Row(String kind, String table, String column, String title, String description) {}\n\n    static final String PGURL = System.getenv().getOrDefault(\"PGURL\",\n            \"jdbc:postgresql://localhost:5432/meta?user=postgres&password=study\");\n\n    /** 표의 한 행을 검색이 잘 되는 문장으로 바꿉니다 (물리명 + 한글명 + 설명). */\n    static String toSentence(Row r) {\n        return r.kind().equals(\"column\")\n                ? \"테이블 %s 의 컬럼 %s (%s): %s\".formatted(r.table(), r.column(), r.title(), r.description())\n                : \"용어 %s: %s\".formatted(r.title(), r.description());\n    }\n\n    static String nullIfBlank(String s) {\n        return s == null || s.isBlank() ? null : s;\n    }\n\n    public static void main(String[] args) throws Exception {\n        Path csv = Path.of(args.length > 0 ? args[0] : \"meta.csv\");\n        // 실습 파일은 값 안에 쉼표가 없습니다. 실제 정의서를 CSV 로 받으면 Apache Commons CSV 같은 파서를 씁니다.\n        List<Row> rows = Files.readAllLines(csv, StandardCharsets.UTF_8).stream()\n                .skip(1).filter(l -> !l.isBlank())\n                .map(l -> l.split(\",\", -1))\n                .map(c -> new Row(c[0], c[1], c[2], c[3], c[4]))\n                .toList();\n        E5Embedder e5 = new E5Embedder();\n\n        try (Connection conn = DriverManager.getConnection(PGURL)) {\n            PGvector.registerTypes(conn);                 // vector 타입을 JDBC 에 등록\n            conn.setAutoCommit(false);\n            try (Statement st = conn.createStatement()) {\n                st.execute(\"TRUNCATE meta_chunk\");\n            }\n            String sql = \"INSERT INTO meta_chunk (kind, table_name, column_name, title, content, embedding) \"\n                    + \"VALUES (?, ?, ?, ?, ?, ?)\";\n            try (PreparedStatement ps = conn.prepareStatement(sql)) {\n                for (Row r : rows) {\n                    String text = toSentence(r);\n                    ps.setString(1, r.kind());\n                    ps.setString(2, nullIfBlank(r.table()));\n                    ps.setString(3, nullIfBlank(r.column()));\n                    ps.setString(4, r.title());\n                    ps.setString(5, text);\n                    ps.setObject(6, new PGvector(e5.passage(text)));\n                    ps.addBatch();                        // 수만 건이면 배치 크기를 나눠 executeBatch 또는 COPY\n                }\n                ps.executeBatch();\n            }\n            conn.commit();\n        }\n        System.out.println(rows.size() + \"건 저장 완료\");\n    }\n}\n"
+    }
+   },
+   {
+    "title": "의미 검색",
+    "body": [
+     "SQL 은 Python 트랙과 같습니다. JDBC 는 이름 있는 파라미터가 없어 같은 벡터를 1번·4번 자리에 두 번 넣습니다. 실행: <code>./mvnw -q compile exec:java -Dexec.mainClass=study.s08.SearchMeta -Dexec.args=\"고객 등급이 바뀐 이력은 어디에 있나요?\"</code> 이어서 이론 4절의 <code>EXPLAIN ANALYZE</code> 를 psql 에서 실행해 인덱스 사용 여부를 확인합니다."
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s08/java/src/main/java/study/s08/SearchMeta.java",
+     "src": "package study.s08;\n\nimport com.pgvector.PGvector;\n\nimport java.sql.Connection;\nimport java.sql.DriverManager;\nimport java.sql.PreparedStatement;\nimport java.sql.ResultSet;\nimport java.sql.Statement;\n\n/**\n * 의미 검색 — ./mvnw -q compile exec:java -Dexec.mainClass=study.s08.SearchMeta -Dexec.args=\"고객 등급이 바뀐 이력은 어디에 있나요?\"\n * 용어만 보려면 환경변수 KIND=term\n */\npublic final class SearchMeta {\n\n    static final String SQL = \"\"\"\n            SELECT kind, table_name, column_name, title,\n                   1 - (embedding <=> ?) AS similarity      -- <=> 는 코사인 '거리', 1 - 거리 = 유사도\n            FROM meta_chunk\n            WHERE (?::text IS NULL OR kind = ?)\n            ORDER BY embedding <=> ?                        -- 거리 오름차순 = 가까운 순\n            LIMIT ?\n            \"\"\";\n\n    public static void main(String[] args) throws Exception {\n        String question = args.length > 0 ? String.join(\" \", args) : \"고객 등급이 바뀐 이력은 어디에 있나요?\";\n        String kind = System.getenv(\"KIND\");            // null 이면 필터 없음\n        PGvector q = new PGvector(new E5Embedder().query(question));\n\n        try (Connection conn = DriverManager.getConnection(LoadMeta.PGURL)) {\n            PGvector.registerTypes(conn);\n            try (Statement st = conn.createStatement()) {\n                st.execute(\"SET hnsw.ef_search = 100\");   // 후보 목록 크기 (기본 40) — 크면 정확, 느림\n            }\n            try (PreparedStatement ps = conn.prepareStatement(SQL)) {\n                ps.setObject(1, q);\n                ps.setString(2, kind);\n                ps.setString(3, kind);\n                ps.setObject(4, q);\n                ps.setInt(5, 5);\n                try (ResultSet rs = ps.executeQuery()) {\n                    while (rs.next()) {\n                        String table = rs.getString(\"table_name\");\n                        String where = table == null ? \"(용어)\" : table + \".\" + rs.getString(\"column_name\");\n                        System.out.printf(\"%.3f  %-28s %s%n\", rs.getDouble(\"similarity\"), where, rs.getString(\"title\"));\n                    }\n                }\n            }\n        }\n    }\n}\n"
+    }
+   }
+  ],
+  "check": [
+   "'고객 등급이 바뀐 이력' 질문에 TB_CUST_GRD_HIST 의 컬럼과 '선분이력' 용어가 상위에 오고, 순위가 Python 트랙과 같은가",
+   "E5Embedder 의 유사도 숫자를 Python 트랙 cosine_demo.py 결과와 나란히 놓고, 차이가 소수 둘째 자리 안쪽인지 확인했는가",
+   "LoadMeta 를 두 번 실행해도 건수가 10건으로 유지되는 이유(TRUNCATE 후 한 트랜잭션 커밋)를 설명할 수 있는가"
+  ]
+ },
  "example": {
   "title": "테이블 정의서·용어집 의미 검색",
   "context": "정보계 DW 에는 테이블 수백 개, 컬럼 수천 개가 있고 메타데이터는 엑셀 정의서와 용어집에 흩어져 있습니다. 현업이 '고객 등급 바뀐 이력 어디 있어요?'라고 물으면 담당자가 정의서를 뒤집니다. 메타데이터를 행 단위 문장으로 색인해 <b>뜻으로 찾고</b>, 물리명을 정확히 친 경우는 키워드 일치를 먼저 보여 줍니다.",

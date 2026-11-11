@@ -1,0 +1,11 @@
+# labs/s15/python/requirements.txt — 세션 14 목록에 DB · 인증 · AI 를 더했습니다 (Python 3.11+)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2
+python-multipart     # 로그인 폼(OAuth2PasswordRequestForm) 해석
+sqlalchemy>=2.0
+oracledb>=3.0        # thin 모드: Oracle Client 설치 불필요
+pyjwt>=2.8           # 로그인 토큰(JWT)
+anthropic>=2.3
+pytest>=8
+httpx2               # FastAPI TestClient 용

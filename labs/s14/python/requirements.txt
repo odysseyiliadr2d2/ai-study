@@ -1,0 +1,7 @@
+# labs/s14/python/requirements.txt — Python 3.11+
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2
+jinja2>=3.1          # 목록 화면 템플릿
+pytest>=8
+httpx2               # FastAPI TestClient 가 쓰는 HTTP 클라이언트 (테스트용)

@@ -86,6 +86,26 @@ def check(sid, meta):
     if sum(1 for st in steps if st.get("code", {}).get("src")) < 2: errs.append("lab 코드가 있는 단계 2개 이상")
     if not l.get("env"): warns.append("lab.env 없음")
     if len(l.get("check", [])) < 2: errs.append("lab.check 2개 이상")
+    # 실습 트랙: 모든 세션에 Python 과 Java 가 있어야 함 (lab 이 Python 이 아니면 lab_python 필요)
+    main_is_py = not l.get("track")
+    if not main_is_py and not s.get("lab_python"): errs.append("lab_python 없음 (lab 이 Python 이 아님)")
+    if main_is_py and s.get("lab_python"): warns.append("lab 이 Python 인데 lab_python 도 있음")
+    if not s.get("lab_java"): errs.append("lab_java 없음")
+    for key in ("lab_python", "lab_java"):
+        t = s.get(key)
+        if not t: continue
+        for k in ("title", "lead"):
+            if not t.get(k): errs.append(f"{key}.{k} 없음")
+        st = t.get("steps", [])
+        if len(st) < 4: errs.append(f"{key}.steps 4개 이상")
+        if sum(1 for x2 in st if x2.get("code", {}).get("src")) < 3: errs.append(f"{key} 코드가 있는 단계 3개 이상")
+        if not t.get("env"): errs.append(f"{key}.env 없음")
+        if len(t.get("check", [])) < 3: errs.append(f"{key}.check 3개 이상")
+        want = "python" if key == "lab_python" else "java"
+        for x2 in st:
+            f2 = x2.get("code", {}).get("file", "")
+            if f2 and not f2.startswith(f"labs/s{s['id']:02d}/{want}/"):
+                errs.append(f"{key} 파일 경로는 labs/s{s['id']:02d}/{want}/ 아래: {f2}")
     x = s.get("example", {})
     for k in ("title", "context"):
         if not x.get(k): errs.append(f"example.{k} 없음")

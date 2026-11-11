@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>study</groupId>
+  <artifactId>s08-meta-search</artifactId>
+  <version>1.0.0</version>
+  <description>세션 8 pgvector 메타데이터 의미 검색 (Java 트랙)</description>
+
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <langchain4j-embeddings.version>1.23.0-beta33</langchain4j-embeddings.version>
+    <postgresql.version>42.7.14</postgresql.version>
+    <pgvector.version>0.1.6</pgvector.version>
+  </properties>
+
+  <dependencies>
+    <dependency>   <!-- ONNX 런타임 + 토크나이저. beta 꼬리가 붙는 버전은 Maven Central 에서 확인 -->
+      <groupId>dev.langchain4j</groupId>
+      <artifactId>langchain4j-embeddings</artifactId>
+      <version>${langchain4j-embeddings.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>${postgresql.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.pgvector</groupId>
+      <artifactId>pgvector</artifactId>
+      <version>${pgvector.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- ./mvnw -q compile exec:java -Dexec.mainClass=... 로 실행 -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.7.0</version>
+        <configuration>
+          <mainClass>study.s08.SearchMeta</mainClass>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

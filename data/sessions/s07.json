@@ -201,6 +201,198 @@
    "승인 버튼을 누르기 전에는 답장이 절대 나가지 않고, 거절·4시간 무응답이면 시트에 '수동 처리'로 남는가",
    "FAQ 에 있는 문의는 초안에 FAQ 내용이 반영되고 faq_used 에 ID 가 남는가 (Return Intermediate Steps 로 도구 호출 확인)",
    "자격증명을 일부러 틀렸을 때 오류 워크플로가 실패 노드와 실행 링크를 담아 알림을 보내는가"
+  ],
+  "track": "n8n"
+ },
+ "lab_python": {
+  "title": "문의 메일 처리 에이전트를 Python 코드로 만들기",
+  "lead": "n8n 실습과 같은 일을 Python 으로 합니다. Gmail 대신 <code>inbox.jsonl</code> 의 지어낸 문의 메일 4통을, Google Sheets 대신 <code>faq.csv</code> 를 씁니다. 에이전트는 Claude 도구 호출(tool use)로 FAQ 를 찾고 JSON 으로 분류·요약·답장 초안을 냅니다. 사람 승인은 콘솔 입력이고, 승인한 메일만 <code>outbox/</code> 에 답장 파일을 쓰며 결과는 <code>log.csv</code> 에 남습니다. MCP 도구 연결은 세션 18 에서 다룹니다.",
+  "env": [
+   "Python 3.11+",
+   "anthropic (Python SDK)",
+   "ANTHROPIC_API_KEY",
+   "터미널 (승인 입력용)"
+  ],
+  "steps": [
+   {
+    "title": "환경 준비",
+    "body": [
+     "새 폴더에서 <code>python -m venv .venv &amp;&amp; source .venv/bin/activate</code> 후 <code>pip install -r requirements.txt</code> 로 설치합니다. <code>export ANTHROPIC_API_KEY=sk-ant-...</code> 로 키를 넣고, 모델은 <code>CLAUDE_MODEL</code> 환경변수로 바꿀 수 있습니다.",
+     "외부 패키지는 Anthropic SDK 하나입니다. CSV·JSON·파일 처리는 표준 라이브러리로 합니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s07/python/requirements.txt",
+     "src": "anthropic>=2.3\n"
+    }
+   },
+   {
+    "title": "샘플 문의 메일",
+    "body": [
+     "Gmail Trigger 대신 한 줄에 메일 한 통인 JSON Lines 파일을 읽습니다. n8n 의 Edit Fields 노드에서 남긴 필드(id, thread_id, from, subject, body)와 같습니다. 실제 고객 정보는 넣지 않습니다. 사내 적용 때는 이 파일 대신 IMAP(<code>imaplib</code>)이나 메일 시스템 API 로 읽습니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s07/python/inbox.jsonl",
+     "src": "{\"id\": \"m001\", \"thread_id\": \"t001\", \"from\": \"kim.ops@example.com\", \"received_at\": \"2026-11-10T09:12:00+09:00\", \"subject\": \"월별 정산 보고서 조회 오류\", \"body\": \"안녕하세요. 어제부터 월별 정산 보고서 화면에서 조회 버튼을 누르면 ERR-5031 오류가 납니다. 10월 데이터만 그렇고 9월은 정상입니다. 확인 부탁드립니다.\"}\n{\"id\": \"m002\", \"thread_id\": \"t002\", \"from\": \"lee.branch@example.com\", \"received_at\": \"2026-11-10T09:40:00+09:00\", \"subject\": \"비밀번호를 잊어버렸습니다\", \"body\": \"포털 비밀번호를 5번 틀려서 잠긴 것 같습니다. 어떻게 풀 수 있나요?\"}\n{\"id\": \"m003\", \"thread_id\": \"t003\", \"from\": \"park.contract@example.com\", \"received_at\": \"2026-11-10T10:05:00+09:00\", \"subject\": \"내년 유지보수 계약 단가 문의\", \"body\": \"내년 유지보수 계약을 갱신하려고 합니다. 올해와 같은 단가로 가능한지 알려 주세요.\"}\n{\"id\": \"m004\", \"thread_id\": \"t004\", \"from\": \"choi.report@example.com\", \"received_at\": \"2026-11-10T10:30:00+09:00\", \"subject\": \"엑셀 다운로드에 컬럼 추가 요청\", \"body\": \"거래 현황 화면의 엑셀 다운로드에 지점명 컬럼도 함께 나오면 좋겠습니다. 가능할까요?\"}\n"
+    }
+   },
+   {
+    "title": "FAQ 파일",
+    "body": [
+     "n8n 실습의 '고객지원 FAQ' 시트와 같은 열(faq_id, category, question, answer, updated_at)입니다. 엑셀에서 UTF-8 CSV 로 저장해 바꿔 넣어도 됩니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s07/python/faq.csv",
+     "src": "faq_id,category,question,answer,updated_at\nFAQ-001,계정·로그인,비밀번호를 잊었거나 계정이 잠겼어요,로그인 화면의 비밀번호 재설정에서 등록된 메일로 임시 비밀번호를 받습니다. 5회 이상 틀려 잠긴 계정은 30분 뒤 자동으로 풀립니다.,2026-09-01\nFAQ-002,계정·로그인,담당자가 바뀌어 계정을 새로 만들고 싶어요,고객사 관리자가 포털의 사용자 관리 메뉴에서 신규 계정을 신청합니다. 승인까지 1영업일이 걸립니다.,2026-09-01\nFAQ-007,요금·계약,세금계산서를 다시 받고 싶어요,포털의 계약·정산 메뉴에서 월별 세금계산서를 다시 내려받을 수 있습니다.,2026-08-15\nFAQ-012,장애·오류,보고서 조회 시 ERR-5031 오류가 나요,ERR-5031 은 해당 월 집계가 아직 끝나지 않았을 때 나는 오류입니다. 월초 3영업일 안에는 전월 보고서가 09:00 이후에 열립니다. 09:00 이후에도 같으면 화면 캡처와 함께 회신해 주세요.,2026-10-20\nFAQ-015,장애·오류,엑셀 다운로드가 느려요,조회 기간이 3개월을 넘으면 다운로드가 백그라운드 작업으로 바뀌고 완료 시 알림이 옵니다.,2026-07-02\n"
+    }
+   },
+   {
+    "title": "FAQ 조회 도구",
+    "body": [
+     "<code>TOOLS</code> 는 모델에게 보여 주는 도구 설명서(JSON Schema)이고, <code>call_tool</code> 은 모델이 요청했을 때 우리 코드가 실제로 실행하는 함수입니다. 모델은 도구를 직접 실행하지 못하고 '이 인자로 불러 달라'고 요청만 합니다. 모르는 도구 이름은 실행하지 않습니다. 실행: <code>python tools.py</code>"
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s07/python/tools.py",
+     "src": "\"\"\"FAQ 조회 도구: 에이전트에 줄 도구 스키마와 실제 실행 함수\"\"\"\nimport csv\nimport json\nimport re\nfrom pathlib import Path\n\nFAQ_PATH = Path(\"faq.csv\")\n\n# 모델은 description 을 읽고 언제 이 도구를 쓸지 판단합니다 (n8n Tool 노드의 Description 과 같은 역할)\nTOOLS = [{\n    \"name\": \"faq_lookup\",\n    \"description\": \"고객지원 FAQ 에서 문의와 관련된 항목을 찾습니다. 답장을 쓰기 전에 반드시 먼저 호출합니다. \"\n                   \"결과가 빈 배열이면 FAQ 에 근거가 없다는 뜻입니다.\",\n    \"input_schema\": {\n        \"type\": \"object\",\n        \"properties\": {\n            \"query\": {\"type\": \"string\", \"description\": \"문의의 핵심 표현 (예: 'ERR-5031 정산 보고서')\"},\n            \"category\": {\"type\": \"string\", \"description\": \"분류 (선택)\",\n                         \"enum\": [\"계정·로그인\", \"요금·계약\", \"장애·오류\", \"기능 요청\", \"기타\"]},\n        },\n        \"required\": [\"query\"],\n    },\n}]\n\n\ndef tokens(text: str) -> set[str]:\n    \"\"\"영문·숫자 코드(ERR-5031)는 통째로, 한글은 2글자씩 잘라 조사 차이를 흡수합니다.\"\"\"\n    text = text.lower()\n    out = set(re.findall(r\"[a-z0-9-]{2,}\", text))\n    for w in re.findall(r\"[가-힣]+\", text):\n        out |= {w[i:i + 2] for i in range(len(w) - 1)}\n    return out\n\n\ndef faq_lookup(query: str, category: str | None = None, top: int = 3) -> list[dict]:\n    with open(FAQ_PATH, encoding=\"utf-8\") as f:\n        rows = list(csv.DictReader(f))\n    q = tokens(query)\n    scored = []\n    for r in rows:\n        score = len(q & tokens(r[\"question\"] + \" \" + r[\"answer\"]))\n        if category and r[\"category\"] == category:\n            score += 1\n        if score >= 2:                        # 한두 글자만 겹치는 우연한 일치는 버립니다\n            scored.append((score, r))\n    scored.sort(key=lambda x: -x[0])\n    return [r for _, r in scored[:top]]\n\n\ndef call_tool(name: str, args: dict) -> str:\n    \"\"\"모델이 요청한 도구를 실행하고 결과를 문자열로 돌려줍니다. 모르는 도구는 실행하지 않습니다.\"\"\"\n    if name == \"faq_lookup\":\n        return json.dumps(faq_lookup(args.get(\"query\", \"\"), args.get(\"category\")), ensure_ascii=False)\n    return f\"알 수 없는 도구입니다: {name}\"\n\n\nif __name__ == \"__main__\":\n    print(call_tool(\"faq_lookup\", {\"query\": \"정산 보고서 ERR-5031 오류\"}))\n"
+    }
+   },
+   {
+    "title": "에이전트 루프",
+    "body": [
+     "응답의 <code>stop_reason</code> 이 <code>tool_use</code> 이면 도구를 실행하고 <code>tool_result</code> 를 붙여 다시 부릅니다. 텍스트로 끝나면 JSON 을 꺼내 필수 키를 확인합니다. Claude 5.5 는 강제 <code>tool_choice</code> 와 <code>temperature</code> 를 받지 않으므로, 'FAQ 를 먼저 찾는다'는 순서를 시스템 프롬프트에 씁니다. 실행: <code>python agent.py</code>"
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s07/python/agent.py",
+     "src": "\"\"\"에이전트 루프: 도구 호출이 끝날 때까지 반복하고 JSON 결과를 돌려줍니다 — python agent.py 로 첫 메일만 시험\"\"\"\nimport json\nimport os\n\nfrom anthropic import Anthropic\n\nfrom tools import TOOLS, call_tool\n\nMODEL = os.getenv(\"CLAUDE_MODEL\", \"claude-sonnet-5-5\")\nMAX_ITERATIONS = 5          # 도구 호출이 끝없이 반복되지 않게 (n8n 의 Max Iterations)\nclient = Anthropic(max_retries=3)   # 429·5xx·네트워크 오류는 SDK 가 지수 백오프로 재시도 (n8n 의 Retry On Fail)\n\nSYSTEM = \"\"\"당신은 SI 회사 고객지원팀의 1차 응대 담당입니다.\n1. 문의를 '계정·로그인 / 요금·계약 / 장애·오류 / 기능 요청 / 기타' 중 하나로 분류합니다.\n2. 답을 쓰기 전에 반드시 faq_lookup 도구로 관련 FAQ 를 찾습니다.\n3. FAQ 에 근거가 있으면 그 내용으로, 없으면 \"담당자가 확인 후 회신드리겠습니다\"로 답장 초안을 씁니다.\n4. 가격·계약 조건·장애 원인은 추측해서 쓰지 않습니다.\n5. 답장은 합니다체, 5문장 이내, 서명은 '고객지원팀'.\n6. 확신이 없으면 needs_human 을 true 로 둡니다.\n마지막 답은 JSON 하나로만 씁니다:\n{\"category\": \"...\", \"urgency\": \"높음|보통|낮음\", \"summary\": \"...\", \"faq_used\": \"FAQ-012 또는 빈 문자열\", \"needs_human\": false, \"reply_draft\": \"...\"}\"\"\"\n\nREQUIRED = (\"category\", \"urgency\", \"summary\", \"faq_used\", \"needs_human\", \"reply_draft\")\n\n\ndef parse_result(text: str) -> dict:\n    \"\"\"응답 텍스트에서 JSON 을 꺼내 필수 키를 확인합니다 (n8n 의 Structured Output Parser 역할).\"\"\"\n    data = json.loads(text[text.index(\"{\"): text.rindex(\"}\") + 1])\n    missing = [k for k in REQUIRED if k not in data]\n    if missing:\n        raise ValueError(f\"결과에 필수 키가 없습니다: {missing}\")\n    return data\n\n\ndef run_agent(mail: dict) -> tuple[dict, list[dict]]:\n    \"\"\"(결과 JSON, 도구 호출 기록) 을 돌려줍니다.\"\"\"\n    messages = [{\"role\": \"user\", \"content\":\n                 f\"다음 고객 문의 메일을 처리하세요.\\n보낸 사람: {mail['from']}\\n\"\n                 f\"제목: {mail['subject']}\\n본문:\\n{mail['body'][:4000]}\"}]\n    calls = []\n    for _ in range(MAX_ITERATIONS):\n        # Claude 5.5: temperature 와 강제 tool_choice 는 넣지 않습니다. 도구 순서는 시스템 프롬프트로 지시\n        msg = client.messages.create(model=MODEL, max_tokens=2000, system=SYSTEM,\n                                     tools=TOOLS, messages=messages)\n        if msg.stop_reason == \"tool_use\":\n            messages.append({\"role\": \"assistant\", \"content\": msg.content})   # thinking·tool_use 블록 그대로\n            results = []\n            for b in msg.content:\n                if b.type == \"tool_use\":\n                    out = call_tool(b.name, b.input)\n                    calls.append({\"tool\": b.name, \"input\": b.input, \"output\": out[:200]})\n                    results.append({\"type\": \"tool_result\", \"tool_use_id\": b.id, \"content\": out})\n            messages.append({\"role\": \"user\", \"content\": results})\n            continue\n        text = \"\".join(b.text for b in msg.content if b.type == \"text\")   # thinking 블록은 건너뜀\n        return parse_result(text), calls\n    raise RuntimeError(f\"도구 호출이 {MAX_ITERATIONS}번을 넘었습니다\")\n\n\nif __name__ == \"__main__\":\n    first = json.loads(open(\"inbox.jsonl\", encoding=\"utf-8\").readline())\n    result, calls = run_agent(first)\n    print(json.dumps(calls, ensure_ascii=False, indent=2))\n    print(json.dumps(result, ensure_ascii=False, indent=2))\n"
+    }
+   },
+   {
+    "title": "승인 → 답장 파일 → 기록 · 오류 처리",
+    "body": [
+     "메일마다 에이전트 결과를 콘솔에 보여 주고 <code>y</code> 를 입력해야만 <code>outbox/메일ID.txt</code> 를 씁니다. 그 밖의 입력이나 무응답(EOF)은 '수동 처리'로 기록합니다. 한 메일에서 오류가 나면 <code>errors.log</code> 에 남기고 다음 메일로 넘어가며, 그 메일은 <code>processed.txt</code> 에 넣지 않아 다음 실행 때 다시 처리합니다. 실행: <code>python main.py</code>"
+    ],
+    "code": {
+     "lang": "python",
+     "file": "labs/s07/python/main.py",
+     "src": "\"\"\"문의 메일 처리: 에이전트 → 사람 승인 → 답장 파일 → 기록 — python main.py\ninbox.jsonl 의 새 메일만 처리합니다. 승인 전에는 outbox/ 에 아무것도 쓰지 않습니다.\n\"\"\"\nimport csv\nimport datetime as dt\nimport json\nimport traceback\nfrom pathlib import Path\n\nfrom agent import MODEL, run_agent\n\nINBOX, OUTBOX = Path(\"inbox.jsonl\"), Path(\"outbox\")\nLOG, DONE, ERRORS = Path(\"log.csv\"), Path(\"processed.txt\"), Path(\"errors.log\")\nFIELDS = [\"processed_at\", \"mail_id\", \"from\", \"subject\", \"category\", \"urgency\", \"faq_used\", \"result\"]\n\n\ndef ask_approval(mail: dict, out: dict) -> bool:\n    \"\"\"승인 담당자에게 초안을 보여 주고 y 를 받아야만 True. 입력이 없거나(EOF) 다른 값이면 '직접 처리'.\"\"\"\n    print(\"\\n\" + \"=\" * 60)\n    print(f\"[승인 요청] {mail['subject']}  ({out['category']}/{out['urgency']})\")\n    print(f\"보낸 사람: {mail['from']}\\n요약: {out['summary']}\")\n    print(f\"사람 확인 필요: {out['needs_human']}  · 참고 FAQ: {out['faq_used'] or '없음'}\")\n    print(\"---- 답장 초안 ----\\n\" + out[\"reply_draft\"])\n    try:\n        return input(\"발송 승인? [y = 발송 승인 / 그 밖 = 직접 처리] \").strip().lower() == \"y\"\n    except EOFError:                         # python main.py < /dev/null 처럼 무응답이면 발송하지 않음\n        return False\n\n\ndef write_reply(mail: dict, out: dict) -> Path:\n    \"\"\"실습에서는 SMTP 대신 파일로 '발송'합니다. 운영에서는 이 함수만 smtplib 발송으로 바꿉니다.\"\"\"\n    OUTBOX.mkdir(exist_ok=True)\n    path = OUTBOX / f\"{mail['id']}.txt\"\n    path.write_text(f\"To: {mail['from']}\\nSubject: Re: {mail['subject']}\\nIn-Reply-To: {mail['thread_id']}\\n\\n\"\n                    f\"{out['reply_draft']}\\n\", encoding=\"utf-8\")\n    return path\n\n\ndef log(mail: dict, out: dict, result: str):\n    new = not LOG.exists()\n    with open(LOG, \"a\", newline=\"\", encoding=\"utf-8-sig\") as f:\n        w = csv.DictWriter(f, fieldnames=FIELDS)\n        if new:\n            w.writeheader()\n        w.writerow({\"processed_at\": dt.datetime.now().isoformat(timespec=\"seconds\"), \"mail_id\": mail[\"id\"],\n                    \"from\": mail[\"from\"], \"subject\": mail[\"subject\"], \"category\": out.get(\"category\", \"\"),\n                    \"urgency\": out.get(\"urgency\", \"\"), \"faq_used\": out.get(\"faq_used\", \"\"), \"result\": result})\n\n\ndef main():\n    done = set(DONE.read_text(encoding=\"utf-8\").split()) if DONE.exists() else set()\n    mails = [json.loads(line) for line in INBOX.read_text(encoding=\"utf-8\").splitlines() if line.strip()]\n    for mail in [m for m in mails if m[\"id\"] not in done]:\n        try:\n            out, calls = run_agent(mail)\n            print(f\"\\n[{mail['id']}] 도구 호출 {len(calls)}회: \" + \", \".join(c[\"input\"].get(\"query\", \"\") for c in calls))\n            if ask_approval(mail, out):\n                print(\"→ 발송:\", write_reply(mail, out))\n                log(mail, out, \"자동 발송\")\n            else:\n                log(mail, out, \"수동 처리\")\n        except Exception as e:               # 이 메일만 실패로 남기고 다음 메일은 계속 (n8n 의 Error Workflow)\n            with open(ERRORS, \"a\", encoding=\"utf-8\") as f:\n                f.write(f\"{dt.datetime.now().isoformat(timespec='seconds')} {mail['id']} {MODEL} \"\n                        f\"{type(e).__name__}: {e}\\n{traceback.format_exc(limit=2)}\\n\")\n            log(mail, {}, \"오류\")\n            print(f\"[{mail['id']}] 오류 → errors.log ({type(e).__name__})\")\n            continue                         # processed.txt 에 넣지 않으므로 다음 실행에서 다시 처리\n        with open(DONE, \"a\", encoding=\"utf-8\") as f:\n            f.write(mail[\"id\"] + \"\\n\")\n\n\nif __name__ == \"__main__\":\n    main()\n"
+    }
+   },
+   {
+    "title": "다섯 가지 상황 시험",
+    "body": [
+     "n8n 실습의 테스트 체크와 같은 다섯 상황을 일으켜 봅니다. <code>processed.txt</code> 를 지우면 같은 메일을 다시 처리합니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s07/python/test.sh",
+     "src": "# 테스트 체크 (n8n 실습과 같은 다섯 가지 상황)\nrm -f processed.txt log.csv errors.log && rm -rf outbox\n\n# 1) 정상 문의 · 2) FAQ 에 없는 문의 · 3) 승인 거절\npython main.py            # m001 은 y, m002 는 y, m003 · m004 는 n 을 입력\n\n# 4) 무응답: 입력을 주지 않으면(EOF) 모두 '수동 처리' 로 기록되고 outbox 는 그대로\nrm -f processed.txt && python main.py < /dev/null\n\n# 5) 자격증명 오류: 키를 일부러 틀리게 → 메일마다 '오류' 기록, errors.log 확인\nrm -f processed.txt && ANTHROPIC_API_KEY=sk-ant-wrong python main.py < /dev/null\ncat errors.log\n\ncolumn -s, -t < log.csv   # 결과 기록 확인 (엑셀로 열어도 됨, UTF-8 BOM)\n"
+    }
+   }
+  ],
+  "check": [
+   "y 를 입력하기 전에는 <code>outbox/</code> 에 파일이 생기지 않고, 거절·무응답이면 log.csv 에 '수동 처리'로 남는가",
+   "m001(ERR-5031)·m002(계정 잠김)는 도구 호출 로그에 faq_lookup 이 찍히고 faq_used 에 FAQ ID 가 남으며, m003(단가 문의)은 needs_human 이 true 인가",
+   "API 키를 틀리게 했을 때 프로그램이 멈추지 않고 메일마다 '오류'로 기록되며 errors.log 에 원인이 남는가"
+  ]
+ },
+ "lab_java": {
+  "title": "문의 메일 처리 에이전트를 Java 로 만들기",
+  "lead": "n8n 실습과 같은 일을 Java 21 과 Anthropic Java SDK 로 합니다. 입력은 Python 트랙과 같은 <code>inbox.jsonl</code>·<code>faq.csv</code>, 결과도 같은 <code>outbox/</code>·<code>log.csv</code>·<code>errors.log</code> 입니다. 도구 정의는 <code>Tool.builder()</code>, 도구 결과는 <code>ToolResultBlockParam</code> 으로 돌려주고, 사람 승인은 콘솔 입력으로 받습니다. Spring 없이 평범한 Maven 프로젝트입니다.",
+  "env": [
+   "JDK 21 (Eclipse Temurin 권장)",
+   "Maven Wrapper (./mvnw)",
+   "com.anthropic:anthropic-java 3.8.0",
+   "Jackson databind 2.x",
+   "ANTHROPIC_API_KEY"
+  ],
+  "steps": [
+   {
+    "title": "Maven 프로젝트",
+    "body": [
+     "아래 <code>pom.xml</code> 을 둡니다. Maven Wrapper(<code>mvnw</code>·<code>mvnw.cmd</code>)는 저장소의 실습 폴더에 들어 있습니다. <code>./mvnw</code> 로 같은 Maven 버전을 씁니다. 소스는 <code>src/main/java/study/s07/</code> 에 둡니다. 사내에서는 Nexus 같은 내부 Maven 저장소를 settings.xml 의 mirror 로 지정합니다.",
+     "실행: <code>./mvnw -q compile exec:java -Dexec.mainClass=study.s07.InquiryApp</code>. 키는 <code>export ANTHROPIC_API_KEY=sk-ant-...</code>, 모델은 <code>CLAUDE_MODEL</code> 로 바꿉니다."
+    ],
+    "code": {
+     "lang": "xml",
+     "file": "labs/s07/java/pom.xml",
+     "src": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd\">\n  <modelVersion>4.0.0</modelVersion>\n\n  <groupId>study</groupId>\n  <artifactId>s07-mail-agent</artifactId>\n  <version>1.0.0</version>\n  <description>세션 7 문의 메일 처리 에이전트 (Java 트랙)</description>\n\n  <properties>\n    <maven.compiler.release>21</maven.compiler.release>\n    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n    <anthropic.version>3.8.0</anthropic.version>\n    <jackson.version>2.23.0</jackson.version>\n  </properties>\n\n  <dependencies>\n    <dependency>\n      <groupId>com.anthropic</groupId>\n      <artifactId>anthropic-java</artifactId>\n      <version>${anthropic.version}</version>\n    </dependency>\n    <dependency>   <!-- 2.x 최신은 Maven Central 에서 확인 -->\n      <groupId>com.fasterxml.jackson.core</groupId>\n      <artifactId>jackson-databind</artifactId>\n      <version>${jackson.version}</version>\n    </dependency>\n  </dependencies>\n\n  <build>\n    <plugins>\n      <!-- ./mvnw -q compile exec:java -Dexec.mainClass=... 로 실행 -->\n      <plugin>\n        <groupId>org.codehaus.mojo</groupId>\n        <artifactId>exec-maven-plugin</artifactId>\n        <version>3.7.0</version>\n        <configuration>\n          <mainClass>study.s07.InquiryApp</mainClass>\n        </configuration>\n      </plugin>\n    </plugins>\n  </build>\n</project>\n"
+    }
+   },
+   {
+    "title": "샘플 문의 메일",
+    "body": [
+     "Python 트랙과 같은 <code>inbox.jsonl</code> 을 프로젝트 폴더(pom.xml 옆)에 둡니다. 한 줄에 메일 한 통이고, 필드는 n8n 실습의 Edit Fields 노드에서 남긴 것과 같습니다. 사내 적용 때는 이 파일 대신 Jakarta Mail 의 IMAP 으로 읽습니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s07/java/inbox.jsonl",
+     "src": "{\"id\": \"m001\", \"thread_id\": \"t001\", \"from\": \"kim.ops@example.com\", \"received_at\": \"2026-11-10T09:12:00+09:00\", \"subject\": \"월별 정산 보고서 조회 오류\", \"body\": \"안녕하세요. 어제부터 월별 정산 보고서 화면에서 조회 버튼을 누르면 ERR-5031 오류가 납니다. 10월 데이터만 그렇고 9월은 정상입니다. 확인 부탁드립니다.\"}\n{\"id\": \"m002\", \"thread_id\": \"t002\", \"from\": \"lee.branch@example.com\", \"received_at\": \"2026-11-10T09:40:00+09:00\", \"subject\": \"비밀번호를 잊어버렸습니다\", \"body\": \"포털 비밀번호를 5번 틀려서 잠긴 것 같습니다. 어떻게 풀 수 있나요?\"}\n{\"id\": \"m003\", \"thread_id\": \"t003\", \"from\": \"park.contract@example.com\", \"received_at\": \"2026-11-10T10:05:00+09:00\", \"subject\": \"내년 유지보수 계약 단가 문의\", \"body\": \"내년 유지보수 계약을 갱신하려고 합니다. 올해와 같은 단가로 가능한지 알려 주세요.\"}\n{\"id\": \"m004\", \"thread_id\": \"t004\", \"from\": \"choi.report@example.com\", \"received_at\": \"2026-11-10T10:30:00+09:00\", \"subject\": \"엑셀 다운로드에 컬럼 추가 요청\", \"body\": \"거래 현황 화면의 엑셀 다운로드에 지점명 컬럼도 함께 나오면 좋겠습니다. 가능할까요?\"}\n"
+    }
+   },
+   {
+    "title": "FAQ 파일",
+    "body": [
+     "Python 트랙과 같은 <code>faq.csv</code> 입니다. Java 쪽은 값 안에 쉼표가 없다는 전제로 단순하게 나눠 읽습니다. 값에 쉼표·따옴표가 들어가는 실제 FAQ 를 쓰려면 CSV 라이브러리로 바꿉니다."
+    ],
+    "code": {
+     "lang": "text",
+     "file": "labs/s07/java/faq.csv",
+     "src": "faq_id,category,question,answer,updated_at\nFAQ-001,계정·로그인,비밀번호를 잊었거나 계정이 잠겼어요,로그인 화면의 비밀번호 재설정에서 등록된 메일로 임시 비밀번호를 받습니다. 5회 이상 틀려 잠긴 계정은 30분 뒤 자동으로 풀립니다.,2026-09-01\nFAQ-002,계정·로그인,담당자가 바뀌어 계정을 새로 만들고 싶어요,고객사 관리자가 포털의 사용자 관리 메뉴에서 신규 계정을 신청합니다. 승인까지 1영업일이 걸립니다.,2026-09-01\nFAQ-007,요금·계약,세금계산서를 다시 받고 싶어요,포털의 계약·정산 메뉴에서 월별 세금계산서를 다시 내려받을 수 있습니다.,2026-08-15\nFAQ-012,장애·오류,보고서 조회 시 ERR-5031 오류가 나요,ERR-5031 은 해당 월 집계가 아직 끝나지 않았을 때 나는 오류입니다. 월초 3영업일 안에는 전월 보고서가 09:00 이후에 열립니다. 09:00 이후에도 같으면 화면 캡처와 함께 회신해 주세요.,2026-10-20\nFAQ-015,장애·오류,엑셀 다운로드가 느려요,조회 기간이 3개월을 넘으면 다운로드가 백그라운드 작업으로 바뀌고 완료 시 알림이 옵니다.,2026-07-02\n"
+    }
+   },
+   {
+    "title": "FAQ 조회 도구",
+    "body": [
+     "<code>definition()</code> 은 모델에게 보여 주는 도구 설명서, <code>call()</code> 은 모델이 요청했을 때 실제로 실행하는 코드입니다. 입력 스키마는 <code>Tool.InputSchema</code> 에 <code>JsonValue.from(Map)</code> 으로 넣고, 모델이 보낸 인자는 <code>tu._input().asObject()</code> 로 읽습니다. 도구 API 는 <a href=\"https://github.com/anthropics/anthropic-sdk-java\">anthropic-sdk-java</a> v3.8.0 소스와 예제(BetaMessagesToolsRawExample)로 확인했습니다."
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s07/java/src/main/java/study/s07/FaqTool.java",
+     "src": "package study.s07;\n\nimport com.anthropic.core.JsonValue;\nimport com.anthropic.models.messages.Tool;\nimport com.fasterxml.jackson.databind.ObjectMapper;\n\nimport java.io.IOException;\nimport java.nio.charset.StandardCharsets;\nimport java.nio.file.Files;\nimport java.nio.file.Path;\nimport java.util.*;\nimport java.util.regex.Matcher;\nimport java.util.regex.Pattern;\n\n/** FAQ 조회 도구: 모델에게 줄 도구 정의와 실제 실행 코드. 실행: ./mvnw -q compile exec:java -Dexec.mainClass=study.s07.FaqTool */\npublic final class FaqTool {\n\n    public record Faq(String faqId, String category, String question, String answer, String updatedAt) {}\n\n    private static final Pattern CODE = Pattern.compile(\"[a-z0-9-]{2,}\");\n    private static final Pattern HANGUL = Pattern.compile(\"[가-힣]+\");\n    private static final ObjectMapper JSON = new ObjectMapper();\n\n    private final List<Faq> faqs;\n\n    public FaqTool(Path csv) throws IOException {\n        // 실습 파일은 값 안에 쉼표가 없습니다. 따옴표가 들어간 CSV 를 다루려면 Apache Commons CSV 같은 라이브러리를 씁니다.\n        this.faqs = Files.readAllLines(csv, StandardCharsets.UTF_8).stream()\n                .skip(1).filter(l -> !l.isBlank())\n                .map(l -> l.split(\",\", 5))\n                .map(c -> new Faq(c[0], c[1], c[2], c[3], c[4]))\n                .toList();\n    }\n\n    /** 모델은 description 을 읽고 언제 이 도구를 쓸지 판단합니다. */\n    public Tool definition() {\n        return Tool.builder()\n                .name(\"faq_lookup\")\n                .description(\"고객지원 FAQ 에서 문의와 관련된 항목을 찾습니다. 답장을 쓰기 전에 반드시 먼저 호출합니다. \"\n                        + \"결과가 빈 배열이면 FAQ 에 근거가 없다는 뜻입니다.\")\n                .inputSchema(Tool.InputSchema.builder()\n                        .properties(JsonValue.from(Map.of(\n                                \"query\", Map.of(\"type\", \"string\",\n                                        \"description\", \"문의의 핵심 표현 (예: 'ERR-5031 정산 보고서')\"),\n                                \"category\", Map.of(\"type\", \"string\", \"description\", \"분류 (선택)\",\n                                        \"enum\", List.of(\"계정·로그인\", \"요금·계약\", \"장애·오류\", \"기능 요청\", \"기타\")))))\n                        .required(List.of(\"query\"))\n                        .build())\n                .build();\n    }\n\n    /** 영문·숫자 코드(ERR-5031)는 통째로, 한글은 2글자씩 잘라 조사 차이를 흡수합니다. */\n    static Set<String> tokens(String text) {\n        String t = text.toLowerCase(Locale.ROOT);\n        Set<String> out = new HashSet<>();\n        Matcher m = CODE.matcher(t);\n        while (m.find()) out.add(m.group());\n        Matcher h = HANGUL.matcher(t);\n        while (h.find()) {\n            String w = h.group();\n            for (int i = 0; i + 2 <= w.length(); i++) out.add(w.substring(i, i + 2));\n        }\n        return out;\n    }\n\n    public List<Faq> lookup(String query, String category, int top) {\n        Set<String> q = tokens(query);\n        record Scored(int score, Faq faq) {}\n        return faqs.stream()\n                .map(f -> {\n                    Set<String> common = new HashSet<>(q);\n                    common.retainAll(tokens(f.question() + \" \" + f.answer()));\n                    int score = common.size() + (f.category().equals(category) ? 1 : 0);\n                    return new Scored(score, f);\n                })\n                .filter(s -> s.score() >= 2)               // 한두 글자만 겹치는 우연한 일치는 버립니다\n                .sorted(Comparator.comparingInt(Scored::score).reversed())\n                .limit(top)\n                .map(Scored::faq)\n                .toList();\n    }\n\n    /** 모델이 요청한 도구를 실행하고 결과를 JSON 문자열로 돌려줍니다. 모르는 도구는 실행하지 않습니다. */\n    public String call(String name, JsonValue input) {\n        if (!\"faq_lookup\".equals(name)) return \"알 수 없는 도구입니다: \" + name;\n        Map<String, JsonValue> args = input.asObject().orElse(Map.of());\n        String query = Optional.ofNullable(args.get(\"query\")).flatMap(JsonValue::asString).orElse(\"\");\n        String category = Optional.ofNullable(args.get(\"category\")).flatMap(JsonValue::asString).orElse(null);\n        try {\n            return JSON.writeValueAsString(lookup(query, category, 3));\n        } catch (IOException e) {\n            return \"[]\";\n        }\n    }\n\n    public static void main(String[] args) throws IOException {\n        FaqTool tool = new FaqTool(Path.of(\"faq.csv\"));\n        System.out.println(tool.lookup(\"정산 보고서 ERR-5031 오류\", null, 3));\n    }\n}\n"
+    }
+   },
+   {
+    "title": "에이전트 루프",
+    "body": [
+     "<code>stopReason()</code> 이 <code>TOOL_USE</code> 이면 응답을 <code>params.addMessage(msg)</code> 로 그대로 대화에 넣고(thinking 블록 포함), 도구 결과를 <code>addUserMessageOfContentBlockParams</code> 로 붙여 다시 부릅니다. 텍스트로 끝나면 <code>b.text()</code> 로 text 블록만 모아 JSON 을 record 로 읽습니다. 빌더는 호출할 때마다 <code>build()</code> 로 새 요청을 만들기 때문에 대화를 계속 덧붙일 수 있습니다."
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s07/java/src/main/java/study/s07/MailAgent.java",
+     "src": "package study.s07;\n\nimport com.anthropic.client.AnthropicClient;\nimport com.anthropic.client.okhttp.AnthropicOkHttpClient;\nimport com.anthropic.models.messages.*;\nimport com.fasterxml.jackson.annotation.JsonIgnoreProperties;\nimport com.fasterxml.jackson.annotation.JsonProperty;\nimport com.fasterxml.jackson.databind.ObjectMapper;\n\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.util.stream.Collectors;\n\n/** 에이전트 루프: 도구 호출이 끝날 때까지 반복하고 JSON 결과를 돌려줍니다. */\npublic final class MailAgent {\n\n    @JsonIgnoreProperties(ignoreUnknown = true)\n    public record Mail(String id, @JsonProperty(\"thread_id\") String threadId, String from,\n                       @JsonProperty(\"received_at\") String receivedAt, String subject, String body) {}\n\n    @JsonIgnoreProperties(ignoreUnknown = true)\n    public record Result(String category, String urgency, String summary,\n                         @JsonProperty(\"faq_used\") String faqUsed,\n                         @JsonProperty(\"needs_human\") Boolean needsHuman,\n                         @JsonProperty(\"reply_draft\") String replyDraft) {}\n\n    public record Run(Result result, List<String> toolCalls) {}\n\n    static final String MODEL = System.getenv().getOrDefault(\"CLAUDE_MODEL\", \"claude-sonnet-5-5\");\n    static final int MAX_ITERATIONS = 5;         // 도구 호출이 끝없이 반복되지 않게 (n8n 의 Max Iterations)\n\n    static final String SYSTEM = \"\"\"\n            당신은 SI 회사 고객지원팀의 1차 응대 담당입니다.\n            1. 문의를 '계정·로그인 / 요금·계약 / 장애·오류 / 기능 요청 / 기타' 중 하나로 분류합니다.\n            2. 답을 쓰기 전에 반드시 faq_lookup 도구로 관련 FAQ 를 찾습니다.\n            3. FAQ 에 근거가 있으면 그 내용으로, 없으면 \"담당자가 확인 후 회신드리겠습니다\"로 답장 초안을 씁니다.\n            4. 가격·계약 조건·장애 원인은 추측해서 쓰지 않습니다.\n            5. 답장은 합니다체, 5문장 이내, 서명은 '고객지원팀'.\n            6. 확신이 없으면 needs_human 을 true 로 둡니다.\n            마지막 답은 JSON 하나로만 씁니다:\n            {\"category\": \"...\", \"urgency\": \"높음|보통|낮음\", \"summary\": \"...\", \"faq_used\": \"FAQ-012 또는 빈 문자열\", \"needs_human\": false, \"reply_draft\": \"...\"}\"\"\";\n\n    private final AnthropicClient client = AnthropicOkHttpClient.builder()\n            .fromEnv()                 // ANTHROPIC_API_KEY\n            .maxRetries(3)             // 429·5xx·네트워크 오류 재시도 (n8n 의 Retry On Fail)\n            .build();\n    private final ObjectMapper json = new ObjectMapper();\n    private final FaqTool faq;\n\n    public MailAgent(FaqTool faq) {\n        this.faq = faq;\n    }\n\n    public Run run(Mail mail) throws Exception {\n        String body = mail.body().length() > 4000 ? mail.body().substring(0, 4000) : mail.body();\n        // Claude 5.5: temperature 와 강제 tool_choice 는 넣지 않습니다. 도구 순서는 시스템 프롬프트로 지시\n        MessageCreateParams.Builder params = MessageCreateParams.builder()\n                .model(MODEL)\n                .maxTokens(2000)\n                .system(SYSTEM)\n                .addTool(faq.definition())\n                .addUserMessage(\"다음 고객 문의 메일을 처리하세요.\\n보낸 사람: \" + mail.from()\n                        + \"\\n제목: \" + mail.subject() + \"\\n본문:\\n\" + body);\n        List<String> calls = new ArrayList<>();\n\n        for (int i = 0; i < MAX_ITERATIONS; i++) {\n            Message msg = client.messages().create(params.build());\n            boolean toolUse = msg.stopReason().map(StopReason.TOOL_USE::equals).orElse(false);\n            if (toolUse) {\n                params.addMessage(msg);                     // thinking·tool_use 블록을 그대로 assistant 차례로\n                List<ContentBlockParam> results = new ArrayList<>();\n                for (ContentBlock block : msg.content()) {\n                    block.toolUse().ifPresent(tu -> {\n                        String out = faq.call(tu.name(), tu._input());\n                        calls.add(tu.name() + \" \" + tu._input());\n                        results.add(ContentBlockParam.ofToolResult(ToolResultBlockParam.builder()\n                                .toolUseId(tu.id())\n                                .content(out)\n                                .build()));\n                    });\n                }\n                params.addUserMessageOfContentBlockParams(results);\n                continue;\n            }\n            String text = msg.content().stream()              // thinking 블록은 건너뛰고 text 만\n                    .flatMap(b -> b.text().stream())\n                    .map(TextBlock::text)\n                    .collect(Collectors.joining());\n            return new Run(parse(text), calls);\n        }\n        throw new IllegalStateException(\"도구 호출이 \" + MAX_ITERATIONS + \"번을 넘었습니다\");\n    }\n\n    /** 응답 텍스트에서 JSON 을 꺼내 필수 값을 확인합니다 (n8n 의 Structured Output Parser 역할). */\n    Result parse(String text) throws Exception {\n        Result r = json.readValue(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1), Result.class);\n        if (r.category() == null || r.summary() == null || r.replyDraft() == null || r.needsHuman() == null) {\n            throw new IllegalArgumentException(\"결과에 필수 값이 없습니다: \" + r);\n        }\n        return r;\n    }\n}\n"
+    }
+   },
+   {
+    "title": "승인 → 답장 파일 → 기록 · 오류 처리",
+    "body": [
+     "콘솔에 초안을 보여 주고 <code>y</code> 를 입력해야만 <code>outbox/메일ID.txt</code> 를 씁니다. 무응답(EOF)·다른 입력은 '수동 처리'입니다. 메일 하나가 실패하면 <code>errors.log</code> 에 남기고 다음 메일로 넘어갑니다. 운영에서는 <code>writeReply</code> 만 Jakarta Mail 발송으로 바꾸고, 승인 대기는 콘솔 대신 승인 화면이나 메신저 버튼으로 바꿉니다."
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s07/java/src/main/java/study/s07/InquiryApp.java",
+     "src": "package study.s07;\n\nimport com.fasterxml.jackson.databind.ObjectMapper;\n\nimport java.io.BufferedReader;\nimport java.io.IOException;\nimport java.io.InputStreamReader;\nimport java.nio.charset.StandardCharsets;\nimport java.nio.file.*;\nimport java.time.OffsetDateTime;\nimport java.time.temporal.ChronoUnit;\nimport java.util.*;\n\n/**\n * 문의 메일 처리: 에이전트 → 사람 승인 → 답장 파일 → 기록.\n * 실행: ./mvnw -q compile exec:java -Dexec.mainClass=study.s07.InquiryApp\n */\npublic final class InquiryApp {\n\n    static final Path INBOX = Path.of(\"inbox.jsonl\"), OUTBOX = Path.of(\"outbox\");\n    static final Path LOG = Path.of(\"log.csv\"), DONE = Path.of(\"processed.txt\"), ERRORS = Path.of(\"errors.log\");\n    static final String HEADER = \"processed_at,mail_id,from,subject,category,urgency,faq_used,result\";\n\n    private final BufferedReader console = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));\n\n    /** 초안을 보여 주고 y 를 받아야만 true. 입력이 없거나(EOF) 다른 값이면 '직접 처리'. */\n    boolean askApproval(MailAgent.Mail mail, MailAgent.Result r) throws IOException {\n        System.out.println(\"\\n\" + \"=\".repeat(60));\n        System.out.printf(\"[승인 요청] %s  (%s/%s)%n\", mail.subject(), r.category(), r.urgency());\n        System.out.printf(\"보낸 사람: %s%n요약: %s%n\", mail.from(), r.summary());\n        System.out.printf(\"사람 확인 필요: %s  · 참고 FAQ: %s%n\", r.needsHuman(),\n                r.faqUsed() == null || r.faqUsed().isBlank() ? \"없음\" : r.faqUsed());\n        System.out.println(\"---- 답장 초안 ----\\n\" + r.replyDraft());\n        System.out.print(\"발송 승인? [y = 발송 승인 / 그 밖 = 직접 처리] \");\n        String line = console.readLine();          // ... < /dev/null 처럼 무응답이면 null → 발송하지 않음\n        return line != null && line.trim().equalsIgnoreCase(\"y\");\n    }\n\n    /** 실습에서는 SMTP 대신 파일로 '발송'합니다. 운영에서는 이 메서드만 Jakarta Mail 발송으로 바꿉니다. */\n    Path writeReply(MailAgent.Mail mail, MailAgent.Result r) throws IOException {\n        Files.createDirectories(OUTBOX);\n        Path path = OUTBOX.resolve(mail.id() + \".txt\");\n        Files.writeString(path, \"To: \" + mail.from() + \"\\nSubject: Re: \" + mail.subject()\n                + \"\\nIn-Reply-To: \" + mail.threadId() + \"\\n\\n\" + r.replyDraft() + \"\\n\", StandardCharsets.UTF_8);\n        return path;\n    }\n\n    static String csv(String v) {\n        String s = v == null ? \"\" : v;\n        return s.contains(\",\") || s.contains(\"\\\"\") || s.contains(\"\\n\") ? \"\\\"\" + s.replace(\"\\\"\", \"\\\"\\\"\") + \"\\\"\" : s;\n    }\n\n    void log(MailAgent.Mail mail, MailAgent.Result r, String result) throws IOException {\n        if (Files.notExists(LOG)) Files.writeString(LOG, \"﻿\" + HEADER + \"\\n\", StandardCharsets.UTF_8);  // 엑셀용 BOM\n        List<String> row = List.of(OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS).toString(), mail.id(),\n                mail.from(), mail.subject(), r == null ? \"\" : r.category(), r == null ? \"\" : r.urgency(),\n                r == null ? \"\" : r.faqUsed(), result);\n        Files.writeString(LOG, String.join(\",\", row.stream().map(InquiryApp::csv).toList()) + \"\\n\",\n                StandardCharsets.UTF_8, StandardOpenOption.APPEND);\n    }\n\n    void run() throws IOException {\n        ObjectMapper json = new ObjectMapper();\n        MailAgent agent = new MailAgent(new FaqTool(Path.of(\"faq.csv\")));\n        Set<String> done = Files.exists(DONE) ? new HashSet<>(Files.readAllLines(DONE)) : new HashSet<>();\n\n        for (String line : Files.readAllLines(INBOX, StandardCharsets.UTF_8)) {\n            if (line.isBlank()) continue;\n            MailAgent.Mail mail = json.readValue(line, MailAgent.Mail.class);\n            if (done.contains(mail.id())) continue;\n            try {\n                MailAgent.Run run = agent.run(mail);\n                System.out.printf(\"%n[%s] 도구 호출 %d회: %s%n\", mail.id(), run.toolCalls().size(), run.toolCalls());\n                if (askApproval(mail, run.result())) {\n                    System.out.println(\"→ 발송: \" + writeReply(mail, run.result()));\n                    log(mail, run.result(), \"자동 발송\");\n                } else {\n                    log(mail, run.result(), \"수동 처리\");\n                }\n            } catch (Exception e) {                // 이 메일만 실패로 남기고 다음 메일은 계속 (n8n 의 Error Workflow)\n                Files.writeString(ERRORS, OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS) + \" \" + mail.id()\n                        + \" \" + MailAgent.MODEL + \" \" + e.getClass().getSimpleName() + \": \" + e.getMessage() + \"\\n\",\n                        StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);\n                log(mail, null, \"오류\");\n                System.out.printf(\"[%s] 오류 → errors.log (%s)%n\", mail.id(), e.getClass().getSimpleName());\n                continue;                          // processed.txt 에 넣지 않으므로 다음 실행에서 다시 처리\n            }\n            Files.writeString(DONE, mail.id() + \"\\n\", StandardCharsets.UTF_8,\n                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);\n        }\n    }\n\n    public static void main(String[] args) throws IOException {\n        new InquiryApp().run();\n    }\n}\n"
+    }
+   },
+   {
+    "title": "다섯 가지 상황 시험",
+    "body": [
+     "Python 트랙·n8n 실습과 같은 다섯 상황을 일으켜 결과 파일을 비교합니다. <code>exec:java</code> 는 Maven 과 같은 JVM 에서 돌기 때문에 콘솔 입력을 그대로 받습니다."
+    ],
+    "code": {
+     "lang": "bash",
+     "file": "labs/s07/java/test.sh",
+     "src": "# 테스트 체크 (n8n 실습과 같은 다섯 가지 상황)\nRUN=\"./mvnw -q compile exec:java -Dexec.mainClass=study.s07.InquiryApp\"\nrm -f processed.txt log.csv errors.log && rm -rf outbox\n\n# 1) 정상 문의 · 2) FAQ 에 없는 문의 · 3) 승인 거절\n$RUN                      # m001 은 y, m002 는 y, m003 · m004 는 n 을 입력\n\n# 4) 무응답: 입력을 주지 않으면(EOF) 모두 '수동 처리' 로 기록되고 outbox 는 그대로\nrm -f processed.txt && $RUN < /dev/null\n\n# 5) 자격증명 오류: 키를 일부러 틀리게 → 메일마다 '오류' 기록, errors.log 확인\nrm -f processed.txt && ANTHROPIC_API_KEY=sk-ant-wrong $RUN < /dev/null\ncat errors.log\n"
+    }
+   }
+  ],
+  "check": [
+   "y 를 입력하기 전에는 <code>outbox/</code> 에 파일이 생기지 않고, 거절·무응답이면 log.csv 에 '수동 처리'로 남는가",
+   "도구 호출 로그에 <code>faq_lookup {query=...}</code> 이 찍히고 m001·m002 의 faq_used 에 FAQ ID 가, m003 은 needs_human=true 가 나오는가",
+   "같은 inbox 로 Python 트랙과 Java 트랙을 돌렸을 때 분류·FAQ ID 가 대체로 같고, 다른 메일이 있으면 그 이유(프롬프트·도구 결과)를 설명할 수 있는가"
   ]
  },
  "example": {

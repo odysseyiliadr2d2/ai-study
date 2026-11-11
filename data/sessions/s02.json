@@ -247,5 +247,83 @@
    "label": "Attention Is All You Need (Vaswani 외, 2017)",
    "url": "https://arxiv.org/abs/1706.03762"
   }
- ]
+ ],
+ "lab_java": {
+  "title": "토큰 · temperature · 임베딩 · 환각을 Java 로 재 보기",
+  "lead": "Python 트랙과 같은 네 실험을 Java 21 로 합니다. 토큰 수와 환각 실험은 Anthropic Java SDK, temperature 실험은 로컬 Ollama 의 OpenAI 호환 API 를 JDK 의 HttpClient + Jackson 으로 직접 부르고, 임베딩은 Ollama 임베딩 API 와 다국어 모델 bge-m3 를 씁니다. 같은 입력 문장과 같은 출력 표를 만듭니다.",
+  "env": [
+   "JDK 21 (Eclipse Temurin 권장)",
+   "Maven 3.9+ 와 Maven Wrapper(./mvnw)",
+   "com.anthropic:anthropic-java 3.8.0 · jackson-databind",
+   "Ollama + gemma4:e4b (temperature) · bge-m3 (임베딩)",
+   "ANTHROPIC_API_KEY (CountTokens · HallucinationProbe)"
+  ],
+  "steps": [
+   {
+    "title": "Maven 프로젝트와 로컬 모델 준비",
+    "body": [
+     "<code>labs/s02/java</code> 에 pom.xml 을 두고, 로컬 모델 두 개를 받습니다: <code>ollama pull gemma4:e4b</code>, <code>ollama pull bge-m3</code>. Maven Wrapper(<code>mvnw</code>·<code>mvnw.cmd</code>)는 저장소의 실습 폴더에 들어 있습니다.",
+     "실행은 클래스 이름만 바꿔 가며 합니다: <code>CountTokens</code> → <code>Temperature</code> → <code>EmbedSimilarity</code> → <code>HallucinationProbe</code>. 사내에서는 Nexus 같은 내부 Maven 저장소를 settings.xml 의 mirror 로 지정합니다 (자세한 건 실습 환경 페이지)."
+    ],
+    "code": {
+     "lang": "xml",
+     "file": "labs/s02/java/pom.xml",
+     "src": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\"\n         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd\">\n  <modelVersion>4.0.0</modelVersion>\n\n  <groupId>study</groupId>\n  <artifactId>s02-llm-basics</artifactId>\n  <version>1.0.0</version>\n  <description>세션 2 실습: 토큰 · temperature · 임베딩 · 환각 측정</description>\n\n  <properties>\n    <maven.compiler.release>21</maven.compiler.release>\n    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>\n    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>\n    <anthropic.version>3.8.0</anthropic.version>\n    <!-- anthropic-java 3.8.0 이 쓰는 Jackson 2.x 와 맞춥니다. 새 버전은 Maven Central 에서 확인 -->\n    <jackson.version>2.19.4</jackson.version>\n  </properties>\n\n  <dependencies>\n    <dependency>\n      <groupId>com.anthropic</groupId>\n      <artifactId>anthropic-java</artifactId>\n      <version>${anthropic.version}</version>\n    </dependency>\n    <dependency>\n      <groupId>com.fasterxml.jackson.core</groupId>\n      <artifactId>jackson-databind</artifactId>\n      <version>${jackson.version}</version>\n    </dependency>\n  </dependencies>\n\n  <build>\n    <plugins>\n      <plugin>\n        <groupId>org.apache.maven.plugins</groupId>\n        <artifactId>maven-compiler-plugin</artifactId>\n        <version>3.15.0</version>\n      </plugin>\n      <plugin>\n        <!-- ./mvnw -q compile exec:java -Dexec.mainClass=study.s02.클래스이름 -->\n        <groupId>org.codehaus.mojo</groupId>\n        <artifactId>exec-maven-plugin</artifactId>\n        <version>3.6.3</version>\n        <configuration>\n          <mainClass>study.s02.CountTokens</mainClass>\n        </configuration>\n      </plugin>\n    </plugins>\n  </build>\n</project>\n"
+    }
+   },
+   {
+    "title": "한국어 vs 영어 토큰 수 세기",
+    "body": [
+     "<code>client.messages().countTokens(MessageCountTokensParams)</code> 는 메시지를 보내지 않고 입력 토큰 수만 돌려줍니다(<code>.inputTokens()</code>). Python 의 <code>count_tokens</code> 와 같은 API 라서 숫자도 같게 나옵니다. 이 '글자/토큰' 비율이 세션 4 비용 계산의 기초가 됩니다.",
+     "실행: <code>./mvnw -q compile exec:java -Dexec.mainClass=study.s02.CountTokens</code>"
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s02/java/src/main/java/study/s02/CountTokens.java",
+     "src": "package study.s02;\n\nimport com.anthropic.client.AnthropicClient;\nimport com.anthropic.client.okhttp.AnthropicOkHttpClient;\nimport com.anthropic.models.messages.MessageCountTokensParams;\nimport java.util.LinkedHashMap;\nimport java.util.Map;\n\n/**\n * 한국어와 영어의 토큰 수 비교.\n * Anthropic 토큰 카운팅 API(무료, 분당 요청 수 제한 있음)를 씁니다. 결과는 추정치입니다.\n * ./mvnw -q compile exec:java -Dexec.mainClass=study.s02.CountTokens\n */\npublic class CountTokens {\n    static final String MODEL = System.getenv().getOrDefault(\"CLAUDE_MODEL\", \"claude-sonnet-5-5\");\n\n    public static void main(String[] args) {\n        AnthropicClient client = AnthropicOkHttpClient.fromEnv();   // ANTHROPIC_API_KEY\n\n        Map<String, String> samples = new LinkedHashMap<>();\n        samples.put(\"한국어\", \"야간 배치가 실패하면 운영 당직자에게 먼저 알리고, 30분 안에 복구되지 않으면 팀장에게 전화합니다.\");\n        samples.put(\"영어\", \"If the nightly batch fails, notify the on-call operator first, and call the team lead if it is not recovered within 30 minutes.\");\n        samples.put(\"SQL\", \"SELECT BASE_DT, BRNCH_CD, SUM(TRD_AMT) FROM ADW.TB_TRD_DAILY WHERE BASE_DT = :dt GROUP BY BASE_DT, BRNCH_CD\");\n        samples.put(\"테이블명\", \"TB_ADW_CUST_GRD_HIST\");\n\n        System.out.println(\"모델: \" + MODEL);\n        System.out.printf(\"%-8s %6s %6s %8s%n\", \"구분\", \"글자 수\", \"토큰 수\", \"글자/토큰\");\n        samples.forEach((name, text) -> {\n            MessageCountTokensParams params = MessageCountTokensParams.builder()\n                    .model(MODEL)\n                    .addUserMessage(text)\n                    .build();\n            // 메시지를 보내지 않고 입력 토큰 수만 셉니다 (메시지 구조에 쓰이는 토큰 몇 개가 함께 셉니다)\n            long n = client.messages().countTokens(params).inputTokens();\n            System.out.printf(\"%-8s %6d %6d %8.2f%n\", name, text.length(), n, (double) text.length() / n);\n        });\n    }\n}\n"
+    }
+   },
+   {
+    "title": "temperature 실험 (Ollama 를 HttpClient 로)",
+    "body": [
+     "요청·응답 JSON 을 record 로 정의하고 Jackson 으로 바꿉니다. SDK 없이도 OpenAI 호환 API 는 HTTP POST 한 번이라는 것을 보여 줍니다. temperature 0.0, 0.7, 1.5 에서 5번씩 보내고 서로 다른 답이 몇 개인지 셉니다. 0.0 에서도 답이 완전히 같지 않을 수 있습니다.",
+     "실행: <code>./mvnw -q compile exec:java -Dexec.mainClass=study.s02.Temperature</code>"
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s02/java/src/main/java/study/s02/Temperature.java",
+     "src": "package study.s02;\n\nimport com.fasterxml.jackson.annotation.JsonIgnoreProperties;\nimport com.fasterxml.jackson.annotation.JsonProperty;\nimport com.fasterxml.jackson.databind.ObjectMapper;\nimport java.net.URI;\nimport java.net.http.HttpClient;\nimport java.net.http.HttpRequest;\nimport java.net.http.HttpResponse;\nimport java.time.Duration;\nimport java.util.ArrayList;\nimport java.util.LinkedHashMap;\nimport java.util.List;\nimport java.util.Map;\n\n/**\n * temperature 실험. 최신 Claude 모델(예: Sonnet 5.5)은 temperature 를 보내면 400 오류를 돌려주므로,\n * temperature 를 받는 로컬 Ollama 모델로 실험합니다 (OpenAI 호환 엔드포인트를 HttpClient + Jackson 으로 호출).\n * ./mvnw -q compile exec:java -Dexec.mainClass=study.s02.Temperature\n */\npublic class Temperature {\n    static final String MODEL = System.getenv().getOrDefault(\"OLLAMA_MODEL\", \"gemma4:e4b\");\n    static final String BASE_URL = System.getenv().getOrDefault(\"OLLAMA_BASE_URL\", \"http://localhost:11434/v1\");\n    static final String PROMPT = \"정보계 야간 배치 장애 보고서의 제목을 15자 이내로 하나만 지어 주세요. 제목만 출력하세요.\";\n    static final int RUNS = 5;\n\n    // 요청 · 응답 JSON 을 record 로 정의합니다 (필요한 필드만)\n    record ChatMessage(String role, String content) {}\n\n    record ChatRequest(String model, List<ChatMessage> messages, double temperature,\n                       @JsonProperty(\"max_tokens\") int maxTokens) {}\n\n    @JsonIgnoreProperties(ignoreUnknown = true)\n    record ChatResponse(List<Choice> choices) {}\n\n    @JsonIgnoreProperties(ignoreUnknown = true)\n    record Choice(ChatMessage message) {}\n\n    static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();\n    static final ObjectMapper JSON = new ObjectMapper();\n\n    static String sample(double temperature) throws Exception {\n        var body = new ChatRequest(MODEL, List.of(new ChatMessage(\"user\", PROMPT)), temperature, 40);\n        HttpRequest req = HttpRequest.newBuilder(URI.create(BASE_URL + \"/chat/completions\"))\n                .timeout(Duration.ofSeconds(120))\n                .header(\"Content-Type\", \"application/json\")\n                .header(\"Authorization\", \"Bearer ollama\")   // Ollama 는 키를 검사하지 않습니다\n                .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(body)))\n                .build();\n        HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());\n        if (resp.statusCode() != 200) {\n            throw new IllegalStateException(\"HTTP \" + resp.statusCode() + \": \" + resp.body());\n        }\n        return JSON.readValue(resp.body(), ChatResponse.class).choices().get(0).message().content().strip();\n    }\n\n    public static void main(String[] args) throws Exception {\n        for (double t : new double[] {0.0, 0.7, 1.5}) {\n            Map<String, Integer> kinds = new LinkedHashMap<>();\n            for (int i = 0; i < RUNS; i++) kinds.merge(sample(t), 1, Integer::sum);\n            System.out.printf(\"%n[temperature=%.1f] 서로 다른 답 %d개 / %d회%n\", t, kinds.size(), RUNS);\n            List<Map.Entry<String, Integer>> sorted = new ArrayList<>(kinds.entrySet());\n            sorted.sort(Map.Entry.<String, Integer>comparingByValue().reversed());\n            for (var e : sorted) System.out.printf(\"  %d회  %s%n\", e.getValue(), e.getKey());\n        }\n    }\n}\n"
+    }
+   },
+   {
+    "title": "임베딩 코사인 유사도",
+    "body": [
+     "Ollama 의 <code>POST /api/embed</code> 에 문장 목록을 보내면 벡터 목록이 돌아옵니다. 코사인 유사도는 10줄짜리 함수로 직접 계산합니다. Python 트랙의 multilingual-e5-small(384차원)과 달리 bge-m3 는 1024차원이고 접두어가 필요 없어 점수의 절댓값은 다르지만, 순서가 비슷한지 비교해 보세요. 영어 문장이 관련 없는 한국어 문장보다 위에 오면 다국어 임베딩이 뜻을 잡은 것입니다.",
+     "실행: <code>./mvnw -q compile exec:java -Dexec.mainClass=study.s02.EmbedSimilarity</code>"
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s02/java/src/main/java/study/s02/EmbedSimilarity.java",
+     "src": "package study.s02;\n\nimport com.fasterxml.jackson.annotation.JsonIgnoreProperties;\nimport com.fasterxml.jackson.databind.ObjectMapper;\nimport java.net.URI;\nimport java.net.http.HttpClient;\nimport java.net.http.HttpRequest;\nimport java.net.http.HttpResponse;\nimport java.time.Duration;\nimport java.util.ArrayList;\nimport java.util.Comparator;\nimport java.util.List;\n\n/**\n * 임베딩 코사인 유사도. 로컬 Ollama 의 임베딩 API(POST /api/embed)와 다국어 모델 bge-m3 를 씁니다.\n * 폐쇄망에서는 모델 파일을 반입한 사내 Ollama 서버 주소를 OLLAMA_HOST 로 지정합니다.\n * ./mvnw -q compile exec:java -Dexec.mainClass=study.s02.EmbedSimilarity\n */\npublic class EmbedSimilarity {\n    static final String HOST = System.getenv().getOrDefault(\"OLLAMA_HOST\", \"http://localhost:11434\");\n    static final String MODEL = System.getenv().getOrDefault(\"EMBED_MODEL\", \"bge-m3\");\n\n    record EmbedRequest(String model, List<String> input) {}\n\n    @JsonIgnoreProperties(ignoreUnknown = true)\n    record EmbedResponse(List<double[]> embeddings) {}\n\n    record Scored(double score, String text) {}\n\n    static final HttpClient HTTP = HttpClient.newHttpClient();\n    static final ObjectMapper JSON = new ObjectMapper();\n\n    /** 문장 여러 개를 한 번에 벡터로 바꿉니다 (입력 순서대로 돌아옴). */\n    static List<double[]> embed(List<String> texts) throws Exception {\n        HttpRequest req = HttpRequest.newBuilder(URI.create(HOST + \"/api/embed\"))\n                .timeout(Duration.ofSeconds(120))\n                .header(\"Content-Type\", \"application/json\")\n                .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(new EmbedRequest(MODEL, texts))))\n                .build();\n        HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());\n        if (resp.statusCode() != 200) throw new IllegalStateException(\"HTTP \" + resp.statusCode() + \": \" + resp.body());\n        return JSON.readValue(resp.body(), EmbedResponse.class).embeddings();\n    }\n\n    /** 코사인 유사도 = 내적 / (길이 × 길이) */\n    static double cosine(double[] a, double[] b) {\n        double dot = 0, na = 0, nb = 0;\n        for (int i = 0; i < a.length; i++) {\n            dot += a[i] * b[i];\n            na += a[i] * a[i];\n            nb += b[i] * b[i];\n        }\n        return dot / (Math.sqrt(na) * Math.sqrt(nb));\n    }\n\n    public static void main(String[] args) throws Exception {\n        String query = \"야간 적재 작업이 실패했을 때 대응 절차\";\n        List<String> docs = List.of(\n                \"배치 장애 발생 시 운영 당직자에게 알리고 재처리합니다\",        // 뜻이 가까움\n                \"ETL job failure: notify the on-call operator and rerun\",       // 영어지만 뜻이 가까움\n                \"적재 실패 건은 콘솔에서 해당 블록부터 다시 실행합니다\",        // 단어는 다르지만 관련\n                \"신규 입사자 DW 조회 계정 신청 방법\",                           // 관련 없음\n                \"구내식당 점심 메뉴 안내\");                                     // 전혀 관련 없음\n\n        // bge-m3 는 e5 계열과 달리 \"query: \" / \"passage: \" 접두어가 필요 없습니다\n        double[] q = embed(List.of(query)).get(0);\n        List<double[]> d = embed(docs);\n        System.out.println(\"벡터 차원: \" + q.length);\n\n        List<Scored> scored = new ArrayList<>();\n        for (int i = 0; i < docs.size(); i++) scored.add(new Scored(cosine(q, d.get(i)), docs.get(i)));\n        scored.sort(Comparator.comparingDouble(Scored::score).reversed());\n        for (Scored s : scored) System.out.printf(\"%.3f  %s%n\", s.score(), s.text());\n    }\n}\n"
+    }
+   },
+   {
+    "title": "환각 탐지: 없는 테이블 물어보기",
+    "body": [
+     "Python 트랙과 같은 세 프롬프트(A 질문만, B 모르면 모른다고, C 정의서 + 근거 지시)를 보냅니다. 정의서 발췌는 Java text block(<code>\"\"\"</code>)으로 둡니다. C 에서 정의서에 없는 '등급 변경 사유' 컬럼을 지어내지 않는지 확인하세요.",
+     "실행: <code>./mvnw -q compile exec:java -Dexec.mainClass=study.s02.HallucinationProbe</code>"
+    ],
+    "code": {
+     "lang": "java",
+     "file": "labs/s02/java/src/main/java/study/s02/HallucinationProbe.java",
+     "src": "package study.s02;\n\nimport com.anthropic.client.AnthropicClient;\nimport com.anthropic.client.okhttp.AnthropicOkHttpClient;\nimport com.anthropic.models.messages.MessageCreateParams;\nimport com.anthropic.models.messages.TextBlock;\nimport java.util.List;\nimport java.util.stream.Collectors;\n\n/**\n * 환각 탐지 실험: 존재하지 않는 사내 테이블을 물어봅니다.\n * ./mvnw -q compile exec:java -Dexec.mainClass=study.s02.HallucinationProbe\n */\npublic class HallucinationProbe {\n    static final String MODEL = System.getenv().getOrDefault(\"CLAUDE_MODEL\", \"claude-sonnet-5-5\");\n    static final String QUESTION = \"우리 DW 의 TB_ADW_CUST_GRD_HIST 테이블 컬럼 목록과 각 컬럼 설명을 알려 주세요.\";\n\n    // 실습용 가상 정의서 발췌 (실제 테이블이 아닙니다)\n    static final String SCHEMA = \"\"\"\n            테이블: TB_ADW_CUST_GRD_HIST (고객 등급 변경 이력)\n            - CUST_ID      VARCHAR2(20)  고객 식별자(가명처리)\n            - GRD_CD       CHAR(2)       고객 등급 코드\n            - VALID_FROM   DATE          유효 시작일\n            - VALID_TO     DATE          유효 종료일 (현재 유효 행은 9999-12-31)\n            - LOAD_DTTM    DATE          적재 일시\"\"\";\n\n    record Variant(String name, String system, String user) {}\n\n    public static void main(String[] args) {\n        AnthropicClient client = AnthropicOkHttpClient.fromEnv();\n        List<Variant> variants = List.of(\n                new Variant(\"A. 질문만\", \"\", QUESTION),\n                new Variant(\"B. 모르면 모른다고\",\n                        \"사내 시스템에 대해 확실히 모르는 내용은 추측하지 말고 '확인할 수 없습니다'라고 답하세요.\", QUESTION),\n                new Variant(\"C. 정의서 + 근거 지시\",\n                        \"아래 정의서에 있는 내용만으로 답하세요. 정의서에 없는 컬럼이나 의미는 '정의서에 없음'이라고 쓰세요.\",\n                        \"<정의서>\\n\" + SCHEMA + \"\\n</정의서>\\n\\n\" + QUESTION + \" 등급 변경 사유 컬럼도 있나요?\"));\n\n        for (Variant v : variants) {\n            var builder = MessageCreateParams.builder()\n                    .model(MODEL)\n                    .maxTokens(1024)\n                    .addUserMessage(v.user());\n            if (!v.system().isEmpty()) builder.system(v.system());   // A 는 system 없이 보냅니다\n\n            String answer = client.messages().create(builder.build()).content().stream()\n                    .flatMap(b -> b.text().stream())     // thinking 블록은 건너뛰고 text 만\n                    .map(TextBlock::text)\n                    .collect(Collectors.joining());\n            System.out.println(\"\\n===== \" + v.name() + \" =====\");\n            System.out.println(answer);\n        }\n    }\n}\n"
+    }
+   }
+  ],
+  "check": [
+   "CountTokens 결과가 Python 트랙과 같은 토큰 수인지, 한국어와 영어 중 어느 쪽이 같은 뜻에 토큰을 더 쓰는지 말할 수 있는가",
+   "Temperature 가 temperature 별로 서로 다른 답의 개수를 출력하고, 그 수가 temperature 가 높을수록 늘어나는가",
+   "EmbedSimilarity 에서 뜻이 가까운 세 문장이 관련 없는 두 문장보다 위에 오고, HallucinationProbe C 가 '정의서에 없음'으로 답하는가"
+  ]
+ }
 }
