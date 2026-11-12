@@ -53,7 +53,12 @@
     "term": "파일 메모리",
     "desc": "OpenClaw 가 <code>AGENTS.md</code>, <code>MEMORY.md</code>, <code>memory/YYYY-MM-DD.md</code> 같은 마크다운 파일로 지침과 기억을 유지하는 방식."
    }
-  ]
+  ],
+  "anim": {
+   "id": "s19-sdk",
+   "title": "Agent SDK 가 대신 돌리는 루프, 그리고 OpenClaw",
+   "note": "서브에이전트 · 권한 · 비용"
+  }
  },
  "theory": {
   "lead": "같은 운영 에이전트도 <b>누가 유지보수하고, 어디서 돌고, 무엇까지 할 수 있는가</b>에 따라 n8n · SDK · OpenClaw 중 맞는 곳이 다릅니다.",

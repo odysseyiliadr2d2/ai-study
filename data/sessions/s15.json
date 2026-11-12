@@ -53,7 +53,12 @@
     "term": "publishable / secret 키",
     "desc": "Supabase 키 두 종류. publishable 은 브라우저에 노출돼도 되는 키(RLS 가 보호), secret 은 RLS 를 우회하므로 서버에서만 씁니다."
    }
-  ]
+  ],
+  "anim": {
+   "id": "s15-auth",
+   "title": "로그인 · 권한 · AI 기능 · 비밀키",
+   "note": "세 겹 권한"
+  }
  },
  "theory": {
   "lead": "권한은 <b>세 겹</b>으로, AI 결과는 <b>스키마와 검증</b>으로, 비밀키는 <b>환경변수</b>로 다룹니다.",

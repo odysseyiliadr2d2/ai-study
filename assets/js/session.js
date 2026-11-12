@@ -289,7 +289,7 @@
   // ── 움직이는 도식 불러오기 (처음 화면에 보일 때 한 번) ──
   const slots = [...document.querySelectorAll(".axa[data-anim]")];
   if (slots.length) {
-    const V = "20261113-2", loaded = {};
+    const V = "20261113-3", loaded = {};
     const load = (src) => loaded[src] || (loaded[src] = new Promise((ok, no) => {
       const sc = document.createElement("script"); sc.src = `${src}?v=${V}`; sc.onload = ok; sc.onerror = () => no(new Error(src)); document.head.appendChild(sc); }));
     const mount = async (slot) => {

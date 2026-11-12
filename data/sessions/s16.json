@@ -52,7 +52,12 @@
     "term": "롤링 업데이트",
     "desc": "Pod 를 하나씩 새 버전으로 바꾸는 Kubernetes 기본 배포 방식. 새 Pod 가 준비(readiness)돼야 옛 Pod 를 내립니다."
    }
-  ]
+  ],
+  "anim": {
+   "id": "s16-cicd",
+   "title": "main 에 병합된 커밋이 운영까지 가는 길",
+   "note": "GitHub Actions 예시"
+  }
  },
  "theory": {
   "lead": "배포 대상은 달라도 순서는 같습니다. <b>테스트 → 빌드 → 배포 → 확인 → (실패 시) 롤백</b>. 차이는 결과물의 모양과 비밀값을 두는 곳입니다.",
