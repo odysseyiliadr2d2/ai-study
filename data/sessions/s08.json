@@ -52,7 +52,12 @@
     "term": "pgvector",
     "desc": "PostgreSQL 에 vector 타입과 거리 연산자, HNSW·IVFFlat 인덱스를 더하는 오픈소스 확장. 확장 이름은 <code>vector</code>."
    }
-  ]
+  ],
+  "anim": {
+   "id": "s08-embed",
+   "title": "임베딩 공간에서 가까운 문서 찾기",
+   "note": "2차원으로 줄여 그림"
+  }
  },
  "theory": {
   "lead": "의미 검색의 품질은 <b>임베딩 모델 · 청킹 · 인덱스 설정</b> 세 가지로 정해지고, 저장소 선택은 그다음 문제입니다.",

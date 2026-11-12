@@ -1,0 +1,126 @@
+/* 움직이는 도식 (개념·이론 카드). 모든 규칙은 .axa 안에서만 적용됩니다. */
+.axa {
+  --a-accent: var(--orange); --a-accent-ink: var(--orange-ink); --a-soft: var(--orange-tint);
+  --a-ink: var(--ink); --a-muted: var(--ink-muted); --a-line: var(--line);
+  --a-surface: var(--surface-000); --a-surface2: var(--surface-200); --a-stage: var(--surface-100);
+  --a-dim: #c9c5bf; --a-cell0: #f1efeb;
+  --a-blue: #2f6f8f; --a-blue-soft: #dcebf2; --a-green: #5d7a3a; --a-green-soft: #e6eedb;
+  margin: var(--space-6) 0 0; border: 1px solid var(--a-line); border-radius: var(--radius-lg); background: var(--a-surface); overflow: hidden;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .axa {
+  --a-dim: #4a4744; --a-cell0: #262524; --a-blue: #6fb3d2; --a-blue-soft: #1e3540; --a-green: #9bc070; --a-green-soft: #2a3520; } }
+:root[data-theme="dark"] .axa { --a-dim: #4a4744; --a-cell0: #262524; --a-blue: #6fb3d2; --a-blue-soft: #1e3540; --a-green: #9bc070; --a-green-soft: #2a3520; }
+
+.axa-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 14px 18px; border-bottom: 1px solid var(--a-line); }
+.axa-head .axa-kicker { font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--a-accent-ink); }
+.axa-head h3 { margin: 0; font-size: 17px; }
+.axa-head .axa-note { margin-left: auto; font-size: 12px; color: var(--a-muted); }
+.axa-body { padding: 18px; }
+.axa-loading { padding: 24px 18px; color: var(--a-muted); font-size: 14px; }
+.axa button { font: inherit; }
+.axa-btn { font-size: 13px; font-weight: 700; border: 1px solid var(--a-line); background: var(--a-surface); color: var(--a-ink); border-radius: 999px; padding: 5px 13px; cursor: pointer; min-height: 32px; }
+.axa-btn.axa-primary { background: var(--a-ink); color: var(--a-surface); border-color: var(--a-ink); }
+.axa-btn:focus-visible, .axa-steps li:focus-visible, .axa-map button:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
+.axa-ctrl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.axa-count { font-size: 13px; color: var(--a-muted); font-variant-numeric: tabular-nums; margin-left: auto; }
+.axa-prog { height: 3px; background: var(--a-surface2); border-radius: 3px; overflow: hidden; }
+.axa-prog i { display: block; height: 100%; width: 0; background: var(--a-accent); }
+.axa-foot { font-size: 12px; color: var(--a-muted); margin: 10px 0 0; }
+.axa svg { display: block; width: 100%; height: auto; font-family: var(--sans); }
+.axa-canvas { overflow-x: auto; background: var(--a-stage); border: 1px solid var(--a-line); border-radius: 12px; }
+
+/* ── 단계 장면 (왼쪽 단계 · 오른쪽 그림) ── */
+.axa-scene { display: grid; gap: 12px; }
+.axa .axa-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; counter-reset: s; min-width: 0; }
+.axa .axa-steps li { counter-increment: s; display: flex; gap: 8px; align-items: center; padding: 6px 10px; border: 1px solid var(--a-line); border-radius: 10px; cursor: pointer; color: var(--a-muted); transition: background .25s, border-color .25s; margin: 0; min-width: 0; }
+.axa-steps li::before { content: counter(s); flex: 0 0 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: var(--a-surface2); color: var(--a-muted); }
+.axa-steps li b { color: var(--a-ink); font-size: 13px; font-weight: 600; line-height: 1.4; }
+.axa-steps li.axa-cur { background: var(--a-soft); border-color: var(--a-accent); }
+.axa-steps li.axa-cur b { font-weight: 700; }
+.axa-steps li.axa-cur::before { background: var(--a-accent); color: #fff; }
+.axa-steps li.axa-done::before { background: var(--a-ink); color: var(--a-surface); }
+.axa-desc { background: var(--a-surface2); border-radius: 12px; padding: 12px 16px; min-height: 84px; }
+.axa-desc b { display: block; font-size: 15px; color: var(--a-ink); }
+.axa-desc p { margin: 2px 0 0; font-size: 14px; line-height: 1.65; }
+.axa-stagebox { display: grid; gap: 10px; min-width: 0; }
+
+.axa .a-box rect { fill: var(--a-surface); stroke: var(--a-dim); stroke-width: 1.5; transition: fill .35s, stroke .35s; }
+.axa .a-box.a-hl rect { fill: var(--a-soft); stroke: var(--a-accent); }
+.axa .a-box.a-hl2 rect { fill: var(--a-blue-soft); stroke: var(--a-blue); }
+.axa .a-lbl { fill: var(--a-ink); font-size: 13px; font-weight: 700; }
+.axa .a-sub { fill: var(--a-muted); font-size: 11px; }
+.axa .a-mono { font-family: var(--mono); }
+.axa .a-edge { fill: none; stroke: var(--a-dim); stroke-width: 1.6; stroke-dasharray: 5 5; transition: stroke .35s; }
+.axa .a-edge.a-hl { stroke: var(--a-accent); stroke-dasharray: none; }
+.axa [data-at] { opacity: 0; transition: opacity .45s; }
+.axa [data-at].a-on { opacity: 1; }
+.axa .a-fade { opacity: .25; }
+.axa .a-pkt { fill: var(--a-accent); }
+.axa .a-chip rect { fill: var(--a-surface2); transition: fill .35s; }
+.axa .a-chip text { fill: var(--a-muted); font-size: 11px; font-weight: 700; }
+.axa .a-chip.a-hl rect { fill: var(--a-accent); }
+.axa .a-chip.a-hl text { fill: #fff; }
+.axa .a-pulse { animation: axa-pulse 1.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes axa-pulse { 50% { transform: scale(1.05); } }
+.axa .a-gate rect { fill: var(--a-blue-soft); stroke: var(--a-blue); }
+
+/* ── LLM 한 문장 따라가기 (세션 02) ── */
+.axa-map { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; }
+.axa-map button { text-align: left; border: 1px solid var(--a-line); background: var(--a-surface); color: var(--a-muted); border-radius: 10px; padding: 7px 10px; cursor: pointer; display: grid; min-width: 0; transition: background .3s, border-color .3s, color .3s; }
+.axa-map small { font-family: var(--mono); font-size: 11px; font-weight: 700; }
+.axa-map b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.axa-map button.axa-cur { background: var(--a-soft); border-color: var(--a-accent); color: var(--a-ink); }
+.axa-map button.axa-cur small { color: var(--a-accent-ink); }
+.axa-map button.axa-done { color: var(--a-ink); }
+.axa-benchtop { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 10px; }
+.axa-round { font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--a-surface2); }
+.axa-round.r2 { background: var(--a-blue-soft); }
+.axa-benchtop .axa-ctrl { margin-left: auto; }
+.axa-temp { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--a-muted); padding: 10px 0 0; flex-wrap: wrap; }
+.axa-temp input { flex: 1; min-width: 140px; accent-color: var(--a-accent); }
+.axa-temp output { font-family: var(--mono); color: var(--a-ink); font-weight: 700; }
+.axa-explain { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 0; border: 1px solid var(--a-line); border-radius: 12px; overflow: hidden; margin-top: 12px; }
+.axa-explain > div { padding: 14px 16px; min-width: 0; }
+.axa-explain h4 { font-size: 17px; margin: 0 0 4px; }
+.axa-explain p { margin: 0; }
+.axa-real { background: var(--a-surface2); font-size: 14px; }
+.axa-real h5 { font-size: 12px; letter-spacing: .06em; color: var(--a-accent-ink); margin: 0 0 6px; }
+.axa-real ul { margin: 0; padding-left: 18px; }
+.axa-real li { margin: 0; }
+.axa .w-cap { fill: var(--a-muted); font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+.axa .w-sent { fill: var(--a-ink); font-size: 24px; font-weight: 800; }
+.axa .w-tok rect { fill: var(--a-surface); stroke: var(--a-dim); stroke-width: 1.5; transition: fill .4s, stroke .4s; }
+.axa .w-tok.a-hl rect { fill: var(--a-soft); stroke: var(--a-accent); }
+.axa .w-tok.w-q rect { fill: var(--a-accent); stroke: var(--a-accent); }
+.axa .w-tok.w-q text.w-w { fill: #fff; }
+.axa .w-tok text.w-w { fill: var(--a-ink); font-size: 15px; font-weight: 700; }
+.axa .w-tok text.w-id { fill: var(--a-muted); font-size: 11px; font-family: var(--mono); }
+.axa .w-fadein { transition: opacity .45s; }
+.axa .w-hide { opacity: 0; pointer-events: none; }
+.axa .w-cell0 { fill: var(--a-cell0); }
+.axa .w-cell { transition: fill-opacity .6s; }
+.axa .w-frame { fill: var(--a-surface); stroke: var(--a-line); }
+.axa .w-rowhl { fill: var(--a-soft); stroke: var(--a-accent); transition: y .5s cubic-bezier(.2,.7,.2,1); }
+.axa .w-layer { fill: var(--a-cell0); stroke: var(--a-line); }
+.axa .w-layerfill { fill: var(--a-blue); fill-opacity: .55; transition: width .25s; }
+.axa .w-arc { fill: none; stroke: var(--a-accent); stroke-linecap: round; transition: stroke-dashoffset .9s ease; }
+.axa .w-probbg { fill: var(--a-cell0); }
+.axa .w-prob { fill: var(--a-blue); transition: width .6s cubic-bezier(.2,.7,.2,1), fill .3s; }
+.axa .w-prob.w-pick { fill: var(--a-accent); }
+.axa .w-pw { fill: var(--a-ink); font-size: 13px; font-weight: 700; }
+.axa .w-pw.w-pick { fill: var(--a-accent-ink); }
+.axa .w-pv { fill: var(--a-muted); font-size: 11px; font-family: var(--mono); }
+.axa .w-line { fill: none; stroke: var(--a-dim); stroke-width: 1.5; stroke-dasharray: 4 5; }
+.axa .w-fly { transition: transform .9s cubic-bezier(.2,.7,.2,1); }
+
+@media (max-width: 860px) {
+  .axa-stagebox svg { min-width: 520px; }
+  .axa .axa-canvas svg.w-svg { min-width: 760px; }
+  .axa .axa-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .axa-explain { grid-template-columns: 1fr; }
+  .axa-map { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .axa-benchtop .axa-ctrl { margin-left: 0; }
+  .axa-body { padding: 14px 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .axa *, .axa *::before { transition: none !important; animation: none !important; } }
+@media print { .axa { display: none !important; } }

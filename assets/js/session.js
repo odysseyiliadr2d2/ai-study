@@ -31,6 +31,12 @@
   const fig = (d) => d && d.src ? `<figure class="diagram"><a href="${esc(d.src)}" target="_blank" rel="noopener" title="새 창에서 크게 보기">
       <img src="${esc(d.src)}" alt="${esc(d.caption || "")}"></a>
       ${d.caption ? `<figcaption>${esc(d.caption)}</figcaption>` : ""}</figure>` : "";
+  // 움직이는 도식: 정적 도식 아래에 붙고, 화면에 들어올 때 스크립트를 불러옵니다
+  const ANIM_ID = /^s\d{2}-[a-z0-9-]+$/;
+  const anim = (a) => a && ANIM_ID.test(a.id || "") ? `<section class="axa" data-anim="${esc(a.id)}" aria-label="${esc(a.title || "움직이는 도식")}">
+      <div class="axa-head"><span class="axa-kicker">움직이는 도식</span><h3>${esc(a.title || "")}</h3>
+        ${a.note ? `<span class="axa-note">${esc(a.note)}</span>` : ""}</div>
+      <div class="axa-body"><div class="axa-loading">도식을 준비하고 있습니다…</div></div></section>` : "";
   let codeN = 0;
   const code = (c) => {
     if (!c || !c.src) return "";
@@ -48,6 +54,7 @@
     ${c.lead ? `<div class="callout">${rich(c.lead)}</div>` : ""}
     ${P(c.body)}
     ${fig(c.diagram)}
+    ${anim(c.anim)}
     ${c.terms && c.terms.length ? `<h3>핵심 용어</h3><div class="terms">${c.terms.map((t) =>
       `<div class="term"><b>${esc(t.term)}</b><span>${rich(t.desc)}</span></div>`).join("")}</div>` : ""}`;
 
@@ -57,6 +64,7 @@
     <div class="eyebrow">02 · 이론</div><h2>어떻게 동작하나</h2>
     ${t.lead ? `<div class="callout">${rich(t.lead)}</div>` : ""}
     ${fig(t.diagram)}
+    ${anim(t.anim)}
     ${(t.sections || []).map((x) => `<h3>${esc(x.title)}</h3>${P(x.body)}${UL(x.bullets)}${code(x.code)}`).join("")}`;
 
   // ── 3. 실습 코드 (Python · Java · 그 밖의 트랙) ──
@@ -277,4 +285,21 @@
   pickTrack(AX.store.get("axstudy.lang", "python"));
 
   if (window.Prism) Prism.highlightAll();
+
+  // ── 움직이는 도식 불러오기 (처음 화면에 보일 때 한 번) ──
+  const slots = [...document.querySelectorAll(".axa[data-anim]")];
+  if (slots.length) {
+    const V = "20261113-2", loaded = {};
+    const load = (src) => loaded[src] || (loaded[src] = new Promise((ok, no) => {
+      const sc = document.createElement("script"); sc.src = `${src}?v=${V}`; sc.onload = ok; sc.onerror = () => no(new Error(src)); document.head.appendChild(sc); }));
+    const mount = async (slot) => {
+      const body = slot.querySelector(".axa-body"), aid = slot.dataset.anim;
+      try { await load("assets/anim/engine.js"); await load(`assets/anim/${aid}.js`); window.AXAnim.mount(body, aid); }
+      catch (e) { body.innerHTML = `<div class="axa-loading">도식을 불러오지 못했습니다. 새로고침해 주세요.</div>`; }
+    };
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { io.unobserve(e.target); mount(e.target); } }), { rootMargin: "200px" });
+      slots.forEach((x) => io.observe(x));
+    } else slots.forEach(mount);
+  }
 })();
