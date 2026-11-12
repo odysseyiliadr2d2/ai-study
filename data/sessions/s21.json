@@ -47,7 +47,12 @@
     "term": "OpenAI 호환 API",
     "desc": "OpenAI 의 /v1/chat/completions 형식을 그대로 흉내 낸 API. vLLM · Ollama · llama.cpp 서버가 모두 제공합니다."
    }
-  ]
+  ],
+  "anim": {
+   "id": "s21-onprem",
+   "title": "오픈웨이트 모델을 사내 GPU 에 올리기",
+   "note": "메모리 값은 추정"
+  }
  },
  "theory": {
   "lead": "모델 선정은 <b>라이선스 → 크기(메모리) → 한국어 성능 → 컨텍스트</b> 순서로 거르는 것이 빠릅니다. 라이선스에서 탈락하면 나머지는 볼 필요가 없습니다.",

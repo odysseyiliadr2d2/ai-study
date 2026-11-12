@@ -48,7 +48,12 @@
     "term": "zod · Bean Validation",
     "desc": "입력 검증 도구. zod 는 TypeScript 스키마(<code>safeParse</code>), Bean Validation 은 Java 어노테이션(<code>@NotBlank</code>, <code>@Size</code>, <code>@Valid</code>)."
    }
-  ]
+  ],
+  "anim": {
+   "id": "s14-rest",
+   "title": "등록 버튼 한 번이 지나가는 길",
+   "note": "화면 · Controller · Service · Repository"
+  }
  },
  "theory": {
   "lead": "API 는 <b>규격을 먼저 쓰고</b> 구현합니다. 규격이 같으면 두 트랙의 화면이 서로의 API 를 불러도 동작합니다.",

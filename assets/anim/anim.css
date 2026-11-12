@@ -44,12 +44,12 @@
 .axa-desc p { margin: 2px 0 0; font-size: 14px; line-height: 1.65; }
 .axa-stagebox { display: grid; gap: 10px; min-width: 0; }
 
-.axa .a-box rect { fill: var(--a-surface); stroke: var(--a-dim); stroke-width: 1.5; transition: fill .35s, stroke .35s; }
-.axa .a-box.a-hl rect { fill: var(--a-soft); stroke: var(--a-accent); }
-.axa .a-box.a-hl2 rect { fill: var(--a-blue-soft); stroke: var(--a-blue); }
+.axa .a-box > rect { fill: var(--a-surface); stroke: var(--a-dim); stroke-width: 1.5; transition: fill .35s, stroke .35s; }
+.axa .a-box.a-hl > rect { fill: var(--a-soft); stroke: var(--a-accent); }
+.axa .a-box.a-hl2 > rect { fill: var(--a-blue-soft); stroke: var(--a-blue); }
 .axa .a-lbl { fill: var(--a-ink); font-size: 13px; font-weight: 700; }
 .axa .a-sub { fill: var(--a-muted); font-size: 11px; }
-.axa .a-mono { font-family: var(--mono); }
+.axa .a-mono { font-family: var(--mono); white-space: pre; }
 .axa .a-edge { fill: none; stroke: var(--a-dim); stroke-width: 1.6; stroke-dasharray: 5 5; transition: stroke .35s; }
 .axa .a-edge.a-hl { stroke: var(--a-accent); stroke-dasharray: none; }
 .axa [data-at] { opacity: 0; transition: opacity .45s; }
@@ -62,7 +62,15 @@
 .axa .a-chip.a-hl text { fill: #fff; }
 .axa .a-pulse { animation: axa-pulse 1.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes axa-pulse { 50% { transform: scale(1.05); } }
-.axa .a-gate rect { fill: var(--a-blue-soft); stroke: var(--a-blue); }
+.axa .a-strong { fill: var(--a-ink); font-weight: 700; }
+.axa .a-t-blue > rect { fill: var(--a-blue-soft); stroke: var(--a-blue); }
+.axa .a-t-green > rect { fill: var(--a-green-soft); stroke: var(--a-green); }
+.axa .a-t-dash > rect { stroke-dasharray: 5 4; }
+.axa .a-barbg { fill: var(--a-surface2); }
+.axa .a-bar { fill: var(--a-blue); transition: width .7s cubic-bezier(.2,.7,.2,1); }
+.axa .a-hl .a-bar, .axa g.a-hl > .a-bar { fill: var(--a-accent); }
+.axa text.a-hl { fill: var(--a-accent-ink); font-weight: 700; }
+.axa .a-gate > rect { fill: var(--a-blue-soft); stroke: var(--a-blue); }
 
 /* ── LLM 한 문장 따라가기 (세션 02) ── */
 .axa-map { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; }
